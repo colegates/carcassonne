@@ -1,0 +1,10 @@
+import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+const b = await chromium.launch();
+const p = await (await b.newContext({ ...devices['iPhone 13'] })).newPage();
+p.on('pageerror', e => console.log('pageerror:', e.message));
+await p.goto('http://localhost:5173/'); await p.waitForTimeout(800);
+await p.tap('#btn-new'); await p.tap('#btn-start'); await p.waitForTimeout(1500);
+await p.evaluate(() => { const v = window.__carc.view; v.cam = { x: 2.2, y: 1.5, z: 160 }; v.camTarget = null; v.dirty = true; });
+await p.waitForTimeout(400);
+await p.screenshot({ path: '/tmp/claude-0/arrows.png' });
+await b.close();

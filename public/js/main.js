@@ -426,7 +426,7 @@ $('btn-rotate').addEventListener('click', () => { if (state?.phase === 'place' &
 $('preview').addEventListener('click', () => { if (state?.phase === 'place' && cur().kind !== 'ai' && !ui.busy) rotateTentative(); });
 $('btn-confirm').addEventListener('click', () => onConfirm());
 $('btn-undo').addEventListener('click', () => onUndo());
-$('btn-center').addEventListener('click', () => { sfx.tap(); view.fit(true, ui.placements?.map((p) => [p.x, p.y]) || []); });
+$('btn-center').addEventListener('click', () => { sfx.tap(); view.fit(true, ui.placements?.map((p) => [p.x, p.y]) || [], 30); });
 $('btn-hint').addEventListener('click', () => onHint());
 
 async function onConfirm() {
@@ -467,14 +467,14 @@ function beginMeeplePhase() {
         label += ` · ${1 + G.monasteryNeighbours(state.board, x, y)}`;
       } else if (f.type !== 'field') {
         const g = G.describeGroup(state, state.last, fi);
-        label += g.complete ? ` · ${g.points} pts!` : ` · ${g.points} now · ${(g.tiles.size + (f.type === 'city' ? g.pennants : 0)) * (f.type === 'city' ? 2 : 1)} if finished`;
+        label += g.complete ? ` · ${g.points} pts!` : f.type === 'city' ? ` · ${g.points} now · ${(g.tiles.size + g.pennants) * 2} if finished` : ` · worth ${g.points}+`;
       }
     }
     return { key: state.last, fi, label, selected: false, hinted: ui.hint && ui.hint.meeple === fi };
   });
   view.setVM({ ghosts: ui.ghosts, ghostColor: colorOf(cur()), showLabels: false });
   const [x, y] = G.parseKey(state.last);
-  view.animateCam({ x, y: y + 0.15, z: Math.max(view.cam.z, Math.min(170, view.w / 2.4)) });
+  view.animateCam({ x, y, z: Math.max(Math.min(view.cam.z, view.viewport().vh / 1.25), Math.min(170, view.w / 2.4, view.viewport().vh / 1.25)) });
   setDock({ instruction: `Tap a <b>ghost meeple</b> to claim it, or ✓ to skip <small>(♟${cur().meeples} left)</small>`, confirm: true, undo: !!ui.snapshot });
   if (ui.hint && ui.hint.meeple !== null && ui.hint.meeple !== undefined && opts.includes(ui.hint.meeple)) {
     toast(`💡 Hint: claim the ${TYPE_LABEL[TILE_TYPES[tile.t].features[ui.hint.meeple].type].toLowerCase()}`);

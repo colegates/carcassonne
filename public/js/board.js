@@ -162,6 +162,8 @@ export class BoardView {
         tapStart = null;
       }
       if (tapStart && !tapStart.moved && e.type === 'pointerup' && performance.now() - tapStart.t < 600) {
+        const arrow = this.vm.candidates && (this.arrows || []).find((a) => Math.hypot(a.ex - e.clientX, a.ey - e.clientY) < 24);
+        if (arrow) { this.animateCam({ x: arrow.wx, y: arrow.wy, z: Math.max(this.cam.z, 70) }); return; }
         const [wx, wy] = this.toWorld(e.clientX, e.clientY);
         this.onTap?.(wx, wy);
       }
@@ -334,6 +336,8 @@ export class BoardView {
     const { ctx } = this;
     const z = this.cam.z;
     const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    const offscreen = [];
+    this.arrows = [];
     for (const c of this.vm.candidates) {
       const [sx, sy] = this.toScreen(c.x, c.y);
       const inset = z * 0.06;
@@ -346,10 +350,29 @@ export class BoardView {
       ctx.setLineDash(good ? [] : [z * 0.08, z * 0.06]);
       ctx.stroke();
       ctx.setLineDash([]);
+      if (sx < -z / 2 || sx > this.w + z / 2 || sy < this.viewport().top - z / 2 || sy > this.h - (this.h - this.viewport().top - this.viewport().vh) + z / 2) offscreen.push([sx, sy, c.x, c.y]);
       if (c.hint) {
         ctx.font = `${Math.round(z * 0.38)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('💡', sx, sy);
       }
+    }
+    // arrows at the screen edge pointing to spots you can't see
+    const vp = this.viewport();
+    const seen = new Set();
+    for (const [px, py, wx, wy] of offscreen) {
+      const cx = this.w / 2, cy = vp.cy;
+      const ang = Math.atan2(py - cy, px - cx);
+      const m = 26;
+      const ex = Math.max(m, Math.min(this.w - m, px)), ey = Math.max(vp.top + m, Math.min(vp.top + vp.vh - m, py));
+      const keyp = `${Math.round(ex / 40)},${Math.round(ey / 40)}`;
+      if (seen.has(keyp)) continue;
+      seen.add(keyp);
+      this.arrows.push({ ex, ey, wx, wy });
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang);
+      ctx.globalAlpha = 0.65 + 0.35 * pulse;
+      ctx.fillStyle = 'rgba(30,18,8,0.75)'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ffd75a'; ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(-5, -7); ctx.lineTo(-2, 0); ctx.lineTo(-5, 7); ctx.closePath(); ctx.fill();
+      ctx.restore();
     }
   }
 
@@ -408,7 +431,7 @@ export class BoardView {
         drawMeeple(ctx, mx, my, z * 0.26, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
       }
       if (g.label && (g.selected || this.vm.showLabels)) {
-        this.label(mx, my + z * 0.24, g.label);
+        this.label(sx, sy + z * 0.5 + Math.max(12, z * 0.12), g.label);
       }
     }
   }
