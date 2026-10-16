@@ -193,6 +193,7 @@ const helper = () => state.options.hints !== false;
 
 function startGame(s) {
   state = s;
+  $('btn-confirm').textContent = '✓';
   ui = { shown: state.players.map((p) => p.score), previewRot: 0 };
   view.setState(state);
   view.setVM({ candidates: null, tentative: null, ghosts: null, highlight: null, extraMeeples: [], lastKey: state.last });
@@ -253,6 +254,7 @@ function banner(html, ms = 1600) {
   bannerTimer = setTimeout(() => b.classList.remove('show'), ms);
 }
 function toast(text) {
+  $('toast-layer').querySelectorAll('.toast').forEach((t) => t.remove());
   const t = document.createElement('div'); t.className = 'toast'; t.textContent = text;
   $('toast-layer').appendChild(t);
   setTimeout(() => t.remove(), 2700);
@@ -281,6 +283,7 @@ function setDock({ instruction, rotate = false, confirm = false, undo = false, p
   $('btn-undo').hidden = !undo;
   $('btn-rotate').hidden = !rotate && undo;
   $('btn-hint').hidden = !helper() || p.kind === 'ai' || state.phase === 'over';
+  requestAnimationFrame(() => { $('side-tools').style.bottom = `${$('dock').offsetHeight + 14}px`; });
 }
 
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -320,7 +323,7 @@ async function startTurn() {
 
 function humanPlacePhase() {
   refreshCandidates();
-  setDock({ instruction: 'Tap a <b>glowing square</b> to place your tile', rotate: true });
+  setDock({ instruction: 'Tap a square to place your tile — <b>gold</b> ones fit the way it is turned', rotate: true });
 }
 
 function refreshCandidates() {
@@ -378,6 +381,7 @@ function rotateTentative() {
 }
 
 view.onTap = (wx, wy) => {
+  if (ui.skippable) { ui.fast = true; return; }
   if (!state || state.phase === 'over' || cur().kind === 'ai' || ui.busy) return;
   const x = Math.round(wx), y = Math.round(wy);
   if (state.phase === 'place') {
@@ -404,9 +408,10 @@ view.onTap = (wx, wy) => {
         const fi = featureUnder(tile.t, ux, uy);
         best = ui.ghosts.find((g) => g.fi === fi) || null;
       }
-      if (!best) return;
+      if (!best) { if (ui.selected !== null) selectGhost(null); return; }
     }
-    selectGhost(best.fi === ui.selected ? null : best.fi);
+    if (best.fi === ui.selected) { onConfirm(); return; } // second tap = place it
+    selectGhost(best.fi);
   }
 };
 
@@ -425,6 +430,7 @@ $('btn-center').addEventListener('click', () => { sfx.tap(); view.fit(true, ui.p
 $('btn-hint').addEventListener('click', () => onHint());
 
 async function onConfirm() {
+  if (state?.phase === 'over' && !ui.busy) { showScores(true); return; }
   if (!state || ui.busy || cur().kind === 'ai') return;
   if (state.phase === 'place' && ui.tentative) {
     const { x, y, r } = ui.tentative;
@@ -461,14 +467,14 @@ function beginMeeplePhase() {
         label += ` · ${1 + G.monasteryNeighbours(state.board, x, y)}`;
       } else if (f.type !== 'field') {
         const g = G.describeGroup(state, state.last, fi);
-        label += g.complete ? ` · ${g.points}!` : ` · ${g.points} now, ${(g.tiles.size + (f.type === 'city' ? g.pennants : 0)) * (f.type === 'city' ? 2 : 1)} done`;
+        label += g.complete ? ` · ${g.points} pts!` : ` · ${g.points} now · ${(g.tiles.size + (f.type === 'city' ? g.pennants : 0)) * (f.type === 'city' ? 2 : 1)} if finished`;
       }
     }
     return { key: state.last, fi, label, selected: false, hinted: ui.hint && ui.hint.meeple === fi };
   });
   view.setVM({ ghosts: ui.ghosts, ghostColor: colorOf(cur()), showLabels: false });
   const [x, y] = G.parseKey(state.last);
-  view.ensureVisible(x, y, 80);
+  view.animateCam({ x, y: y + 0.15, z: Math.max(view.cam.z, Math.min(170, view.w / 2.4)) });
   setDock({ instruction: `Tap a <b>ghost meeple</b> to claim it, or ✓ to skip <small>(♟${cur().meeples} left)</small>`, confirm: true, undo: !!ui.snapshot });
   if (ui.hint && ui.hint.meeple !== null && ui.hint.meeple !== undefined && opts.includes(ui.hint.meeple)) {
     toast(`💡 Hint: claim the ${TYPE_LABEL[TILE_TYPES[tile.t].features[ui.hint.meeple].type].toLowerCase()}`);
@@ -493,7 +499,7 @@ function selectGhost(fi) {
       if (feat.type === 'field') {
         const cities = G.fieldCities(state.board, g);
         const done = cities.filter((c) => c.complete).length;
-        info = `Farmer: stays till the end. Right now: ${done} finished cit${done === 1 ? 'y' : 'ies'} → ${done * 3} pts`;
+        info = `Farmer (stays all game): ${done * 3} pts so far`;
       } else if (feat.type === 'road') {
         info = `Thief on a ${g.tiles.size}-tile road${g.complete ? ' — finished' : ''}`;
       } else {
@@ -503,7 +509,7 @@ function selectGhost(fi) {
   }
   view.setVM({ ghosts: ui.ghosts, highlight });
   setDock({
-    instruction: fi === null ? 'Tap a <b>ghost meeple</b> to claim it, or ✓ to skip' : `${TYPE_ICON[TILE_TYPES[state.board[state.last].t].features[fi].type]} ${info}. Press ✓`,
+    instruction: fi === null ? 'Tap a <b>ghost meeple</b> to claim it, or ✓ to skip' : `${TYPE_ICON[TILE_TYPES[state.board[state.last].t].features[fi].type]} ${info}. Tap again or ✓`,
     confirm: true, undo: !!ui.snapshot, pulse: fi !== null,
   });
 }
@@ -539,6 +545,7 @@ function onHint() {
 }
 
 async function completeTurn(fi) {
+  const token = turnToken;
   ui.busy = true;
   const placer = state.current;
   const k = state.last;
@@ -553,14 +560,18 @@ async function completeTurn(fi) {
     sfx.meeple();
     await sleep(420);
   }
+  if (token !== turnToken) return;
   renderPlayers();
-  await animateEvents(events, placer);
+  await animateEvents(events, placer, false, token);
+  if (token !== turnToken) return;
   ui.busy = false;
   startTurn();
 }
 
-async function animateEvents(events, placer, final = false) {
+async function animateEvents(events, placer, final = false, token = turnToken) {
+  const wait = (ms) => (ui.fast ? Promise.resolve() : sleep(ms));
   for (const e of events) {
+    if (token !== turnToken) return;
     const tiles = [...new Set(e.nodes.map(([k]) => k))].map(G.parseKey);
     const cx = tiles.reduce((a, [x]) => a + x, 0) / tiles.length;
     const cy = tiles.reduce((a, [, y]) => a + y, 0) / tiles.length;
@@ -583,12 +594,18 @@ async function animateEvents(events, placer, final = false) {
     }
     view.addEffect({ type: 'float', x: cx, y: cy, text: `+${e.points}${e.winners.length > 1 ? ' each' : ''}`, sub, color: winnerColor.light, dur: 1900 });
     view.addEffect({ type: 'sparkle', x: cx, y: cy, dur: 1100, n: Math.min(60, 14 + e.points * 2), colors: ['#ffe27a', '#fff', winnerColor.light] });
-    sfx.score(e.points >= 8);
-    await sleep(final ? 750 : 650);
+    if (!ui.fast) sfx.score(e.points >= 8);
+    if (!final && e.meeples.length && new Set(e.meeples.map((m) => m.p)).size > 1) {
+      const losers = [...new Set(e.meeples.map((m) => m.p))].filter((p) => !e.winners.includes(p));
+      banner(losers.length ? `⚔️ ${escapeHtml(state.players[e.winners[0]].name)} wins the ${what.toLowerCase()} from ${losers.map((p) => escapeHtml(state.players[p].name)).join(' & ')}!` : `🤝 Shared ${what.toLowerCase()}! +${e.points} each`, 2200);
+    } else if (!final && e.points >= 8) {
+      banner(`🎉 ${escapeHtml(state.players[e.winners[0]].name)} +${e.points}! Great ${what.toLowerCase()}!`, 2000);
+    }
+    await wait(final ? 750 : 650);
     for (const w of e.winners) { ui.shown[w] += e.points; bumpChip(w); }
     renderPlayers();
     for (const m of e.meeples) flyHome(m);
-    await sleep(final ? 650 : 750);
+    await wait(final ? 650 : 750);
   }
   view.setVM({ extraMeeples: [] });
   void placer;
@@ -648,13 +665,15 @@ async function endGame() {
     // put followers back on the board for the show
     view.setVM({ extraMeeples: events.flatMap((e) => e.meeples) });
     renderPlayers();
-    banner('🏁 Final scoring', 2200);
+    banner('🏁 Final scoring — tap to skip', 2200);
+    ui.fast = false;
+    ui.skippable = true;
     await sleep(1200);
     view.fit(true);
     await sleep(700);
     let lastKind = null;
     for (const e of events) {
-      if (e.kind !== lastKind) {
+      if (e.kind !== lastKind && !ui.fast) {
         lastKind = e.kind;
         banner({ road: '🛣️ Unfinished roads', city: '🏯 Unfinished cities', monastery: '⛪ Monasteries', field: '🌾 Farms' }[e.kind], 1500);
         await sleep(600);
@@ -662,7 +681,10 @@ async function endGame() {
       await animateEvents([e], null, true);
     }
     ui.finalShown = true;
+    ui.skippable = false;
   }
+  setDock({ instruction: 'Game over! Tap 🏆 to see the results', confirm: true });
+  $('btn-confirm').textContent = '🏆';
   ui.shown = state.players.map((p) => p.score);
   renderPlayers();
   view.setVM({ extraMeeples: [] });
@@ -677,7 +699,7 @@ function showScores(final = false) {
   if (!state) return;
   const maxScore = Math.max(...state.players.map((p) => p.score));
   const winners = state.players.filter((p) => p.score === maxScore);
-  const isFinal = final === true || state.phase === 'over';
+  const isFinal = state.phase === 'over';
   $('scores-title').textContent = isFinal ? 'Final Scores' : 'Scores so far';
   let html = '';
   if (isFinal) {
@@ -703,7 +725,7 @@ function showScores(final = false) {
       ns.current = Math.floor(Math.random() * ns.players.length);
       startGame(ns);
     });
-    btn('View the Map', 'parchment', () => { $('scores-modal').hidden = true; });
+    btn('View the Map', 'parchment', () => { $('scores-modal').hidden = true; view.fit(true, [], 20); });
     btn('Home', 'parchment', () => { $('scores-modal').hidden = true; show('home'); });
   } else {
     btn('Close', 'parchment', () => { $('scores-modal').hidden = true; });

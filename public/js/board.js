@@ -88,11 +88,11 @@ export class BoardView {
     return { minX, maxX, minY, maxY };
   }
 
-  fit(animate = true, extra = []) {
+  fit(animate = true, extra = [], minZ = 44) {
     const b = this.bounds(extra);
     const { vh } = this.viewport();
     const wTiles = b.maxX - b.minX + 2, hTiles = b.maxY - b.minY + 2;
-    const z = Math.max(34, Math.min(110, Math.min(this.w / wTiles, vh / hTiles)));
+    const z = Math.max(minZ, Math.min(110, Math.min(this.w / wTiles, vh / hTiles)));
     const target = { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2, z };
     if (animate) this.animateCam(target); else { this.cam = target; this.dirty = true; }
   }

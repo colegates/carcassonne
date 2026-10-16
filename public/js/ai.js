@@ -7,15 +7,17 @@ import {
 } from './game.js';
 
 const LEVELS = {
-  easy: { noise: 6, farmers: false, opp: 0.2, lookMeeple: 0.7 },
-  medium: { noise: 1.5, farmers: true, opp: 0.6, lookMeeple: 1 },
+  easy: { noise: 9, farmers: false, opp: 0.2, lookMeeple: 0.6 },
+  medium: { noise: 4, farmers: true, opp: 0.5, lookMeeple: 1 },
   hard: { noise: 0.15, farmers: true, opp: 1, lookMeeple: 1 },
 };
 
+export const P = { hand: 3.2, handExtra: 1, cityGrow: 2.5, roadGrow: 1.2, fieldOpen: 0.4, decay: 0.6, base: 1.6, monBase: 2.2, oppScale: 0.9 };
+
 function completionChance(openEdges, remaining) {
   if (openEdges === 0) return 1;
-  const base = Math.min(1, remaining * 1.6);
-  return Math.max(0.02, base * Math.pow(0.72, openEdges - 1));
+  const base = Math.min(1, remaining * P.base);
+  return Math.max(0.02, base * Math.pow(P.decay, openEdges - 1));
 }
 
 // Estimated final points for every player given the current board.
@@ -31,7 +33,7 @@ function estimate(state, adjust) {
     if (feat.type === 'monastery') {
       const [x, y] = parseKey(k);
       const nb = monasteryNeighbours(board, x, y);
-      const pc = Math.min(1, remaining * 2.2) * Math.pow(0.8, 8 - nb);
+      const pc = Math.min(1, remaining * P.monBase) * Math.pow(0.8, 8 - nb);
       est[tile.m.p] += 9 * pc + (1 + nb) * (1 - pc);
       continue;
     }
@@ -44,14 +46,14 @@ function estimate(state, adjust) {
     if (g.type === 'field') {
       const cities = fieldCities(board, g);
       v = 0;
-      for (const c of cities) v += c.complete ? 3 : 3 * completionChance(c.openEdges, remaining) * 0.8;
+      for (const c of cities) v += c.complete ? 3 : 3 * completionChance(c.openEdges, remaining) * P.fieldOpen;
     } else {
       const pc = completionChance(g.openEdges, remaining);
       const now = groupPoints(g);
       if (g.type === 'city') {
-        v = pc * (now * 2 + 2.5 * remaining) + (1 - pc) * now;
+        v = pc * (now * 2 + P.cityGrow * remaining) + (1 - pc) * now;
       } else {
-        v = now + pc * 1 + remaining * 1.2;
+        v = now + pc * 1 + remaining * P.roadGrow;
       }
     }
     for (const p of win) est[p] += v;
@@ -59,7 +61,7 @@ function estimate(state, adjust) {
   // followers in hand are valuable while there are tiles left to play
   for (let i = 0; i < n; i++) {
     const m = state.players[i].meeples + (adjust.meeples[i] || 0);
-    est[i] += (Math.min(m, 3) * 2.2 + Math.max(0, m - 3) * 0.6) * remaining;
+    est[i] += (Math.min(m, 3) * P.hand + Math.max(0, m - 3) * P.handExtra) * remaining;
   }
   return est;
 }
@@ -68,7 +70,7 @@ function valueFor(est, me, oppWeight) {
   let worst = -Infinity, sum = 0;
   est.forEach((v, i) => { if (i !== me) { worst = Math.max(worst, v); sum += v; } });
   const others = est.length > 1 ? oppWeight * worst + (1 - oppWeight) * (sum / (est.length - 1)) : 0;
-  return est[me] - others * 0.9;
+  return est[me] - others * P.oppScale;
 }
 
 export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
