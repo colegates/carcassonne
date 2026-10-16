@@ -177,6 +177,7 @@ $('btn-start').addEventListener('click', () => {
   setup.players.forEach((p, i) => { if (!p.name.trim()) p.name = `Player ${i + 1}`; });
   store.set('carc-setup', setup);
   const state = G.newGame(setup.players, { farmers: setup.farmers, hints: setup.hints });
+  state.current = Math.floor(Math.random() * state.players.length); // random start player
   startGame(state);
 });
 
@@ -202,7 +203,8 @@ function startGame(s) {
   turnToken++;
   if (state.phase === 'meeple') {
     // resume after a reload in the middle of a turn: the tile is down, finish the follower step
-    beginMeeplePhase();
+    if (cur().kind === 'ai') completeTurn(null);
+    else beginMeeplePhase();
   } else startTurn();
 }
 
@@ -292,7 +294,10 @@ async function startTurn() {
   save();
   renderPlayers();
   if (state.phase === 'over') { await endGame(); return; }
-  if ((state.discarded.length || 0) > (ui.discardSeen ?? state.discarded.length)) toast('A tile that fit nowhere was put aside');
+  if ((state.discarded.length || 0) > (ui.discardSeen ?? state.discarded.length)) {
+    const gone = state.discarded.slice(ui.discardSeen).map((t) => TILE_TYPES[t].name);
+    toast(`Fits nowhere, put aside: ${gone.join(', ')}`);
+  }
   ui.discardSeen = state.discarded.length;
   const p = cur();
   ui.placements = G.validPlacements(state.board, state.drawn);
@@ -456,7 +461,7 @@ function beginMeeplePhase() {
         label += ` · ${1 + G.monasteryNeighbours(state.board, x, y)}`;
       } else if (f.type !== 'field') {
         const g = G.describeGroup(state, state.last, fi);
-        label += ` · ${g.complete ? g.points + '!' : g.points}`;
+        label += g.complete ? ` · ${g.points}!` : ` · ${g.points} now, ${(g.tiles.size + (f.type === 'city' ? g.pennants : 0)) * (f.type === 'city' ? 2 : 1)} done`;
       }
     }
     return { key: state.last, fi, label, selected: false, hinted: ui.hint && ui.hint.meeple === fi };
@@ -695,6 +700,7 @@ function showScores(final = false) {
     btn('Play Again', 'red', () => {
       $('scores-modal').hidden = true;
       const ns = G.newGame(state.players.map((p) => ({ name: p.name, color: p.color, kind: p.kind, level: p.level })), state.options);
+      ns.current = Math.floor(Math.random() * ns.players.length);
       startGame(ns);
     });
     btn('View the Map', 'parchment', () => { $('scores-modal').hidden = true; });

@@ -3,7 +3,7 @@
 // orientation) and then blitted/rotated by the board renderer.
 import { TILE_TYPES } from './tiles.js';
 
-export const ART_SIZE = 384; // px per tile in the cached artwork
+export const ART_SIZE = 576; // px per tile in the cached artwork
 const HIT = 96; // resolution of the feature hit-map
 
 // ---------- small utils ----------
@@ -259,7 +259,8 @@ function computeAnchors(id, geo, label) {
 // Painterly, muted style in the spirit of the board game's illustrations:
 // soft watercolour meadows, pale sandy paths, dense muted-red rooftops behind
 // grey-brown stone walls, soft shadows and no hard outlines.
-const GREENS = ['#6f8a42', '#7e9a4c', '#64803b', '#8aa357', '#5a7536', '#93a960'];
+const GREENS = ['#86a04a', '#8fa851', '#7c9645', '#94ac57', '#9db35c', '#78913f'];
+const GRASS_BASE = '#89a24d';
 
 function noiseCanvas(cells, rnd, color = null) {
   const c = canvas(cells); const ctx = c.getContext('2d');
@@ -289,19 +290,19 @@ function drawSmooth(ctx, src, S, alpha, op = 'source-over') {
 
 function paintGrass(ctx, S, rnd) {
   const k = S / 384;
-  ctx.fillStyle = '#7b9548'; ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = GRASS_BASE; ctx.fillRect(0, 0, S, S);
   // tonal variation, several octaves of soft noise
-  drawSmooth(ctx, noiseCanvas(4, rnd, '#9fb062'), S, 0.55);
-  drawSmooth(ctx, noiseCanvas(5, rnd, '#55703a'), S, 0.45);
-  drawSmooth(ctx, noiseCanvas(9, rnd, '#a8b86a'), S, 0.16);
-  drawSmooth(ctx, noiseCanvas(11, rnd, '#4f6a33'), S, 0.14);
+  drawSmooth(ctx, noiseCanvas(4, rnd, '#a9b964'), S, 0.22);
+  drawSmooth(ctx, noiseCanvas(5, rnd, '#5f7a3c'), S, 0.18);
+  drawSmooth(ctx, noiseCanvas(9, rnd, '#a8b86a'), S, 0.1);
+  drawSmooth(ctx, noiseCanvas(11, rnd, '#4f6a33'), S, 0.08);
   drawSmooth(ctx, noiseCanvas(28, rnd), S, 0.06, 'overlay');
   drawSmooth(ctx, noiseCanvas(70, rnd), S, 0.08, 'overlay');
   // dabs of paint: short soft strokes with a consistent hand direction
   ctx.lineCap = 'round';
   for (let i = 0; i < 900; i++) {
-    const x = rnd() * S, y = rnd() * S, len = (5 + rnd() * 12) * k, a = -0.75 + (rnd() - 0.5) * 0.5;
-    ctx.strokeStyle = pick(rnd, GREENS); ctx.globalAlpha = 0.05 + rnd() * 0.09;
+    const x = rnd() * S, y = rnd() * S, len = (12 + rnd() * 18) * k, a = -0.75 + (rnd() - 0.5) * 0.4;
+    ctx.strokeStyle = pick(rnd, GREENS); ctx.globalAlpha = 0.04 + rnd() * 0.06;
     ctx.lineWidth = (2 + rnd() * 3.5) * k;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); ctx.stroke();
   }
@@ -313,6 +314,13 @@ function paintGrass(ctx, S, rnd) {
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rnd() - 0.5) * 2 * k, y - (2 + rnd() * 3) * k); ctx.stroke();
   }
   ctx.globalAlpha = 1;
+  // feather the tile margins towards a shared base tone so tiles join seamlessly
+  const band = 0.12 * S;
+  for (const [x0, y0, x1, y1, rx, ry, rw, rh] of [[0, 0, 0, band, 0, 0, S, band], [0, S, 0, S - band, 0, S - band, S, band], [0, 0, band, 0, 0, 0, band, S], [S, 0, S - band, 0, S - band, 0, band, S]]) {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, 'rgba(137,162,77,0.75)'); g.addColorStop(1, 'rgba(137,162,77,0)');
+    ctx.fillStyle = g; ctx.fillRect(rx, ry, rw, rh);
+  }
 }
 
 // Patchwork farmland (plowed or ripening strips), as on the printed tiles.
@@ -327,19 +335,19 @@ function paintFarmPatches(ctx, S, rnd, label, id) {
   const n = rnd() < 0.55 ? 1 : rnd() < 0.5 ? 2 : 0;
   for (let p = 0; p < n; p++) {
     for (let tries = 0; tries < 30; tries++) {
-      const u = 0.12 + rnd() * 0.76, v = 0.12 + rnd() * 0.76, r = 0.1 + rnd() * 0.06;
-      const ok = [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r], [r * 0.7, r * 0.7], [-r * 0.7, -r * 0.7], [r * 0.7, -r * 0.7], [-r * 0.7, r * 0.7]].every(([a, b]) => isField(u + a, v + b));
+      const u = 0.15 + rnd() * 0.7, v = 0.15 + rnd() * 0.7, r = 0.08 + rnd() * 0.05;
+      const ok = [[0, 0], [r * 1.25, 0], [-r * 1.25, 0], [0, r * 0.5], [0, -r * 0.5], [r * 0.7, r * 0.7], [-r * 0.7, -r * 0.7], [r * 0.7, -r * 0.7], [-r * 0.7, r * 0.7]].every(([a, b]) => isField(u + a, v + b));
       if (!ok) continue;
       const ang = rnd() * Math.PI;
       const col = pick(rnd, [['#a19a5a', '#8b844a'], ['#8f9a4e', '#7a8743'], ['#9c8a5c', '#86744b'], ['#b2a565', '#998c50']]);
       ctx.save();
       ctx.translate(u * S, v * S); ctx.rotate(ang);
-      const w = r * S * 1.9, h = r * S * 1.4;
+      const w = r * S * 2.4, h = r * S * 0.85;
       ctx.filter = `blur(${1.5 * k}px)`;
       ctx.beginPath();
       ctx.moveTo(-w / 2, -h / 2 + rnd() * 4 * k); ctx.lineTo(w / 2, -h / 2); ctx.lineTo(w / 2 - rnd() * 6 * k, h / 2); ctx.lineTo(-w / 2 + rnd() * 6 * k, h / 2);
       ctx.closePath();
-      ctx.globalAlpha = 0.55; ctx.fillStyle = col[0]; ctx.fill();
+      ctx.globalAlpha = 0.38; ctx.fillStyle = col[0]; ctx.fill();
       ctx.clip();
       ctx.filter = 'none';
       ctx.globalAlpha = 0.35; ctx.strokeStyle = col[1]; ctx.lineWidth = 2 * k;
@@ -360,12 +368,12 @@ function paintRoads(ctx, S, rnd, geo) {
   ctx.filter = `blur(${4 * k}px)`;
   for (const r of geo.roads) { ctx.strokeStyle = 'rgba(70,72,35,0.45)'; ctx.lineWidth = W * 1.65; ctx.stroke(segPath(r.seg, S)); }
   ctx.filter = `blur(${1.2 * k}px)`;
-  for (const r of geo.roads) { ctx.strokeStyle = 'rgba(150,130,90,0.85)'; ctx.lineWidth = W * 1.06; ctx.stroke(segPath(r.seg, S)); }
+  for (const r of geo.roads) { ctx.strokeStyle = 'rgba(168,150,112,0.8)'; ctx.lineWidth = W * 1.08; ctx.stroke(segPath(r.seg, S)); }
   ctx.restore();
   const layer = canvas(S); const l = layer.getContext('2d');
   l.lineCap = 'butt';
   l.filter = `blur(${0.6 * k}px)`;
-  for (const r of geo.roads) { l.strokeStyle = '#d6c9a6'; l.lineWidth = W * 0.9; l.stroke(segPath(r.seg, S)); }
+  for (const r of geo.roads) { l.strokeStyle = '#d9c9a0'; l.lineWidth = W * 0.9; l.stroke(segPath(r.seg, S)); }
   l.filter = 'none';
   l.globalCompositeOperation = 'source-atop';
   drawSmooth(l, noiseCanvas(10, rnd, '#b9a986'), S, 0.5, 'source-atop');
@@ -373,7 +381,7 @@ function paintRoads(ctx, S, rnd, geo) {
   // faint cart tracks
   for (const r of geo.roads) {
     l.strokeStyle = 'rgba(140,120,85,0.22)'; l.lineWidth = W * 0.55; l.stroke(segPath(r.seg, S));
-    l.strokeStyle = 'rgba(214,201,166,0.9)'; l.lineWidth = W * 0.4; l.stroke(segPath(r.seg, S));
+    l.strokeStyle = 'rgba(217,201,160,0.9)'; l.lineWidth = W * 0.4; l.stroke(segPath(r.seg, S));
   }
   for (let i = 0; i < 700; i++) {
     l.fillStyle = rnd() < 0.6 ? 'rgba(120,100,70,0.22)' : 'rgba(250,245,230,0.3)';
@@ -382,7 +390,7 @@ function paintRoads(ctx, S, rnd, geo) {
   ctx.drawImage(layer, 0, 0);
 }
 
-const ROOFS = [['#ad5a3f', '#86402c'], ['#a24e37', '#7b3826'], ['#b4664a', '#8c4b34'], ['#98553d', '#73402d'], ['#8a8077', '#675f58'], ['#b26b4d', '#8b4f37']];
+const ROOFS = [['#b8664a', '#7d3a28'], ['#ad5a3f', '#7b3826'], ['#bf6f50', '#86442e'], ['#a65539', '#713424'], ['#b26b4d', '#80432e'], ['#c07a55', '#8a4c33']];
 const WALLS = ['#ddd0b2', '#d4c4a2', '#e3d7bd', '#cfbe9b'];
 
 function house(ctx, x, y, w, h, rnd, k, palette) {
@@ -398,13 +406,15 @@ function house(ctx, x, y, w, h, rnd, k, palette) {
     ctx.fillRect(x + w * 0.74, y + roofH + wallH * 0.3, w * 0.1, wallH * 0.28);
   }
   const [rLight, rDark] = palette;
-  const g = ctx.createLinearGradient(0, y, 0, y + roofH);
-  g.addColorStop(0, rLight); g.addColorStop(0.5, rLight); g.addColorStop(0.52, rDark); g.addColorStop(1, rDark);
-  ctx.fillStyle = g; ctx.fillRect(x - 0.8 * k, y, w + 1.6 * k, roofH);
-  ctx.strokeStyle = 'rgba(50,25,15,0.18)'; ctx.lineWidth = 0.7 * k;
-  for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(x, y + roofH * i / 4); ctx.lineTo(x + w, y + roofH * i / 4); ctx.stroke(); }
-  ctx.fillStyle = 'rgba(255,235,210,0.25)'; ctx.fillRect(x - 0.8 * k, y + roofH * 0.47, w + 1.6 * k, 1 * k);
-  ctx.strokeStyle = 'rgba(55,35,20,0.28)'; ctx.lineWidth = 0.8 * k; ctx.strokeRect(x - 0.8 * k, y, w + 1.6 * k, h);
+  // two roof slopes meeting at a ridge, with a soft gradient on each
+  const g1 = ctx.createLinearGradient(0, y, 0, y + roofH * 0.5);
+  g1.addColorStop(0, rLight); g1.addColorStop(1, mix(rLight, '#ffffff', 0.08));
+  ctx.fillStyle = g1; ctx.fillRect(x - 0.8 * k, y, w + 1.6 * k, roofH * 0.5);
+  const g2 = ctx.createLinearGradient(0, y + roofH * 0.5, 0, y + roofH);
+  g2.addColorStop(0, rDark); g2.addColorStop(1, mix(rDark, '#000000', 0.15));
+  ctx.fillStyle = g2; ctx.fillRect(x - 0.8 * k, y + roofH * 0.5, w + 1.6 * k, roofH * 0.5);
+  ctx.fillStyle = 'rgba(255,235,210,0.35)'; ctx.fillRect(x - 0.8 * k, y + roofH * 0.47, w + 1.6 * k, 0.9 * k);
+  ctx.strokeStyle = 'rgba(55,30,18,0.3)'; ctx.lineWidth = 0.7 * k; ctx.strokeRect(x - 0.8 * k, y, w + 1.6 * k, h);
 }
 
 function tower(ctx, x, y, r, k) {
@@ -455,14 +465,17 @@ function paintCities(ctx, S, rnd, geo, label) {
     spots.sort((a, b) => a[1] - b[1]);
     for (const [u, v] of spots) {
       if (keep && Math.hypot(u - keep[0], v - keep[1]) < 0.13) continue;
-      if (rnd() < 0.1) continue; // little squares & lanes
-      const w = (0.064 + rnd() * 0.034) * S, h = (0.058 + rnd() * 0.024) * S;
-      house(ctx, u * S - w / 2, v * S - h / 2, w, h, rnd, k, pick(rnd, ROOFS));
+      if (rnd() < 0.08) continue; // little squares & lanes
+      const big2 = rnd() < 0.18;
+      const w = (big2 ? 0.085 + rnd() * 0.03 : 0.055 + rnd() * 0.03) * S, h = (big2 ? 0.07 : 0.052 + rnd() * 0.02) * S;
+      ctx.save(); ctx.translate(u * S, v * S); ctx.rotate((rnd() - 0.5) * 0.5);
+      house(ctx, -w / 2, -h / 2, w, h, rnd, k, pick(rnd, ROOFS));
+      ctx.restore();
     }
     if (keep) churchArt(ctx, keep[0] * S, keep[1] * S, S, k);
     // inner shadow along the walls
     ctx.restore();
-    for (const w of c.walls) wallArt(ctx, w, S, rnd, k, label, c.fi);
+    for (const w of c.walls) wallArt(ctx, w, S, rnd, k, label, c.fi, path);
   }
 }
 
@@ -487,20 +500,24 @@ function churchArt(ctx, cx, cy, S, k) {
   ctx.fillStyle = 'rgba(50,40,35,0.6)'; ctx.fillRect(tx - 1.2 * k, cy - h * 0.4, 2.4 * k, 4 * k);
 }
 
-function wallArt(ctx, seg, S, rnd, k, label, cityFi) {
+function wallArt(ctx, seg, S, rnd, k, label, cityFi, cityClip) {
   const p = segPath(seg, S);
   ctx.save();
   ctx.lineCap = 'butt';
   ctx.filter = `blur(${4 * k}px)`;
-  ctx.strokeStyle = 'rgba(25,30,10,0.55)'; ctx.lineWidth = 0.075 * S;
+  ctx.strokeStyle = 'rgba(25,30,10,0.55)'; ctx.lineWidth = 0.1 * S;
   ctx.translate(2 * k, 4 * k); ctx.stroke(p);
   ctx.restore();
   // stone band on its own layer so it can be textured
   const layer = canvas(S); const l = layer.getContext('2d');
   l.lineCap = 'butt';
-  l.strokeStyle = '#5f574a'; l.lineWidth = 0.058 * S; l.stroke(p);
-  l.strokeStyle = '#8f8573'; l.lineWidth = 0.046 * S; l.stroke(p);
-  l.strokeStyle = '#a99f8b'; l.lineWidth = 0.022 * S; l.stroke(p);
+  l.strokeStyle = '#584f42'; l.lineWidth = 0.085 * S; l.stroke(p);
+  l.strokeStyle = '#6e6455'; l.lineWidth = 0.074 * S; l.stroke(p);
+  // walkway on the city side: offset the stroke inwards by clipping to the city
+  l.save(); l.clip(cityClip);
+  l.strokeStyle = '#a3987f'; l.lineWidth = 0.07 * S; l.stroke(p);
+  l.strokeStyle = '#b9ae96'; l.lineWidth = 0.034 * S; l.stroke(p);
+  l.restore();
   l.globalCompositeOperation = 'source-atop';
   drawSmooth(l, noiseCanvas(48, rnd), S, 0.22, 'overlay');
   // masonry courses
@@ -518,8 +535,8 @@ function wallArt(ctx, seg, S, rnd, k, label, cityFi) {
   }
   ctx.drawImage(layer, 0, 0);
   // crenellations: small merlons on the outer face
-  for (let i = 1; i < 34; i++) {
-    const t = i / 34;
+  for (let i = 1; i < 22; i++) {
+    const t = i / 22;
     const [x, y] = bezierPoint(seg, t);
     const [x2, y2] = bezierPoint(seg, Math.min(1, t + 0.01));
     const [x0, y0] = bezierPoint(seg, Math.max(0, t - 0.01));
@@ -527,14 +544,13 @@ function wallArt(ctx, seg, S, rnd, k, label, cityFi) {
     let nx = -dy / len, ny = dx / len;
     const tx = x + nx * 0.06, ty = y + ny * 0.06;
     if (tx > 0 && ty > 0 && tx < 1 && ty < 1 && label[Math.floor(ty * HIT) * HIT + Math.floor(tx * HIT)] === cityFi) { nx = -nx; ny = -ny; }
-    if (i % 2) continue;
-    ctx.save(); ctx.translate((x + nx * 0.019) * S, (y + ny * 0.019) * S); ctx.rotate(Math.atan2(dy, dx));
-    ctx.fillStyle = '#b3a993'; ctx.fillRect(-2.6 * k, -1.8 * k, 5.2 * k, 3.6 * k);
-    ctx.fillStyle = 'rgba(50,40,30,0.35)'; ctx.fillRect(-2.6 * k, 1.1 * k, 5.2 * k, 0.8 * k);
+        ctx.save(); ctx.translate((x + nx * 0.03) * S, (y + ny * 0.03) * S); ctx.rotate(Math.atan2(ny, nx));
+    ctx.fillStyle = '#9b907a'; ctx.fillRect(-3 * k, -4.5 * k, 6 * k, 9 * k);
+    ctx.fillStyle = 'rgba(40,32,25,0.4)'; ctx.fillRect(2 * k, -4.5 * k, 1.5 * k, 9 * k);
     ctx.restore();
   }
   const [tx, ty] = bezierPoint(seg, 0.5);
-  tower(ctx, tx * S, ty * S, 0.034 * S, k);
+  tower(ctx, tx * S, ty * S, 0.05 * S, k);
 }
 
 function gateArt(ctx, gate, S, k) {
@@ -562,7 +578,7 @@ export function drawShield(ctx, x, y, s) {
   ctx.restore();
   ctx.save(); ctx.scale(0.86, 0.86);
   const g = ctx.createLinearGradient(-0.5 * s, -0.5 * s, 0.5 * s, 0.6 * s);
-  g.addColorStop(0, '#3e66ad'); g.addColorStop(1, '#203f7a');
+  g.addColorStop(0, '#3a64ae'); g.addColorStop(1, '#2f5597');
   ctx.fillStyle = g; ctx.fill(path);
   ctx.clip(path);
   // heraldic charge: white chevron-ish band and a small cross
@@ -634,9 +650,9 @@ function drawSmoothRect(ctx, rnd, x, y, w, h) {
 function junctionArt(ctx, S, k) {
   const cx = S / 2, cy = S / 2;
   ctx.save(); ctx.filter = `blur(${3 * k}px)`;
-  ctx.fillStyle = 'rgba(30,25,10,0.4)'; ctx.fillRect(cx - 0.07 * S + 4 * k, cy - 0.06 * S + 5 * k, 0.15 * S, 0.13 * S);
+  ctx.fillStyle = 'rgba(30,25,10,0.4)'; ctx.fillRect(cx - 0.09 * S + 4 * k, cy - 0.078 * S + 5 * k, 0.19 * S, 0.17 * S);
   ctx.restore();
-  const w = 0.14 * S, h = 0.12 * S;
+  const w = 0.18 * S, h = 0.155 * S;
   house(ctx, cx - w / 2, cy - h / 2, w, h, mulberry(5), k, ['#ad5a3f', '#86402c']);
 }
 
@@ -693,7 +709,7 @@ function paintFieldDecor(ctx, S, rnd, label, anchors, id) {
     return isField[Math.floor(v * HIT) * HIT + Math.floor(u * HIT)] === 1;
   };
   const items = [];
-  const want = 1 + Math.floor(rnd() * 4);
+  const want = 2 + Math.floor(rnd() * 4);
   for (let i = 0; i < 80 && items.length < want; i++) {
     // trees prefer the tile margins, like hedgerows
     const edge = rnd() < 0.7;
@@ -729,8 +745,8 @@ function finishTile(ctx, S, rnd) {
   g.addColorStop(0, 'rgba(255,245,215,0.08)'); g.addColorStop(0.55, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(25,15,0,0.12)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
   // thin cardboard edge
-  ctx.fillStyle = 'rgba(255,250,235,0.18)'; ctx.fillRect(0, 0, S, 1.5 * k); ctx.fillRect(0, 0, 1.5 * k, S);
-  ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(0, S - 1.5 * k, S, 1.5 * k); ctx.fillRect(S - 1.5 * k, 0, 1.5 * k, S);
+  ctx.fillStyle = 'rgba(255,250,235,0.06)'; ctx.fillRect(0, 0, S, 1 * k); ctx.fillRect(0, 0, 1 * k, S);
+  ctx.fillStyle = 'rgba(0,0,0,0.07)'; ctx.fillRect(0, S - 1 * k, S, 1 * k); ctx.fillRect(S - 1 * k, 0, 1 * k, S);
 }
 
 // ---------- public API ----------
@@ -749,7 +765,11 @@ export function getTileArt(id) {
   paintFarmPatches(ctx, S, rnd, label, id);
   paintFieldDecor(ctx, S, rnd, label, anchors, id);
   paintRoads(ctx, S, rnd, geo);
-  if (geo.monastery >= 0) monasteryArt(ctx, S, rnd, S / 384);
+  if (geo.monastery >= 0) {
+    ctx.save(); ctx.translate(S / 2, S / 2); ctx.scale(1.4, 1.4); ctx.translate(-S / 2, -S / 2);
+    monasteryArt(ctx, S, rnd, S / 384);
+    ctx.restore();
+  }
   if (geo.junction) junctionArt(ctx, S, S / 384);
   paintCities(ctx, S, rnd, geo, label);
   if (geo.gate) gateArt(ctx, geo.gate, S, S / 384);
@@ -766,7 +786,7 @@ export function getTileArt(id) {
       const d = Math.min(Math.hypot(x - ax, y - ay), 0.22) - Math.hypot(x - 0.5, y - 0.5) * 0.3;
       if (d > bestD) { bestD = d; best = [x, y]; }
     }
-    if (best) drawShield(ctx, best[0] * S, best[1] * S, 0.09 * S);
+    if (best) drawShield(ctx, best[0] * S, best[1] * S, 0.125 * S);
   }
   finishTile(ctx, S, rnd);
   const art = { canvas: c, anchors, label, problems, geo };
@@ -834,12 +854,11 @@ export function drawMeeple(ctx, x, y, size, color, opts = {}) {
   ctx.fillStyle = g; ctx.fill(MEEPLE_PATH);
   // wood grain
   ctx.save(); ctx.clip(MEEPLE_PATH);
-  ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 0.02;
-  for (let i = -5; i <= 5; i++) { ctx.beginPath(); ctx.moveTo(-0.6, i * 0.1); ctx.bezierCurveTo(-0.2, i * 0.1 + 0.05, 0.2, i * 0.1 - 0.05, 0.6, i * 0.1); ctx.stroke(); }
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath(); ctx.ellipse(-0.06, -0.38, 0.08, 0.06, -0.5, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.045)'; ctx.lineWidth = 0.025;
+  for (let i = -6; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(-0.6, i * 0.085); ctx.bezierCurveTo(-0.25, i * 0.085 + 0.07, 0.15, i * 0.085 - 0.08, 0.6, i * 0.085 + 0.02); ctx.stroke(); }
+
   ctx.restore();
-  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.025; ctx.lineJoin = 'round'; ctx.stroke(MEEPLE_PATH);
+  ctx.strokeStyle = mix(color.main, color.dark, 0.7); ctx.globalAlpha *= 0.6; ctx.lineWidth = 0.025; ctx.lineJoin = 'round'; ctx.stroke(MEEPLE_PATH);
   ctx.restore();
 }
 
@@ -863,23 +882,23 @@ export function getTableTexture() {
   if (cache.has('_table')) return cache.get('_table');
   const S = 512; const c = canvas(S); const ctx = c.getContext('2d');
   const rnd = mulberry(99);
-  ctx.fillStyle = '#6b4526'; ctx.fillRect(0, 0, S, S);
+  ctx.fillStyle = '#5a3d26'; ctx.fillRect(0, 0, S, S);
   // planks
   const plank = S / 4;
   for (let p = 0; p < 4; p++) {
-    const base = pick(rnd, ['#6e4628', '#734a2a', '#673f22', '#7a5030']);
+    const base = pick(rnd, ['#5a3d26', '#5f412a', '#553923', '#634630']);
     ctx.fillStyle = base; ctx.fillRect(0, p * plank, S, plank);
     for (let i = 0; i < 70; i++) {
       const y = p * plank + rnd() * plank;
       ctx.strokeStyle = `rgba(${rnd() < 0.5 ? '40,22,10' : '150,100,60'},${0.1 + rnd() * 0.18})`;
       ctx.lineWidth = 0.5 + rnd() * 1.6;
       ctx.beginPath(); ctx.moveTo(0, y);
-      for (let x = 0; x <= S; x += 32) ctx.lineTo(x, y + Math.sin(x / 60 + i) * 2 + (rnd() - 0.5) * 1.5);
+      for (let x = 0; x <= S; x += 16) ctx.lineTo(x, y + Math.sin((x / S) * Math.PI * 2 * (1 + (i % 3)) + i) * 2.2);
       ctx.stroke();
     }
     // knots
     if (rnd() < 0.7) {
-      const kx = rnd() * S, ky = p * plank + plank * (0.3 + rnd() * 0.4);
+      const kx = (0.15 + rnd() * 0.7) * S, ky = p * plank + plank * (0.3 + rnd() * 0.4);
       for (let r = 14; r > 2; r -= 2) {
         ctx.strokeStyle = `rgba(40,20,8,${0.15 + (14 - r) * 0.02})`; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.ellipse(kx, ky, r * 1.8, r * 0.7, 0, 0, 7); ctx.stroke();

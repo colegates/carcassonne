@@ -311,6 +311,7 @@ export class BoardView {
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate((r * Math.PI) / 2);
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(art, 0, 0, ART_SIZE, ART_SIZE, -size / 2, -size / 2, size, size);
     ctx.restore();
   }

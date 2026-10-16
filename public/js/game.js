@@ -3,12 +3,12 @@ import { TILE_TYPES, START_TILE, buildDeck, rotPort, oppositePort, SIDE_DELTA } 
 
 export const MEEPLES_PER_PLAYER = 7;
 export const PLAYER_COLORS = {
-  red: { name: 'Red', main: '#d8322b', dark: '#7d1410', light: '#ff8a7a' },
-  blue: { name: 'Blue', main: '#2a62d6', dark: '#0f2c73', light: '#8fb4ff' },
-  green: { name: 'Green', main: '#2f9e3a', dark: '#0f5016', light: '#93e08d' },
-  yellow: { name: 'Yellow', main: '#f2c21b', dark: '#8a6500', light: '#fff09a' },
-  black: { name: 'Black', main: '#3a3a40', dark: '#0b0b0e', light: '#9a9aa6' },
-  pink: { name: 'Pink', main: '#e0559f', dark: '#7a1a4e', light: '#ffb0d8' },
+  red: { name: 'Red', main: '#b8342c', dark: '#6e1a14', light: '#f08070' },
+  blue: { name: 'Blue', main: '#2d5aa0', dark: '#16305f', light: '#8fb0e8' },
+  green: { name: 'Green', main: '#3f7d3a', dark: '#1d421b', light: '#9ad88f' },
+  yellow: { name: 'Yellow', main: '#d9a72a', dark: '#7a5a0c', light: '#ffe08a' },
+  black: { name: 'Black', main: '#2b2b2b', dark: '#0e0e0e', light: '#a0a0a8' },
+  pink: { name: 'Pink', main: '#c4568f', dark: '#6a2349', light: '#f5a8cf' },
 };
 
 export const key = (x, y) => `${x},${y}`;
