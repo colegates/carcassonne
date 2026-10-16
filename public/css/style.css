@@ -137,6 +137,7 @@ input { font: inherit; }
 .banner.show { opacity: 1; transform: translate(-50%, 0); }
 
 #side-tools { position: absolute; right: 10px; bottom: calc(var(--dock-h) + var(--safe-bottom) + 14px); display: flex; flex-direction: column; gap: 10px; }
+.tool svg { display: block; margin: auto; }
 .tool { width: 48px; height: 48px; border-radius: 50%; font-size: 22px; color: #fff4d6; background: radial-gradient(circle at 35% 30%, #6b4b2a, #2f1d0e); border: 2px solid rgba(242,199,92,.6); box-shadow: 0 6px 14px rgba(0,0,0,.5); }
 .tool:active { transform: scale(.93); }
 

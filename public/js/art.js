@@ -292,24 +292,31 @@ function paintGrass(ctx, S, rnd) {
   const k = S / 384;
   ctx.fillStyle = GRASS_BASE; ctx.fillRect(0, 0, S, S);
   // tonal variation, several octaves of soft noise
-  drawSmooth(ctx, noiseCanvas(4, rnd, '#a9b964'), S, 0.22);
-  drawSmooth(ctx, noiseCanvas(5, rnd, '#5f7a3c'), S, 0.18);
-  drawSmooth(ctx, noiseCanvas(9, rnd, '#a8b86a'), S, 0.1);
-  drawSmooth(ctx, noiseCanvas(11, rnd, '#4f6a33'), S, 0.08);
-  drawSmooth(ctx, noiseCanvas(28, rnd), S, 0.06, 'overlay');
-  drawSmooth(ctx, noiseCanvas(70, rnd), S, 0.08, 'overlay');
+  drawSmooth(ctx, noiseCanvas(4, rnd, '#a9b964'), S, 0.16);
+  drawSmooth(ctx, noiseCanvas(5, rnd, '#5f7a3c'), S, 0.13);
+  drawSmooth(ctx, noiseCanvas(12, rnd, '#6d8a40'), S, 0.08);
+  drawSmooth(ctx, noiseCanvas(70, rnd), S, 0.05, 'overlay');
+  // broad directional brushwork, like a watercolour wash
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 250; i++) {
+    const x = rnd() * S * 1.2 - S * 0.1, y = rnd() * S * 1.2 - S * 0.1, len = (20 + rnd() * 25) * k, a = -0.61 + (rnd() - 0.5) * 0.2;
+    ctx.strokeStyle = rnd() < 0.5 ? '#9cb35e' : '#7a944a'; ctx.globalAlpha = 0.045;
+    ctx.lineWidth = (6 + rnd() * 4) * k;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
   // dabs of paint: short soft strokes with a consistent hand direction
   ctx.lineCap = 'round';
-  for (let i = 0; i < 900; i++) {
+  for (let i = 0; i < 600; i++) {
     const x = rnd() * S, y = rnd() * S, len = (12 + rnd() * 18) * k, a = -0.75 + (rnd() - 0.5) * 0.4;
-    ctx.strokeStyle = pick(rnd, GREENS); ctx.globalAlpha = 0.04 + rnd() * 0.06;
+    ctx.strokeStyle = pick(rnd, GREENS); ctx.globalAlpha = 0.025 + rnd() * 0.035;
     ctx.lineWidth = (2 + rnd() * 3.5) * k;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); ctx.stroke();
   }
   // fine grass texture
   for (let i = 0; i < 1400; i++) {
     const x = rnd() * S, y = rnd() * S;
-    ctx.strokeStyle = rnd() < 0.5 ? '#4e6a30' : '#a9bb72'; ctx.globalAlpha = 0.07 + rnd() * 0.08;
+    ctx.strokeStyle = rnd() < 0.5 ? '#4e6a30' : '#a9bb72'; ctx.globalAlpha = 0.03 + rnd() * 0.03;
     ctx.lineWidth = 0.8 * k;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (rnd() - 0.5) * 2 * k, y - (2 + rnd() * 3) * k); ctx.stroke();
   }
@@ -318,7 +325,7 @@ function paintGrass(ctx, S, rnd) {
   const band = 0.12 * S;
   for (const [x0, y0, x1, y1, rx, ry, rw, rh] of [[0, 0, 0, band, 0, 0, S, band], [0, S, 0, S - band, 0, S - band, S, band], [0, 0, band, 0, 0, 0, band, S], [S, 0, S - band, 0, S - band, 0, band, S]]) {
     const g = ctx.createLinearGradient(x0, y0, x1, y1);
-    g.addColorStop(0, 'rgba(137,162,77,0.75)'); g.addColorStop(1, 'rgba(137,162,77,0)');
+    g.addColorStop(0, 'rgba(137,162,77,0.6)'); g.addColorStop(1, 'rgba(137,162,77,0)');
     ctx.fillStyle = g; ctx.fillRect(rx, ry, rw, rh);
   }
 }
@@ -387,6 +394,13 @@ function paintRoads(ctx, S, rnd, geo) {
     l.fillStyle = rnd() < 0.6 ? 'rgba(120,100,70,0.22)' : 'rgba(250,245,230,0.3)';
     l.beginPath(); l.arc(rnd() * S, rnd() * S, (0.5 + rnd()) * k, 0, 7); l.fill();
   }
+  // keep the texture strictly inside the road
+  l.globalCompositeOperation = 'destination-in';
+  l.filter = `blur(${0.6 * k}px)`;
+  const all = new Path2D();
+  for (const r of geo.roads) segPath(r.seg, S, all);
+  l.strokeStyle = '#000'; l.lineWidth = W * 0.9; l.stroke(all);
+  l.filter = 'none';
   ctx.drawImage(layer, 0, 0);
 }
 
@@ -446,29 +460,38 @@ function paintCities(ctx, S, rnd, geo, label) {
     drawSmooth(ctx, noiseCanvas(8, rnd, '#a88f66'), S, 0.5);
     drawSmooth(ctx, noiseCanvas(36, rnd), S, 0.15, 'overlay');
 
-    const spots = [];
-    const step = 0.088;
     const inCity = (u, v) => {
       if (u < 0 || v < 0 || u >= 1 || v >= 1) return true;
       return label[Math.floor(v * HIT) * HIT + Math.floor(u * HIT)] === c.fi;
     };
-    for (let v = step * 0.4; v < 1; v += step) {
-      const rowOff = (Math.round(v / step) % 2) * step * 0.5;
-      for (let u = step * 0.3 + rowOff; u < 1; u += step) {
-        const x = u + (rnd() - 0.5) * step * 0.35, y = v + (rnd() - 0.5) * step * 0.3;
-        const m = 0.06;
-        if ([[0, 0], [m, 0], [-m, 0], [0, m], [0, -m], [m, m], [-m, -m], [m, -m], [-m, m]].every(([a, b]) => inCity(x + a, y + b))) spots.push([x, y]);
-      }
-    }
+    const roomy = (x, y, m) => [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m], [m, m], [-m, -m], [m, -m], [-m, m]].every(([a, b]) => inCity(x + a, y + b));
     const big = c.cfg.shape === 'three' || c.cfg.shape === 'full';
     const keep = big ? (c.cfg.shape === 'full' ? [0.5, 0.5] : rotUnit(0.5, 0.3, c.cfg.rot)) : null;
-    spots.sort((a, b) => a[1] - b[1]);
-    for (const [u, v] of spots) {
-      if (keep && Math.hypot(u - keep[0], v - keep[1]) < 0.13) continue;
-      if (rnd() < 0.08) continue; // little squares & lanes
-      const big2 = rnd() < 0.18;
-      const w = (big2 ? 0.085 + rnd() * 0.03 : 0.055 + rnd() * 0.03) * S, h = (big2 ? 0.07 : 0.052 + rnd() * 0.02) * S;
-      ctx.save(); ctx.translate(u * S, v * S); ctx.rotate((rnd() - 0.5) * 0.5);
+    // quarters: clusters of houses around seeds, lanes between them
+    const seeds = [];
+    for (let i = 0; i < 400 && seeds.length < 40; i++) {
+      const x = rnd(), y = rnd();
+      if (!roomy(x, y, 0.06)) continue;
+      if (seeds.some(([a, b]) => Math.hypot(a - x, b - y) < 0.11)) continue;
+      seeds.push([x, y, (rnd() - 0.5) * 1.2]);
+    }
+    const houses = [];
+    for (const [sx, sy, ang] of seeds) {
+      const n = 4 + Math.floor(rnd() * 5);
+      for (let i = 0; i < n * 3 && houses.filter((h) => h.seed === sx).length < n; i++) {
+        const a = rnd() * 6.283, d = rnd() * 0.085;
+        const x = sx + Math.cos(a) * d, y = sy + Math.sin(a) * d;
+        if (!roomy(x, y, 0.055)) continue;
+        if (keep && Math.hypot(x - keep[0], y - keep[1]) < 0.17) continue;
+        if (houses.some((h) => Math.hypot(h.x - x, h.y - y) < 0.052)) continue;
+        houses.push({ x, y, seed: sx, ang: ang + (rnd() - 0.5) * 0.85 });
+      }
+    }
+    houses.sort((p, q) => p.y - q.y);
+    for (const hs of houses) {
+      const big2 = rnd() < 0.2;
+      const w = (big2 ? 0.095 + rnd() * 0.03 : 0.064 + rnd() * 0.03) * S, h = (big2 ? 0.08 : 0.058 + rnd() * 0.02) * S;
+      ctx.save(); ctx.translate(hs.x * S, hs.y * S); ctx.rotate(hs.ang);
       house(ctx, -w / 2, -h / 2, w, h, rnd, k, pick(rnd, ROOFS));
       ctx.restore();
     }
@@ -480,7 +503,7 @@ function paintCities(ctx, S, rnd, geo, label) {
 }
 
 function churchArt(ctx, cx, cy, S, k) {
-  const w = 0.17 * S, h = 0.13 * S;
+  const w = 0.24 * S, h = 0.18 * S;
   ctx.save(); ctx.filter = `blur(${2 * k}px)`;
   ctx.fillStyle = 'rgba(40,30,15,0.4)'; ctx.fillRect(cx - w / 2 + 4 * k, cy - h / 2 + 5 * k, w, h);
   ctx.restore();
@@ -489,14 +512,16 @@ function churchArt(ctx, cx, cy, S, k) {
   ctx.fillStyle = 'rgba(55,45,40,0.6)';
   for (let i = 0; i < 4; i++) { const x = cx - w * 0.38 + i * w * 0.22; ctx.fillRect(x, cy + h * 0.22, 2.2 * k, h * 0.18); }
   const g = ctx.createLinearGradient(0, cy - h / 2, 0, cy + h * 0.12);
-  g.addColorStop(0, '#7d7570'); g.addColorStop(0.5, '#7d7570'); g.addColorStop(0.52, '#5f5853'); g.addColorStop(1, '#5f5853');
+  g.addColorStop(0, '#b8694c'); g.addColorStop(0.5, '#a85a3e'); g.addColorStop(0.52, '#7e3f2a'); g.addColorStop(1, '#723826');
   ctx.fillStyle = g; ctx.fillRect(cx - w / 2 - k, cy - h / 2, w + 2 * k, h * 0.62);
   // square tower
-  const tx = cx - w * 0.36, tw = 0.055 * S;
+  const tx = cx - w * 0.36, tw = 0.07 * S;
   ctx.fillStyle = '#cfc1a3'; ctx.fillRect(tx - tw / 2, cy - h * 0.55, tw, h * 0.95);
   ctx.fillStyle = 'rgba(70,50,30,0.2)'; ctx.fillRect(tx, cy - h * 0.55, tw / 2, h * 0.95);
-  ctx.fillStyle = '#6a625d';
+  ctx.fillStyle = '#7e3f2a';
   ctx.beginPath(); ctx.moveTo(tx - tw / 2 - k, cy - h * 0.55); ctx.lineTo(tx, cy - h * 0.95); ctx.lineTo(tx + tw / 2 + k, cy - h * 0.55); ctx.fill();
+  ctx.fillStyle = '#a85a3e';
+  ctx.beginPath(); ctx.moveTo(tx - tw / 2 - k, cy - h * 0.55); ctx.lineTo(tx, cy - h * 0.95); ctx.lineTo(tx, cy - h * 0.55); ctx.fill();
   ctx.fillStyle = 'rgba(50,40,35,0.6)'; ctx.fillRect(tx - 1.2 * k, cy - h * 0.4, 2.4 * k, 4 * k);
 }
 
@@ -533,6 +558,8 @@ function wallArt(ctx, seg, S, rnd, k, label, cityFi, cityClip) {
     l.strokeStyle = 'rgba(55,45,35,0.35)'; l.lineWidth = 0.7 * k;
     l.beginPath(); l.moveTo((x + nx * (off - 0.01)) * S, (y + ny * (off - 0.01)) * S); l.lineTo((x + nx * (off + 0.01)) * S, (y + ny * (off + 0.01)) * S); l.stroke();
   }
+  l.globalCompositeOperation = 'destination-in';
+  l.strokeStyle = '#000'; l.lineWidth = 0.085 * S; l.stroke(p);
   ctx.drawImage(layer, 0, 0);
   // crenellations: small merlons on the outer face
   for (let i = 1; i < 22; i++) {
@@ -598,7 +625,7 @@ function monasteryArt(ctx, S, rnd, k) {
   ctx.fillStyle = 'rgba(30,35,10,0.4)'; ctx.fillRect(cx - 0.15 * S + 4 * k, cy - 0.1 * S + 6 * k, 0.3 * S, 0.29 * S);
   ctx.restore();
   ctx.fillStyle = '#c9b993'; ctx.fillRect(cx - 0.15 * S, cy - 0.02 * S, 0.3 * S, 0.19 * S);
-  ctx.fillStyle = '#879c58'; ctx.fillRect(cx - 0.115 * S, cy + 0.015 * S, 0.23 * S, 0.12 * S);
+  ctx.fillStyle = '#7d9446'; ctx.fillRect(cx - 0.115 * S, cy + 0.015 * S, 0.23 * S, 0.12 * S);
   drawSmoothRect(ctx, rnd, cx - 0.115 * S, cy + 0.015 * S, 0.23 * S, 0.12 * S);
   // cloister walk roofs
   ctx.fillStyle = '#a7684e'; ctx.fillRect(cx - 0.15 * S, cy - 0.02 * S, 0.035 * S, 0.19 * S); ctx.fillRect(cx + 0.115 * S, cy - 0.02 * S, 0.035 * S, 0.19 * S);
@@ -649,11 +676,21 @@ function drawSmoothRect(ctx, rnd, x, y, w, h) {
 
 function junctionArt(ctx, S, k) {
   const cx = S / 2, cy = S / 2;
+  const r = mulberry(5);
   ctx.save(); ctx.filter = `blur(${3 * k}px)`;
-  ctx.fillStyle = 'rgba(30,25,10,0.4)'; ctx.fillRect(cx - 0.09 * S + 4 * k, cy - 0.078 * S + 5 * k, 0.19 * S, 0.17 * S);
+  ctx.fillStyle = 'rgba(30,25,10,0.4)'; ctx.beginPath(); ctx.ellipse(cx + 5 * k, cy + 6 * k, 0.12 * S, 0.1 * S, 0, 0, 7); ctx.fill();
   ctx.restore();
-  const w = 0.18 * S, h = 0.155 * S;
-  house(ctx, cx - w / 2, cy - h / 2, w, h, mulberry(5), k, ['#ad5a3f', '#86402c']);
+  bush(ctx, cx + 0.085 * S, cy - 0.07 * S, 7 * k, r, k);
+  // small hamlet: a main house with a gable end and a lean-to barn
+  const parts = [[-0.04, -0.035, 0.15, 0.11, -0.15], [0.06, 0.04, 0.11, 0.085, 0.25]];
+  for (const [dx, dy, w, h, a] of parts) {
+    ctx.save(); ctx.translate(cx + dx * S, cy + dy * S); ctx.rotate(a);
+    house(ctx, -w * S / 2, -h * S / 2, w * S, h * S, r, k, pick(r, ROOFS));
+    // gable end triangle
+    ctx.fillStyle = '#e1d3b4';
+    ctx.beginPath(); ctx.moveTo(-w * S / 2, -h * S / 2 + h * S * 0.64); ctx.lineTo(-w * S / 2 - 0.018 * S, -h * S / 2 + h * S * 0.32); ctx.lineTo(-w * S / 2, -h * S / 2); ctx.fill();
+    ctx.restore();
+  }
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -745,8 +782,7 @@ function finishTile(ctx, S, rnd) {
   g.addColorStop(0, 'rgba(255,245,215,0.08)'); g.addColorStop(0.55, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(25,15,0,0.12)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
   // thin cardboard edge
-  ctx.fillStyle = 'rgba(255,250,235,0.06)'; ctx.fillRect(0, 0, S, 1 * k); ctx.fillRect(0, 0, 1 * k, S);
-  ctx.fillStyle = 'rgba(0,0,0,0.07)'; ctx.fillRect(0, S - 1 * k, S, 1 * k); ctx.fillRect(S - 1 * k, 0, 1 * k, S);
+  void k;
 }
 
 // ---------- public API ----------
@@ -766,7 +802,7 @@ export function getTileArt(id) {
   paintFieldDecor(ctx, S, rnd, label, anchors, id);
   paintRoads(ctx, S, rnd, geo);
   if (geo.monastery >= 0) {
-    ctx.save(); ctx.translate(S / 2, S / 2); ctx.scale(1.4, 1.4); ctx.translate(-S / 2, -S / 2);
+    ctx.save(); ctx.translate(S / 2, S / 2); ctx.scale(1.55, 1.55); ctx.translate(-S / 2, -S / 2);
     monasteryArt(ctx, S, rnd, S / 384);
     ctx.restore();
   }
