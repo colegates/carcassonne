@@ -1,0 +1,15 @@
+import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+const b = await chromium.launch();
+const ctx = await b.newContext({ ...devices['iPhone 13'] });
+const p = await ctx.newPage();
+p.on('pageerror', e => console.log('pageerror:', e.message));
+await p.goto('http://localhost:5173/'); await p.waitForTimeout(800);
+await p.tap('#btn-new'); await p.tap('#btn-start'); await p.waitForTimeout(800);
+await p.evaluate(() => { const c = document.getElementById('board'); ['pointerdown','pointerup','pointercancel','touchstart','click'].forEach(t => c.addEventListener(t, e => console.log('EV', t, e.clientX, e.clientY))); });
+p.on('console', m => console.log(m.text()));
+const pl = await p.evaluate(() => window.__carc.ui.placements[0]);
+const [sx, sy] = await p.evaluate(([x, y]) => window.__carc.view.toScreen(x, y), [pl.x, pl.y]);
+console.log(pl, sx, sy);
+await p.touchscreen.tap(sx, sy); await p.waitForTimeout(300);
+console.log(await p.evaluate(() => JSON.stringify(window.__carc.ui.tentative)));
+await b.close();

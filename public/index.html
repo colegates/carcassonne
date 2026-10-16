@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Carcassonne">
+  <meta name="theme-color" content="#2a1a0e">
+  <meta name="description" content="Play the classic tile-laying game Carcassonne on your phone — pass-and-play or against the computer.">
+  <title>Carcassonne</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600;800&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ============ HOME ============ -->
+  <section id="home" class="screen active">
+    <canvas id="home-bg"></canvas>
+    <div class="home-inner">
+      <div class="logo">
+        <div class="logo-small">The Classic Tile-Laying Game</div>
+        <h1>Carcassonne</h1>
+        <div class="logo-rule"></div>
+      </div>
+      <div class="home-buttons">
+        <button class="btn big gold" id="btn-continue" hidden>Continue Game</button>
+        <button class="btn big red" id="btn-new">New Game</button>
+        <button class="btn big parchment" id="btn-rules">How to Play</button>
+      </div>
+      <div class="home-foot">Pass &amp; play with family, or challenge the castle's knights</div>
+    </div>
+  </section>
+
+  <!-- ============ SETUP ============ -->
+  <section id="setup" class="screen">
+    <div class="panel-scroll">
+      <header class="sub-head">
+        <button class="icon-btn" data-back="home" aria-label="Back">‹</button>
+        <h2>New Game</h2>
+        <span></span>
+      </header>
+      <div class="card">
+        <h3>Players</h3>
+        <div id="player-rows"></div>
+        <div class="row-buttons">
+          <button class="btn small parchment" id="add-human">+ Person</button>
+          <button class="btn small parchment" id="add-bot">+ Computer</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Options</h3>
+        <label class="toggle"><input type="checkbox" id="opt-farmers" checked><span class="slider"></span>
+          <span class="tlabel"><b>Farmers</b><small>Lay followers in fields; they score 3 per finished city at the end</small></span></label>
+        <label class="toggle"><input type="checkbox" id="opt-hints" checked><span class="slider"></span>
+          <span class="tlabel"><b>Helper mode</b><small>Show points while choosing &amp; allow the 💡 hint button</small></span></label>
+      </div>
+      <button class="btn big red wide" id="btn-start">Start Game</button>
+    </div>
+  </section>
+
+  <!-- ============ RULES ============ -->
+  <section id="rules" class="screen">
+    <div class="panel-scroll">
+      <header class="sub-head">
+        <button class="icon-btn" data-back="prev" aria-label="Back">‹</button>
+        <h2>How to Play</h2>
+        <span></span>
+      </header>
+      <div id="rules-body"></div>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="game" class="screen">
+    <canvas id="board"></canvas>
+    <div id="topbar">
+      <div id="players"></div>
+      <button class="icon-btn menu" id="btn-menu" aria-label="Menu">☰</button>
+    </div>
+    <div id="banner" class="banner"></div>
+    <div id="side-tools">
+      <button class="tool" id="btn-center" aria-label="Show whole map">⌖</button>
+      <button class="tool" id="btn-hint" aria-label="Hint">💡</button>
+    </div>
+    <div id="dock">
+      <div id="deck">
+        <div class="stack"></div>
+        <canvas id="preview" width="200" height="200" aria-label="Current tile (tap to rotate)"></canvas>
+        <div class="count" id="deck-count">71</div>
+      </div>
+      <div id="dock-mid">
+        <div id="turn-name"></div>
+        <div id="instruction">Tap a glowing spot</div>
+      </div>
+      <div id="dock-actions">
+        <button class="round blue" id="btn-rotate" aria-label="Rotate">⟳</button>
+        <button class="round grey" id="btn-undo" aria-label="Undo">↶</button>
+        <button class="round green" id="btn-confirm" aria-label="Confirm">✓</button>
+      </div>
+    </div>
+    <div id="toast-layer"></div>
+  </section>
+
+  <!-- ============ MENU ============ -->
+  <div id="menu" class="modal" hidden>
+    <div class="modal-card">
+      <h2>Menu</h2>
+      <button class="btn parchment wide" id="m-resume">Resume</button>
+      <button class="btn parchment wide" id="m-rules">How to Play</button>
+      <button class="btn parchment wide" id="m-sound">Sound: On</button>
+      <button class="btn parchment wide" id="m-scores">Score details</button>
+      <button class="btn red wide" id="m-quit">Leave Game</button>
+    </div>
+  </div>
+
+  <div id="scores-modal" class="modal" hidden>
+    <div class="modal-card wide-card">
+      <h2 id="scores-title">Scores</h2>
+      <div id="scores-table"></div>
+      <div id="scores-actions"></div>
+    </div>
+  </div>
+
+  <canvas id="fx"></canvas>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

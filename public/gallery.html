@@ -1,0 +1,16 @@
+<!doctype html><html><body style="background:#333;margin:0"><div id=o style="display:flex;flex-wrap:wrap;gap:6px;padding:6px"></div>
+<script type=module>
+import { TILE_TYPES } from './js/tiles.js';
+import { getTileArt, drawMeeple, allFieldProblems } from './js/art.js';
+import { PLAYER_COLORS } from './js/game.js';
+const cols = Object.values(PLAYER_COLORS);
+for (const id of Object.keys(TILE_TYPES)) {
+  const a = getTileArt(id);
+  const c = document.createElement('canvas'); c.width = c.height = 300;
+  const g = c.getContext('2d'); g.drawImage(a.canvas, 0, 0, 300, 300);
+  if (location.hash !== '#clean') a.anchors.forEach(([x,y], i) => { const f = TILE_TYPES[id].features[i]; drawMeeple(g, x*300, y*300, 40, cols[i%cols.length], {lying: f.type==='field'}); });
+  g.fillStyle='#fff'; g.font='bold 22px sans-serif'; g.fillText(id, 6, 24);
+  o.appendChild(c);
+}
+document.title = 'done:' + JSON.stringify(allFieldProblems());
+</script></body></html>

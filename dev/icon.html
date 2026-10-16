@@ -1,0 +1,11 @@
+<!doctype html><html><body style="margin:0"><canvas id=c></canvas><script type=module>
+import { getTileArt, drawMeeple } from '../public/js/art.js';
+import { PLAYER_COLORS } from '../public/js/game.js';
+const S = +location.hash.slice(1) || 512; const c = document.getElementById('c'); c.width = c.height = S;
+const g = c.getContext('2d');
+g.drawImage(getTileArt('R').canvas, 0, 0, S, S);
+const grad = g.createRadialGradient(S/2,S*0.62,S*0.05,S/2,S*0.62,S*0.6); grad.addColorStop(0,'rgba(255,220,120,0.35)'); grad.addColorStop(1,'rgba(0,0,0,0.35)');
+g.fillStyle = grad; g.fillRect(0,0,S,S);
+drawMeeple(g, S*0.5, S*0.6, S*0.56, PLAYER_COLORS.red);
+document.title='ready';
+</script></body></html>
