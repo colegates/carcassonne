@@ -1,8 +1,8 @@
 <!doctype html><html><body style="background:#333;margin:0"><div id=o style="display:flex;flex-wrap:wrap;gap:6px;padding:6px"></div>
 <script type=module>
-import { TILE_TYPES } from './js/tiles.js';
-import { getTileArt, drawMeeple, allFieldProblems } from './js/art.js';
-import { PLAYER_COLORS } from './js/game.js';
+import { TILE_TYPES } from '../public/js/tiles.js';
+import { getTileArt, drawMeeple, allFieldProblems } from '../public/js/art.js';
+import { PLAYER_COLORS } from '../public/js/game.js';
 const cols = Object.values(PLAYER_COLORS);
 for (const id of Object.keys(TILE_TYPES)) {
   const a = getTileArt(id);
