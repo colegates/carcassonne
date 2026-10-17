@@ -16,7 +16,7 @@ async function phone(name) {
   const p = await ctx.newPage();
   p.on('pageerror', (e) => { console.log(name, 'pageerror:', e.message); errors.push(e.message); });
   p.on('console', (m) => { if (m.type() === 'error') { console.log(name, 'console:', m.text()); errors.push(m.text()); } });
-  await p.goto(BASE); await p.waitForTimeout(800);
+  await p.goto(BASE, { timeout: 120000 }); await p.waitForTimeout(800);
   return p;
 }
 const dad = await phone('dad');
