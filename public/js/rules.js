@@ -23,7 +23,7 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
     ctx.fillStyle = 'rgba(10,5,0,0.45)'; ctx.fillRect(sx - px / 2 + px * 0.04, sy - px / 2 + px * 0.06, px, px);
   }
   const board = {};
-  for (const [x, y, t, r] of tiles) board[key(x, y)] = { t, r, m: null };
+  for (const [x, y, t, r] of tiles) board[key(x, y)] = { t, r, pieces: [] };
   for (const [x, y] of tiles) for (const s of [1, 2]) {
     const nb = neighbour(board, x, y, s);
     if (nb && edgeType(board[key(x, y)], s) !== edgeType(nb, (s + 2) % 4)) console.warn(`rules figure mismatch at ${x},${y} side ${s}`);

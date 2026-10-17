@@ -30,10 +30,12 @@
       </div>
       <div class="home-buttons">
         <button class="btn big gold" id="btn-continue" hidden>Continue Game</button>
+        <button class="btn big gold" id="btn-rejoin" hidden>Rejoin Online Game</button>
         <button class="btn big red" id="btn-new">New Game</button>
+        <button class="btn big parchment" id="btn-join-home">Join a Game</button>
         <button class="btn big parchment" id="btn-rules">How to Play</button>
       </div>
-      <div class="home-foot">Pass &amp; play with family, or challenge the castle's knights</div>
+      <div class="home-foot">One phone or everyone on their own · computer knights · expansions</div>
     </div>
   </section>
 
@@ -45,13 +47,26 @@
         <h2>New Game</h2>
         <span></span>
       </header>
-      <div class="card">
+      <div class="seg" id="mode-seg">
+        <button data-mode="local" class="active">📱 One phone</button>
+        <button data-mode="online">📲 Everyone on their own phone</button>
+      </div>
+      <div class="card" id="local-players">
         <h3>Players</h3>
         <div id="player-rows"></div>
         <div class="row-buttons">
           <button class="btn small parchment" id="add-human">+ Person</button>
           <button class="btn small parchment" id="add-bot">+ Computer</button>
         </div>
+      </div>
+      <div class="card" id="online-me" hidden>
+        <h3>You</h3>
+        <div class="prow me-row"><span id="me-icon"></span><input id="me-name" maxlength="14" autocomplete="off" placeholder="Your name"></div>
+        <p class="muted" id="online-help">You'll get a 4-letter code. Everyone else opens this app on their phone, taps <b>Join a Game</b> and types the code. You can add computer players in the lobby.</p>
+      </div>
+      <div class="card">
+        <h3>Expansions</h3>
+        <div id="exp-list"></div>
       </div>
       <div class="card">
         <h3>Options</h3>
@@ -61,6 +76,62 @@
           <span class="tlabel"><b>Helper mode</b><small>Show points while choosing &amp; allow the 💡 hint button</small></span></label>
       </div>
       <button class="btn big red wide" id="btn-start">Start Game</button>
+    </div>
+  </section>
+
+  <!-- ============ JOIN ============ -->
+  <section id="join" class="screen">
+    <div class="panel-scroll">
+      <header class="sub-head">
+        <button class="icon-btn" data-back="home" aria-label="Back">‹</button>
+        <h2>Join a Game</h2>
+        <span></span>
+      </header>
+      <div class="card">
+        <h3>Game code</h3>
+        <input id="join-code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="ABCD">
+        <h3 style="margin-top:16px">You</h3>
+        <div class="prow me-row"><span id="join-icon"></span><input id="join-name" maxlength="14" autocomplete="off" placeholder="Your name"></div>
+      </div>
+      <button class="btn big red wide" id="btn-join">Join</button>
+    </div>
+  </section>
+
+  <!-- ============ LOBBY ============ -->
+  <section id="lobby" class="screen">
+    <div class="panel-scroll">
+      <header class="sub-head">
+        <button class="icon-btn" id="lobby-leave" aria-label="Leave">‹</button>
+        <h2>Online Game</h2>
+        <span></span>
+      </header>
+      <div class="card code-card">
+        <div class="muted">Game code</div>
+        <div id="lobby-code" class="big-code">----</div>
+        <canvas id="lobby-qr" hidden></canvas>
+        <button class="btn small gold" id="lobby-share">Share invite</button>
+        <div class="muted" id="lobby-status"></div>
+      </div>
+      <div class="card">
+        <h3>Players</h3>
+        <div id="lobby-seats"></div>
+        <div class="row-buttons">
+          <button class="btn small parchment" id="lobby-add-local">+ Player on this phone</button>
+          <button class="btn small parchment" id="lobby-add-bot">+ Computer</button>
+        </div>
+        <p class="muted" id="lobby-hint"></p>
+      </div>
+      <div class="card">
+        <h3>Expansions</h3>
+        <div id="lobby-exp"></div>
+        <h3 style="margin-top:10px">Options</h3>
+        <label class="toggle"><input type="checkbox" id="lobby-farmers" checked><span class="slider"></span>
+          <span class="tlabel"><b>Farmers</b><small>3 points per finished city at the end</small></span></label>
+        <label class="toggle"><input type="checkbox" id="lobby-hints" checked><span class="slider"></span>
+          <span class="tlabel"><b>Helper mode</b><small>Points preview &amp; 💡 hints</small></span></label>
+      </div>
+      <button class="btn big red wide" id="lobby-start">Start Game</button>
+      <p class="wait-text" id="lobby-wait" hidden></p>
     </div>
   </section>
 
@@ -97,6 +168,7 @@
       <div id="dock-mid">
         <div id="turn-name"></div>
         <div id="instruction">Tap a glowing spot</div>
+        <div id="picker" hidden></div>
       </div>
       <div id="dock-actions">
         <button class="round blue" id="btn-rotate" aria-label="Rotate">⟳</button>
@@ -105,6 +177,7 @@
       </div>
     </div>
     <div id="toast-layer"></div>
+    <div id="net-badge" hidden></div>
   </section>
 
   <!-- ============ MENU ============ -->
@@ -115,6 +188,7 @@
       <button class="btn parchment wide" id="m-rules">How to Play</button>
       <button class="btn parchment wide" id="m-sound">Sound: On</button>
       <button class="btn parchment wide" id="m-scores">Score details</button>
+      <div id="m-emotes" class="emotes" hidden><button>👏</button><button>😱</button><button>😂</button><button>🏰</button><button>🐉</button><button>👍</button></div>
       <button class="btn red wide" id="m-quit">Leave Game</button>
     </div>
   </div>
@@ -124,6 +198,14 @@
       <h2 id="scores-title">Scores</h2>
       <div id="scores-table"></div>
       <div id="scores-actions"></div>
+    </div>
+  </div>
+
+  <div id="ask-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h2 id="ask-title"></h2>
+      <div id="ask-body" class="ask-body"></div>
+      <div id="ask-actions"></div>
     </div>
   </div>
 

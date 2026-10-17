@@ -863,38 +863,85 @@ const MEEPLE_PATH = (() => {
   return p;
 })();
 
-// Draw a wooden meeple. opts: lying (farmer), ghost, alpha, pulse
-export function drawMeeple(ctx, x, y, size, color, opts = {}) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.globalAlpha = opts.alpha ?? 1;
-  if (opts.lying) ctx.rotate(-Math.PI / 2 + 0.15);
-  ctx.scale(size, size);
+// Unit-sized silhouettes of the wooden figures (centred, height ~1).
+const ABBOT_PATH = (() => {
+  const p = new Path2D();
+  p.moveTo(0, -0.52);
+  p.bezierCurveTo(0.08, -0.5, 0.17, -0.42, 0.17, -0.3); // hood
+  p.bezierCurveTo(0.17, -0.24, 0.15, -0.2, 0.13, -0.17);
+  p.bezierCurveTo(0.28, -0.12, 0.33, 0.05, 0.3, 0.2);    // shoulders / robe
+  p.lineTo(0.36, 0.52);
+  p.lineTo(-0.36, 0.52);
+  p.lineTo(-0.3, 0.2);
+  p.bezierCurveTo(-0.33, 0.05, -0.28, -0.12, -0.13, -0.17);
+  p.bezierCurveTo(-0.15, -0.2, -0.17, -0.24, -0.17, -0.3);
+  p.bezierCurveTo(-0.17, -0.42, -0.08, -0.5, 0, -0.52);
+  p.closePath();
+  return p;
+})();
+const PIG_PATH = (() => {
+  const p = new Path2D();
+  p.ellipse(-0.04, 0.05, 0.4, 0.27, 0, 0, Math.PI * 2);     // body
+  p.moveTo(0.48, 0.0); p.ellipse(0.36, -0.02, 0.15, 0.15, 0, 0, Math.PI * 2); // head
+  p.moveTo(0.56, 0.0); p.ellipse(0.53, 0.0, 0.07, 0.06, 0, 0, Math.PI * 2);   // snout
+  p.moveTo(0.3, -0.15); p.lineTo(0.28, -0.27); p.lineTo(0.4, -0.16); p.closePath(); // ear
+  for (const lx of [-0.3, -0.12, 0.08, 0.22]) p.rect(lx, 0.22, 0.08, 0.2);           // legs
+  return p;
+})();
+const SHAPES = { meeple: MEEPLE_PATH, abbot: ABBOT_PATH, pig: PIG_PATH };
+
+function woodenShape(ctx, path, size, color, opts) {
   if (opts.ghost) {
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.06; ctx.setLineDash([0.12, 0.08]);
-    ctx.fill(MEEPLE_PATH); ctx.stroke(MEEPLE_PATH);
-    ctx.restore();
+    ctx.fill(path); ctx.stroke(path);
     return;
   }
-  // drop shadow
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = size * 0.2; ctx.shadowOffsetX = size * 0.06; ctx.shadowOffsetY = size * 0.1;
-  ctx.fillStyle = color.dark; ctx.translate(0.035, 0.07); ctx.fill(MEEPLE_PATH);
+  ctx.fillStyle = color.dark; ctx.translate(0.035, 0.07); ctx.fill(path);
   ctx.restore();
-  // wooden side (extrusion)
-  ctx.save(); ctx.translate(0.02, 0.045); ctx.fillStyle = color.dark; ctx.fill(MEEPLE_PATH); ctx.restore();
-  // face
+  ctx.save(); ctx.translate(0.02, 0.045); ctx.fillStyle = color.dark; ctx.fill(path); ctx.restore();
   const g = ctx.createLinearGradient(-0.4, -0.5, 0.4, 0.5);
   g.addColorStop(0, mix(color.main, color.light, 0.45)); g.addColorStop(0.5, color.main); g.addColorStop(1, mix(color.main, color.dark, 0.55));
-  ctx.fillStyle = g; ctx.fill(MEEPLE_PATH);
-  // wood grain
-  ctx.save(); ctx.clip(MEEPLE_PATH);
+  ctx.fillStyle = g; ctx.fill(path);
+  ctx.save(); ctx.clip(path);
   ctx.strokeStyle = 'rgba(0,0,0,0.045)'; ctx.lineWidth = 0.025;
   for (let i = -6; i <= 6; i++) { ctx.beginPath(); ctx.moveTo(-0.6, i * 0.085); ctx.bezierCurveTo(-0.25, i * 0.085 + 0.07, 0.15, i * 0.085 - 0.08, 0.6, i * 0.085 + 0.02); ctx.stroke(); }
-
   ctx.restore();
-  ctx.strokeStyle = mix(color.main, color.dark, 0.7); ctx.globalAlpha *= 0.6; ctx.lineWidth = 0.025; ctx.lineJoin = 'round'; ctx.stroke(MEEPLE_PATH);
+  ctx.save();
+  ctx.strokeStyle = mix(color.main, color.dark, 0.7); ctx.globalAlpha *= 0.6; ctx.lineWidth = 0.025; ctx.lineJoin = 'round'; ctx.stroke(path);
+  ctx.restore();
+}
+
+// Draw a wooden meeple. opts: lying (farmer), ghost, alpha
+export function drawMeeple(ctx, x, y, size, color, opts = {}) {
+  drawPiece(ctx, 'meeple', x, y, size, color, opts);
+}
+
+// Draw any player figure: meeple, large (big meeple), builder, pig, abbot.
+export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = opts.alpha ?? 1;
+  let path = SHAPES[kind] || MEEPLE_PATH;
+  let sx = 1, sy = 1;
+  if (kind === 'large') { sx = sy = 1.32; }
+  if (kind === 'builder') { sx = 0.82; sy = 1.22; path = MEEPLE_PATH; }
+  if (kind === 'pig') { sx = sy = 0.95; }
+  if (opts.lying && (kind === 'meeple' || kind === 'large')) ctx.rotate(-Math.PI / 2 + 0.15);
+  ctx.scale(size * sx, size * sy);
+  woodenShape(ctx, path, size, color, opts);
+  if (kind === 'builder' && !opts.ghost) {
+    // a little hammer to tell the builder apart
+    ctx.strokeStyle = 'rgba(40,25,10,0.75)'; ctx.lineWidth = 0.05; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0.18, 0.18); ctx.lineTo(0.4, -0.08); ctx.stroke();
+    ctx.fillStyle = 'rgba(40,25,10,0.85)'; ctx.save(); ctx.translate(0.4, -0.08); ctx.rotate(-0.85); ctx.fillRect(-0.1, -0.04, 0.2, 0.08); ctx.restore();
+  }
+  if (kind === 'pig' && !opts.ghost) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath(); ctx.arc(0.38, -0.06, 0.025, 0, 7); ctx.fill();
+  }
   ctx.restore();
 }
 

@@ -1,0 +1,356 @@
+{
+  "slug": "river",
+  "name": "The River",
+  "edition": "3rd edition (Hans im Glück / Z-Man 2014+): the 12 dark-backed River tiles that ship in the base-game box, including one river bend with a garden (JCloisterZone tile-set river/1:2)",
+  "sources": [
+    {
+      "title": "Z-Man Games, Carcassonne (3rd edition) - Supplementary Rules sheet (Farmers, The River, The Abbot)",
+      "url": "https://lot.ahml.info/Carcassone%20Supplementary%20Rules.pdf",
+      "used_for": "Primary English 3rd-ed. River rules: 12 dark-backed tiles replace the start tile, which goes back in the box; lake slid under the shuffled river stack; spring is the starting tile; draw from the river stack until empty; 'the river cannot turn twice in the same direction because this would create a u-turn'; meeples along the river under normal rules. Its 'completed river example' shows all 12 tiles; the tile images were extracted from this PDF to write the art descriptions."
+    },
+    {
+      "title": "Hans im Glück, Carcassonne Spielregel (new edition, October 2014), sections 'Der Fluss' and 'Der Abt'",
+      "url": "https://www.spielezar.ch/modules/genzo_zar/views/pdf/spielregeln-carcassonne.pdf",
+      "used_for": "Primary German 3rd-ed. wording: 'keine 2 Flussplättchen nacheinander in die gleiche Richtung abbiegen, damit der Fluss nicht in sich selber fließt' (no two river tiles in a row may bend the same way); start tile returned to the box; lake under the stack. Base rule for unplaceable tiles: 'lege das Plättchen in die Spielschachtel zurück und ziehe ein neues'. Same example layout as Z-Man."
+    },
+    {
+      "title": "Z-Man Games, Carcassonne Big Box rulebook (2017, 3rd-edition art), pages 9 and 22",
+      "url": "https://world-of-board-games.com.sg/docs/Carcassonne-Big-Box6.pdf",
+      "used_for": "Clearest English wording: 'players must draw and place all river tiles before they can draw normal tiles. The river is not a feature; meeples cannot be placed on it, and it cannot be scored.' 'the river cannot turn in the same direction twice in a row'. Its 'Watch out!' picture crosses out two bends in a row that turn the same way. Also gives the 3rd-ed. Abbot rules."
+    },
+    {
+      "title": "S-CAR v7.3 - Carcassonne Standard Complete Annotated Rules (Chris Ober, Dec 2014)",
+      "url": "https://www.dover.nh.gov/Assets/government/city-operations/library/borrow/library-of-things/carcassonne-rules.pdf",
+      "used_for": "Official HiG FAQ answers: 'Only immediate U-turns are explicitly forbidden'; 'Officially, the field goes around the spring, creating a connected farm'; 'River segments also separate farms (08/2014)'; when combining River sets 'one spring and one lake are discarded'; River II rules: river tiles that cannot be placed are removed from the game under the basic rules, and the river need not be finished. Also edition history (1st ed., Big Box 5, 'New Carcassonne' with garden)."
+    },
+    {
+      "title": "The River (Big Box style) v1.2 - HiG 2001 rules, translation and FAQ by Matthew Harper",
+      "url": "https://upsilon.cc/~zack/teaching/1011/gla/carcassonne/river.pdf",
+      "used_for": "1st-edition rules for the edition differences: lake placed 'when the river is finished'; the start tile is mixed into the river stack or placed after the river; 'followers may not be deployed to the river itself'; FAQ on U-turns and on the spring farm."
+    },
+    {
+      "title": "JCloisterZone tile data: river.xml (tile-set river/1:2) and basic.xml",
+      "url": "https://github.com/farin/JCloisterZone-Client/blob/master/src/extraResources/expansions/river.xml",
+      "used_for": "Tile ids, counts and half-edge field geometry (copied exactly; checked against the printed art)."
+    },
+    {
+      "title": "JCloisterZone engine: RiverCapability.java, TilePhase.java, AbbotCapability.java; client gameSetupUtils.js",
+      "url": "https://github.com/farin/JCloisterZone/blob/master/src/main/java/com/jcloisterzone/game/capability/RiverCapability.java",
+      "used_for": "Cross-check of how a mature implementation does it: spring placed at (0,0) as the start tile; river group, then lake, then land tiles; unplaceable tiles discarded. Its placement check is a stricter look-ahead heuristic than the printed rule (noted as a deviation)."
+    },
+    {
+      "title": "BoardGameArena forum: 'River expansion inconsistent with official rules'",
+      "url": "https://forum.boardgamearena.com/viewtopic.php?p=68185",
+      "used_for": "Quotes the 2017 Big Box setup text and the history of the lake being placed off-turn in the 1st edition versus as a normal turn in the 3rd edition."
+    },
+    {
+      "title": "modernjive.com - Carcassonne: The River & The River II",
+      "url": "https://modernjive.com/carcassonne/carcassonnetheriver.htm",
+      "used_for": "Secondary: reported official replies that only immediate U-turns are prohibited, and that an unfinishable river is allowed ('rivers don't have to be finished')."
+    },
+    {
+      "title": "Carcassonne Central forum: 'The River I & II in Official Rules'",
+      "url": "https://www.carcassonnecentral.com/community/index.php?topic=2961.0",
+      "used_for": "Secondary: rulebook quotes from several editions ('the river must always connect') and the stricter 'never two same-way bends, even with straights between' house reading."
+    }
+  ],
+  "components": [
+    {
+      "name": "River tiles",
+      "count": 12,
+      "notes": "Dark back (same as the base start tile): 1 spring (source), 1 lake, 10 others. No new figures. In the 3rd edition the base start tile is NOT used with the River (returned to the box), so the land deck has 71 tiles."
+    }
+  ],
+  "tiles": [
+    {
+      "id": "RI/s",
+      "count": 1,
+      "name": "Spring (source)",
+      "features": [
+        { "type": "river", "sides": ["E"] },
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "SR", "WL", "WR"], "cities": [] }
+      ],
+      "tags": ["spring", "start"],
+      "art": "Spring, shown with north up. Plain meadow. A grey rock outcrop covered in bushes stands just west of the centre (about x 0.2-0.4, running north-south). Against its east face a small, deep-blue oval pool wells up (about x 0.4-0.5, y 0.35-0.65). From the pool a narrow stream zig-zags east past a few pebbles. It widens to full river width where it leaves through the middle of the east edge. A single field wraps all the way round the spring: nothing divides the meadow west of the pool, so the grass north and south of the stream is one field."
+    },
+    {
+      "id": "RI.1/I.e",
+      "count": 1,
+      "name": "Lake",
+      "features": [
+        { "type": "river", "sides": ["W"] },
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "SR", "WL", "WR"], "cities": [] }
+      ],
+      "tags": ["lake"],
+      "art": "The river enters through the middle of the west edge and opens into a large, irregular, deep-blue lake. The lake fills the centre and the east half of the tile (about x 0.3-0.92, y 0.12-0.92). A small wooded island sits in the south-east part of the lake. A little red rowing boat is pulled up among reeds on the north shore, just left of centre. A tiny trickle runs out of the north-east shore; it is decoration only and does not reach the tile edge. Bushes dot the shore. A single field wraps all the way round the lake."
+    },
+    {
+      "id": "RI.1/CICI",
+      "count": 1,
+      "name": "River between two city caps",
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["S"], "pennants": 0 },
+        { "type": "river", "sides": ["W", "E"] },
+        { "type": "field", "halves": ["EL", "WR"], "cities": [0] },
+        { "type": "field", "halves": ["ER", "WL"], "cities": [1] }
+      ],
+      "tags": [],
+      "art": "Two small walled city caps face each other across a straight river. North cap: a curved wall runs from the NW corner to the NE corner and sags to about one third of the way down. Its round towers have blue cone roofs, and red-roofed houses stand on brown ground behind it. South cap: a mirror image, with the wall running from the SW corner to the SE corner and rising to about two thirds of the way down. The river runs straight from west to east through the middle, with two tiny wooded islets. A narrow grass strip lies between each wall and the river. The north strip reaches the north halves of the W and E edges and borders only the north city. The south strip reaches the south halves and borders only the south city. The two cities are separate. No pennants."
+    },
+    {
+      "id": "RI.1/CIRI",
+      "count": 1,
+      "name": "City gate, road and river bridge",
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "road", "sides": ["S"] },
+        { "type": "river", "sides": ["W", "E"] },
+        { "type": "field", "halves": ["EL"], "cities": [0] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] },
+        { "type": "field", "halves": ["WR"], "cities": [0] }
+      ],
+      "tags": [],
+      "art": "A walled city cap runs along the north edge. Its curved wall goes from the NW corner to the NE corner, lowest about 40% of the way down, with blue cone-roofed towers and a gatehouse a little east of centre. A road leaves the gate and runs south. It crosses the river on a grey stone arch bridge, which runs from north-east to south-west and has two small red-roofed turrets at its north-east end. The road then winds down to the middle of the south edge. The river runs from west to east across the middle and dips slightly south under the bridge. The road ends at the city gate. There are four field pieces. Two are narrow strips between the river and the wall: the NW piece west of the road and the NE piece east of it. Both border the city. The other two are the southern quarters on either side of the road. No pennant."
+    },
+    {
+      "id": "RI.1/LIRI",
+      "count": 1,
+      "name": "Monastery by the river with footbridge",
+      "features": [
+        { "type": "road", "sides": ["S"] },
+        { "type": "river", "sides": ["W", "E"] },
+        { "type": "monastery" },
+        { "type": "field", "halves": ["NL", "NR", "EL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A stone monastery church stands on the north bank, centre-left (about x 0.25-0.65, y 0.08-0.55). It has a square bell tower with a red pyramid roof and a cross at its west end, a red-roofed nave, and an arched door facing south-east. The river enters mid-west, sags south through the centre (lowest about 75% of the way down) and rises to leave mid-east. A short path runs from the church door south over a small wooden footbridge in the centre, then winds down to the middle of the south edge. The road ends at the monastery. A tiny wooden jetty sticks out from the north bank east of the path. Fields: one north field around the monastery (the whole N edge plus the north halves of the W and E edges), and the two southern quarters on either side of the path."
+    },
+    {
+      "id": "RI.1/RIrI",
+      "count": 1,
+      "name": "Road bridge over the river",
+      "features": [
+        { "type": "road", "sides": ["W", "E"] },
+        { "type": "river", "sides": ["N", "S"] },
+        { "type": "field", "halves": ["NL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["NR", "EL"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "The river flows from the middle of the north edge to the middle of the south edge. It meanders gently and has three small wooded islets in its southern half. A road crosses it from mid-west to mid-east on a long grey stone arch bridge just north of centre. East of the bridge the road dips slightly and runs between two clusters of red-roofed cottages. One hamlet is in the NE quarter just north of the road (one chimney is smoking); the other is in the SE quarter south of the road. The cottages are decoration, not a city, and the road passes straight through. Four field quarters: NW, NE, SE and SW."
+    },
+    {
+      "id": "RI.1/IFI",
+      "count": 2,
+      "name": "Straight river",
+      "features": [
+        { "type": "river", "sides": ["W", "E"] },
+        { "type": "field", "halves": ["NL", "NR", "EL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL", "SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "Two copies with different art and the same geometry: one field north of the river and one south. COPY A: the river runs from west to east across the middle with a gentle wave. There is a wooded island just east of centre, a thin sandbar islet south-west of centre, and bushes on the banks. In the NW quarter is a small wooden farmstead: a hut with a fenced paddock holding grey animals. COPY B: no buildings; the river meanders strongly. From mid-west it swings down to a bend near the south edge, west of centre. It then climbs north in a tall hairpin loop that almost touches the north edge, with a sandy grass spit inside the loop. Finally it comes back down and leaves mid-east.",
+      "art_variants": [
+        "Copy A: the river runs from west to east with a gentle wave. A wooded island lies just east of centre and a thin sandbar south-west of centre. In the NW quarter: a wooden hut with a fenced paddock of grey animals.",
+        "Copy B: a strongly meandering river with no buildings. From mid-west it dips to a bend near the south edge, west of centre. It then rises in a tall hairpin loop almost touching the north edge (sandy spit inside), drops back and exits mid-east."
+      ]
+    },
+    {
+      "id": "RI.1/CcII",
+      "count": 1,
+      "name": "City corner with river bend",
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 0 },
+        { "type": "river", "sides": ["S", "E"] },
+        { "type": "field", "halves": ["EL", "SR"], "cities": [0] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A large corner city fills the north-west half of the tile. Its straight wall runs diagonally from the NE corner to the SW corner and is studded with blue cone-roofed towers. Inside are red-roofed houses on brown ground and a big round white keep with a blue conical roof towards the west edge. The river enters mid-south, curves north-east and leaves mid-east, cutting off the SE corner. A diagonal grass band lies between the wall and the river; it touches the north half of the E edge and the west half of the S edge, and borders the city. The SE corner beyond the river is a separate small field. No pennant."
+    },
+    {
+      "id": "RI.1/RrII",
+      "count": 1,
+      "name": "River bend and road bend",
+      "features": [
+        { "type": "road", "sides": ["N", "E"] },
+        { "type": "river", "sides": ["W", "S"] },
+        { "type": "field", "halves": ["NL", "ER", "SL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["NR", "EL"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A road bend and a river bend sit in opposite corners. The road comes down from mid-north and bends east to leave mid-east, cutting off the NE corner. In that corner two travellers rest beside a bushy tree: one in a red hood, one in blue with a staff. The river enters mid-west, flows east and bends south to leave mid-south, cutting off the SW corner. A small sandy islet sits in the bend, and a tiny red-clad figure stands on the outer bank near the centre. The broad diagonal meadow between the road and the river (running NW to SE) is one field. The NE corner and the SW corner are separate small fields."
+    },
+    {
+      "id": "RI.1/II",
+      "count": 1,
+      "name": "River bend",
+      "features": [
+        { "type": "river", "sides": ["W", "S"] },
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "Plain river bend. The river enters mid-west, rises slightly into a rounded bend (its top about 30% of the way down, west of centre) and turns south to leave mid-south, cutting off the SW corner. A farmhouse stands in the NE quarter, with an orange-brown roof, a smoking chimney, and a fenced yard with bushes. One large field covers everything except the SW pocket inside the bend, which is a separate small field."
+    },
+    {
+      "id": "RI.1/IIG",
+      "count": 1,
+      "name": "River bend with garden",
+      "features": [
+        { "type": "river", "sides": ["W", "S"] },
+        { "type": "garden" },
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "Same geometry as the plain bend. The river enters mid-west, flows east and bends south to leave mid-south, cutting off the SW corner; a long wooded island lies in the bend. In the NE quarter, right of centre (about x 0.55-0.85, y 0.1-0.6), is the abbot's garden: a fenced rectangular flower bed with rows of sunflowers and red, pink, blue and white flowers, drawn in perspective as a tilted rhombus. The garden sits inside the large field and does not divide it. The SW pocket inside the bend is a separate small field. Without the Abbot the garden is decoration only."
+    }
+  ],
+  "rules": {
+    "setup": [
+      "Return the normal start tile to the box: the River's 12 dark-backed tiles replace it (Z-Man and HiG 3rd edition). The land deck is the other 71 base tiles plus any land tiles from other expansions in play.",
+      "Take out the spring (source) and the lake. Shuffle the other 10 river tiles face down into a separate river stack, then slide the lake underneath that stack so it is always drawn last.",
+      "Place the spring face up as the starting tile. Its orientation does not matter; JCloisterZone uses rotation 0, with the river flowing east.",
+      "Shuffle the land tiles into the normal face-down stacks as usual. They are drawn only once the river stack is empty."
+    ],
+    "turn_sequence": [
+      "Draw: while the river stack is not empty, the active player draws its top tile instead of a land tile. Play starts with the first player and goes clockwise. This gives 11 river turns, the 11th always being the lake. The spring was placed during setup.",
+      "Place: use the river placement rules (see placement). If the tile has no legal placement, it is removed from the game (back in the box) and the player draws the next tile: river stack first, then land stacks.",
+      "Follower step: completely normal on the river tile just placed (never on the water). Abbot, big meeple, builder/pig and fairy options work as usual.",
+      "Scoring step: completely normal. It is rare for anything to complete during the river phase.",
+      "Once the river stack is empty (normally right after the lake turn), the next draw comes from the land stacks and the game continues as the base game. The River adds nothing to later turns.",
+      "With Traders & Builders, a builder's extra turn taken during the river phase also draws from the river stack while it has tiles."
+    ],
+    "placement": [
+      "Continue the river: the new tile's river must join the open end of the river. In River I there is exactly one open end, because the spring is a dead end. So the only possible square is the empty one the open end points at, and the river edge facing the previous river tile is mandatory. A river tile may never be placed anywhere else, for example only touching a field edge.",
+      "Every edge must match as usual: river to river, field to field, road to road, city to city. This includes edges touching any other tile next to the target square.",
+      "No immediate U-turn: if the previous river tile is a bend, the new tile may not bend the same way. Official wordings: 'the river cannot turn twice in the same direction because this would create a u-turn' (Z-Man 2014); 'the river cannot turn in the same direction twice in a row' (Z-Man Big Box 2017); 'keine 2 Flussplättchen nacheinander in die gleiche Richtung abbiegen' (HiG 2014). HiG FAQ: 'Only immediate U-turns are explicitly forbidden.'",
+      "A bend, one or more straight pieces, then a bend the same way (a wide U) IS allowed. The official 'completed river example' contains right, straight, right. The spring and the lake count as neither straight nor bend; the first tile after the spring may bend either way.",
+      "How to test it: let d_in(prev) be the flow direction entering the previous river tile and d_out(new) the direction leaving the new tile. The placement is illegal if d_out(new) == opposite(d_in(prev)). This is exactly the case of two adjacent bends turning the same way.",
+      "Tiles are only rotated, never flipped. A straight river tile has 2 legal rotations, which decide which bank its city or monastery is on. A bend has one rotation per turn direction, and at most one of those two is forbidden by the U-turn rule.",
+      "Unplaceable river tile: use the base rule. HiG: 'lege das Plättchen in die Spielschachtel zurück und ziehe ein neues'. The River II rules say the same explicitly for river tiles: 'River tiles which cannot be placed should be removed from the game ... Even if the river cannot be placed in its entirety, the game should proceed in the usual way.' The river may stay unfinished. If the lake itself cannot be placed, the open river end is never closed: no land tile has a river edge, so the square in front of it stays empty for the rest of the game.",
+      "After the river phase, land tiles may be placed against any river-tile edge that matches (field, road or city). They can never be placed against the open river end."
+    ],
+    "followers": [
+      "Normal follower placement on the river tile just placed: a highwayman on its road, a knight in its city, a monk on its monastery, or a farmer in one of its field pieces, provided that road, city or field is not already occupied.",
+      "Never on the river: 'The river is not a feature; meeples cannot be placed on it, and it cannot be scored' (Z-Man Big Box 2017; 1st ed.: 'Followers may not be deployed to the river itself').",
+      "The two banks are different fields: every field piece listed per tile is its own feature. The spring and the lake each have one field that wraps around the river end, so a farmer can be placed there; that field touches both banks.",
+      "The lake is placed during a normal turn in the 3rd edition, so its player may place a farmer on it like on any tile.",
+      "With the Abbot: the abbot may go on the river monastery (RI.1/LIRI) or on the river garden (RI.1/IIG) when that tile is placed. Only an abbot can occupy a garden. A normal meeple can still be placed on the monastery as a monk, or in the field around the garden.",
+      "Other figures follow their own rules on river tiles (big meeple, builder, pig, fairy), but none may stand on the water."
+    ],
+    "scoring_during_game": [
+      "The River adds no scoring. The river itself is never scored and never 'completed'.",
+      "Features on river tiles score under the base rules. The RI.1/RIrI road continues across its bridge. The RI.1/CIRI road ends at the city gate and the RI.1/LIRI road ends at the monastery. The two caps of RI.1/CICI are separate cities. No River I city has a pennant.",
+      "River tiles count as neighbouring tiles when counting the 8 tiles around a monastery or garden.",
+      "An abbot on a river monastery or garden may be taken back and scored on any turn when its owner places no meeple, river-phase turns included."
+    ],
+    "scoring_end": [
+      "No change to final scoring. Incomplete roads, cities and monasteries on river tiles score as usual, and the abbot scores like a monk.",
+      "Farms: the river separates fields (HiG FAQ, 08/2014), except on the spring and lake tiles, where the single field wraps around the end of the river. Completed cities bordering river-tile fields count normally, using the 'cities' lists per field."
+    ],
+    "edge_cases": [
+      "Only immediate U-turns are forbidden (HiG FAQ via S-CAR: 'Only immediate U-turns are explicitly forbidden. (Naturally there can also be problems if a straight river tile lies between.)'). The stricter 'never turn the same way twice, even with straights between' reading is a house rule (S-CAR House Rules: 'Ban all river U-turns').",
+      "The spring and lake fields wrap around (HiG FAQ via S-CAR: 'Officially, the field goes around the spring, creating a connected farm'; RGG Big Box: 'The field space on the lake and spring tiles wraps around those features').",
+      "River segments separate farms (HiG FAQ 08/2014 via S-CAR).",
+      "The river may remain unfinished. An unplaceable river tile, including the lake, is removed and the next tile drawn (base rule; explicit in the River II rules). A reported official reply: players may end up with an unfinished river, but that is their own fault.",
+      "A wide U-turn can leave enclosed holes beside the river. The official example leaves a 2-square gap that land tiles can fill later. Holes can make a river monastery or garden impossible to complete; the abbot can still be recalled for partial points.",
+      "Because of the no-immediate-U-turn rule, two river tiles that are not consecutive along the river can only be side by side if the river loops around a single hole. That takes 4 bends, the number River I has. Their touching edges must still match, so a river city or road could, very rarely, meet another river tile and even complete during the river phase. The engine needs no special case.",
+      "RI.1/RIrI cottages, the RI.1/II farmhouse and the RI.1/IFI farmstead are decoration. They are not cities, and the RIrI road passes through without ending.",
+      "In RI.1/CIRI the road ends at the city gate, so it is closed at one end. In RI.1/LIRI the road ends at the monastery. In both, the road and the river together cut each tile's meadow into the listed pieces.",
+      "The garden does not split its field. Without the Abbot it has no function and only farmers can use that field.",
+      "Combining River I with River II (out of scope): use only one spring and one lake (HiG FAQ: 'One spring and one lake are discarded'). JCloisterZone drops the River I lake."
+    ],
+    "interactions": {
+      "base": [
+        "Edge types gain 'river'. A river edge may only touch a river edge, so no land tile can ever touch an open river end.",
+        "Fields: the river works like an uncrossable road for field connectivity. Each bank's field pieces connect only to the same bank on the neighbouring tile. The spring and lake fields wrap around and join both banks.",
+        "Monastery scoring counts river tiles like any tile. The RI.1/LIRI monastery is an ordinary monastery (9 points when surrounded, 1 per tile at game end).",
+        "Roads crossing the river on bridges are continuous road features (RI.1/RIrI, RI.1/CIRI, RI.1/LIRI).",
+        "Game length: 71 land tiles + 11 drawn river tiles. The game ends as usual when the last land tile has been placed."
+      ],
+      "river": [
+        "n/a (this file). River II, for reference only: it adds a fork (RI.2/III), placed first next to the spring by the first player (some printings say the youngest), giving two open branches that must never connect. Its ends are a volcano lake (RI.2/I.v) and a river ending in a city (RI.2/IFC). It also has a city bridge over the river (RI.2/CIcI: the city does NOT split fields; only the river does), a monastery, an inn on the bridge road, a pig-herd field and a pennant city corner. The same no-immediate-U-turn rule applies on each branch."
+      ],
+      "abbot": [
+        "The River contributes one monastery (RI.1/LIRI) and the 3rd edition's only river garden (RI.1/IIG). When either tile is placed, its player may put the abbot on the monastery or garden instead of placing a meeple. Normal Abbot scoring applies: 9 points when the 8 surrounding squares are filled, otherwise 1 point per tile, including the garden or monastery tile itself, on early recall or at game end.",
+        "The abbot can be recalled during river-phase turns, on any turn where its owner places no meeple.",
+        "Without the Abbot, the garden on RI.1/IIG is decoration (Abbot rules: 'only an abbot may be placed on them').",
+        "Pockets left by river bends may keep a river monastery or garden from ever being surrounded. Abbot recall gives partial points."
+      ],
+      "inns-cathedrals": [
+        "The big meeple may be placed on any road, city, monastery or field of a river tile (never on the water) and counts as 2 followers as usual.",
+        "River I tiles have no inns and no cathedrals. The little lake drawn beside an Inns & Cathedrals inn is decoration: it is not a river edge and has nothing to do with The River.",
+        "River II (out of scope) has an inn on its bridge-road tile, which counts under the inn rules."
+      ],
+      "traders-builders": [
+        "The builder may be placed on a road or in a city of the river tile just placed, if you already have a follower in that road or city. If your builder's feature is extended during the river phase, the extra turn draws from the river stack while it has tiles.",
+        "The pig may join your farmer in a river-tile field. The river separates fields, so the pig only helps the field on its own bank (or the joined field around the spring or lake).",
+        "No River I city has a trade-goods symbol, so completing a river city gives no goods.",
+        "River II's pig-herd tile (out of scope) scores separately from the T&B pig."
+      ],
+      "princess-dragon": [
+        "No River I tile has a volcano, dragon, magic portal or princess symbol. Only river tiles are drawn during the river phase, so the dragon can only enter play after the river is finished, from a land volcano tile.",
+        "The dragon moves across river tiles like any tile (the water does not block it) and eats followers on river-tile features. The fairy may be put next to one of your followers on a river tile, including during the river phase, and protects it as usual.",
+        "A magic portal on a land tile can send a follower to an unoccupied, incomplete road, city, monastery or field on a river tile, but never onto the river.",
+        "River II (out of scope): its lake has a volcano. Its rules say the player who places it puts the dragon there instead of a follower and then takes another tile, which differs from the usual P&D volcano rule (S-CAR notes this)."
+      ],
+      "tower": [
+        "River tiles have no tower foundations, so no tower can be started during the river phase. Tower floors go only on tower foundations, which come from Tower land tiles.",
+        "A tower's capture range runs over river tiles like any tiles, and followers on river tiles can be captured. The river does not block the line."
+      ]
+    },
+    "edition_differences": [
+      "1st/2nd edition River (HiG 2001, RGG): the same 12 tile layouts, but two plain river bends and no garden (JCloisterZone river/1:1). The start tile 'can either be mixed into the stack of river tiles, or placed as soon as the river has been completed'. The lake was set aside and placed 'when the river is finished' (often played off-turn with no follower). Rule wording: 'A U-turn with the river tiles is not possible ... a 180° turn is not allowed'.",
+      "Big Box 5 version (HiG 2014): the same layouts plus sheep and vineyard pictures for Hills & Sheep, and light-grey backs. Not our edition.",
+      "3rd edition (2014+, in the base box): dark backs like the start tile, and one bend has a garden for the Abbot. The start tile goes back in the box, the lake goes under the river stack and is drawn normally, and the art is new. Later printings, such as the 2017 Big Box, add a small three-wave river symbol in a free corner of each tile front.",
+      "River II (2005, later inside Count, King & Robber/Consorts) is a different 12-tile set with a fork, a volcano lake and a city end. When combined with River I, discard one spring and one lake.",
+      "JCloisterZone deviations from the rulebook: (1) it keeps the base start tile in the land pack (72 land tiles); (2) it uses a stricter look-ahead check (the 5 squares ahead of each open river end must be empty) instead of the printed no-immediate-U-turn rule. Both are legal-looking but not official."
+    ],
+    "ai_hints": [
+      "River-phase moves have one square and at most 2 rotations. The real decisions are which bank to put a city or monastery on, which way to bend, and whether and where to commit a follower.",
+      "The river phase lasts 11 turns and little scores. Do not commit more than about 2 followers during it; the land phase needs them.",
+      "Good river-phase follower spots: a knight in an RI.1/CICI cap or the RI.1/CIRI cap (each needs only one matching cap tile to finish); a monk on RI.1/LIRI; the abbot on RI.1/IIG or RI.1/LIRI, since it can be recalled at any time and is never stuck.",
+      "Farmers on river tiles are long-term bets. The river cuts fields in half, but the spring and lake fields join both banks, and the strips of RI.1/CICI, RI.1/CIRI and RI.1/CcII border cities. Prefer the big field of a bend tile or a field already bordering a river city.",
+      "Bending: avoid wide U-turns that bring the river back towards itself. They create 1-2 square holes that may never be filled, which can strand monasteries and gardens. A hole next to an opponent's monastery or abbot is good for you; next to your own it is bad.",
+      "Bank choice for RI.1/CIRI, RI.1/LIRI and the cities of RI.1/CcII: face the city or monastery towards open space, the outer side of the river's overall bend, so land tiles can complete it.",
+      "Do not let the river become unplaceable. As a heuristic (not a rule), prefer placements where the square in front of the new open end, its two side squares and the three squares beyond are empty, as JCloisterZone checks.",
+      "Legal-move generation must include the river constraints: connect to the open end, all edges match, no immediate U-turn. Discard an unplaceable river tile and draw again, exactly as the existing drawTile does for land tiles."
+    ],
+    "kid_rules_text": "The River is a special way to start the game. Leave the normal start tile in the box and put the Spring, where the river begins, in the middle of the table. Shuffle the other river tiles face down into their own little pile and slide the Lake underneath, so the Lake always comes out last.\n\nAt the start, everyone draws river tiles instead of normal tiles, one per turn, until the Lake is down. Each river tile must make the river longer: its water joins the end of the river. All the other edges must match too: grass to grass, road to road, city to city.\n\nOne rule stops the river running back into itself: two bends in a row may not turn the same way (left then left, or right then right), because that is a U-turn. A bend, a straight piece, then a bend the same way is fine.\n\nYou may still put one meeple on the tile you just placed, as usual: on a road, in a city, on the monastery, or lying down as a farmer in a field. Never put one in the water! The river splits the meadows, so grass on one bank is a different field from grass on the other bank. Only at the Spring and the Lake does the meadow go all the way around.\n\nThe tile with the flower garden is for the abbot: if you play with abbots, you may put yours on the garden or on the monastery. If a river tile ever cannot be placed (very rare), it goes back in the box and you draw the next one. Once the Lake is down, the game carries on with the normal tiles.",
+    "figures": [
+      "Setup: the Spring face up in the middle; the small river pile beside it with the Lake peeking out from underneath; the normal start tile going back into the box; the normal tile stacks further away.",
+      "Bends, three mini river paths: left then right (green tick); left, straight, left (green tick, 'wide bend is OK'); left then left (red cross, 'U-turn!'). Based on the official 'Watch out!' picture: road-bridge tile, then the plain bend turning west, then the road/river bend turning back north, crossed out.",
+      "Edges must match: a river tile whose water joins the river but whose city edge would touch grass, crossed out next to the correct rotation.",
+      "Meeple spots on a river tile: the city-gate/bridge tile (RI.1/CIRI) with a knight in the city, a highwayman on the bridge road, farmers lying in each of the four meadow pieces, and a big red X over the water.",
+      "The river splits fields: two farmers on opposite banks are in different fields. An arrow shows the meadow wrapping round the Spring (and the Lake).",
+      "Abbot spots: an abbot on the flower garden (RI.1/IIG) and on the river monastery (RI.1/LIRI).",
+      "The official completed river (12 tiles), drawn from rules.example_layout. It also makes a good engine test, because every placement in it is legal."
+    ],
+    "example_layout": {
+      "description": "Official 'completed river example' printed in the Z-Man 2014 supplementary sheet, the HiG 2014 rulebook and the Z-Man 2017 Big Box, in placement order. x grows east, y grows south (screen coordinates). r = clockwise quarter turns from the canonical orientation in this file (our engine's rot). Bends along the flow: left (y=2), right (x=2,y=2), right (x=2,y=4), left (x=0,y=4). The two rights are separated by a straight, so this is a legal wide U.",
+      "tiles": [
+        { "id": "RI/s", "x": 0, "y": 0, "r": 1 },
+        { "id": "RI.1/IFI", "variant": "A (farmstead)", "x": 0, "y": 1, "r": 1 },
+        { "id": "RI.1/IIG", "x": 0, "y": 2, "r": 2 },
+        { "id": "RI.1/LIRI", "x": 1, "y": 2, "r": 0 },
+        { "id": "RI.1/CcII", "x": 2, "y": 2, "r": 1 },
+        { "id": "RI.1/RIrI", "x": 2, "y": 3, "r": 0 },
+        { "id": "RI.1/II", "x": 2, "y": 4, "r": 1 },
+        { "id": "RI.1/CICI", "x": 1, "y": 4, "r": 0 },
+        { "id": "RI.1/RrII", "x": 0, "y": 4, "r": 3 },
+        { "id": "RI.1/IFI", "variant": "B (meander)", "x": 0, "y": 5, "r": 1 },
+        { "id": "RI.1/CIRI", "x": 0, "y": 6, "r": 1 },
+        { "id": "RI.1/I.e", "x": 0, "y": 7, "r": 1 }
+      ],
+      "illegal_example": "Official 'Watch out!' picture: RI.1/RIrI at (1,0) r=0, then RI.1/II at (1,1) r=1 (flow turns from south to west, a right turn), then RI.1/RrII at (0,1) r=2 (flow would turn from west to north, a second right turn in a row). That last placement is illegal."
+    }
+  }
+}

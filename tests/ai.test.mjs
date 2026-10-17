@@ -10,7 +10,7 @@ function play(levels) {
     const lvl = levels[s.current];
     let mv;
     if (lvl === 'random') {
-      const vp = G.validPlacements(s.board, s.drawn); const p = vp[Math.floor(Math.random() * vp.length)];
+      const vp = G.validPlacements(s, s.drawn); const p = vp[Math.floor(Math.random() * vp.length)];
       mv = { x: p.x, y: p.y, r: p.rots[0], meeple: null };
     } else {
       const t0 = performance.now(); mv = chooseMove(s, lvl); maxMs = Math.max(maxMs, performance.now() - t0);

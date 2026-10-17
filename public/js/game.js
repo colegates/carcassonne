@@ -1,5 +1,7 @@
-// Pure rules engine for Carcassonne (base game, 3rd-edition scoring).
-import { TILE_TYPES, START_TILE, buildDeck, rotPort, oppositePort, SIDE_DELTA } from './tiles.js';
+// Pure, deterministic rules engine for Carcassonne (3rd-edition rules).
+// Every state change is driven by serialisable actions so that several phones
+// can replay exactly the same game (see applyAction).
+import { TILE_TYPES, buildDeck, rotPort, oppositePort, SIDE_DELTA } from './tiles.js';
 
 export const MEEPLES_PER_PLAYER = 7;
 export const PLAYER_COLORS = {
@@ -8,7 +10,13 @@ export const PLAYER_COLORS = {
   green: { name: 'Green', main: '#3f7d3a', dark: '#1d421b', light: '#9ad88f' },
   yellow: { name: 'Yellow', main: '#d9a72a', dark: '#7a5a0c', light: '#ffe08a' },
   black: { name: 'Black', main: '#2b2b2b', dark: '#0e0e0e', light: '#a0a0a8' },
-  pink: { name: 'Pink', main: '#c4568f', dark: '#6a2349', light: '#f5a8cf' },
+  grey: { name: 'Grey', main: '#8c8c88', dark: '#4a4a47', light: '#d6d6d0' },
+};
+
+// Figures a player can have on the board. weight = strength when counting
+// who has the most followers in a feature.
+export const PIECES = {
+  meeple: { weight: 1, follower: true, name: 'Meeple' },
 };
 
 export const key = (x, y) => `${x},${y}`;
@@ -22,17 +30,20 @@ export function shuffle(arr, rnd = Math.random) {
   return arr;
 }
 
-export function newGame(players, options = {}) {
+export function newGame(players, options = {}, rnd = Math.random) {
+  const opts = { farmers: true, hints: true, ...options, expansions: { ...(options.expansions || {}) } };
+  const { start, deck } = buildDeck(opts.expansions, rnd);
   const state = {
-    version: 1,
-    options: { farmers: true, ...options },
+    version: 2,
+    options: opts,
     players: players.map((p) => ({
       name: p.name, color: p.color, kind: p.kind || 'human', level: p.level || 'medium',
-      score: 0, meeples: MEEPLES_PER_PLAYER,
+      score: 0,
+      supply: { meeple: MEEPLES_PER_PLAYER },
       breakdown: { road: 0, city: 0, monastery: 0, field: 0 },
     })),
-    board: { [key(0, 0)]: { t: START_TILE, r: 0, m: null, n: 0 } },
-    deck: shuffle(buildDeck()),
+    board: { [key(0, 0)]: { t: start, r: 0, pieces: [], n: 0 } },
+    deck,
     current: 0,
     drawn: null,
     phase: 'place',
@@ -40,6 +51,7 @@ export function newGame(players, options = {}) {
     placed: 1,
     last: null,
     discarded: [],
+    seq: 0,
   };
   drawTile(state);
   return state;
@@ -47,13 +59,31 @@ export function newGame(players, options = {}) {
 
 export const cloneState = (s) => JSON.parse(JSON.stringify(s));
 
+// Bring a saved game from an older version of the app up to date.
+export function migrate(s) {
+  if (!s || s.version >= 2) return s;
+  for (const t of Object.values(s.board)) {
+    t.pieces = t.m ? [{ p: t.m.p, f: t.m.f, k: 'meeple' }] : [];
+    delete t.m;
+  }
+  for (const p of s.players) {
+    p.supply = { meeple: p.meeples ?? MEEPLES_PER_PLAYER };
+    delete p.meeples;
+  }
+  s.options.expansions = s.options.expansions || {};
+  s.seq = s.seq || 0;
+  s.version = 2;
+  return s;
+}
+
 // ---------- tile geometry helpers ----------
 export function featureAtPort(tile, worldPort) {
   const local = (worldPort - 3 * tile.r + 12) % 12;
   return TILE_TYPES[tile.t].portFeature[local];
 }
 export function edgeType(tile, side) {
-  return TILE_TYPES[tile.t].features[featureAtPort(tile, 3 * side + 1)].type;
+  const fi = featureAtPort(tile, 3 * side + 1);
+  return TILE_TYPES[tile.t].features[fi].type;
 }
 export function worldPorts(tile, fi) {
   return TILE_TYPES[tile.t].features[fi].ports.map((p) => rotPort(p, tile.r));
@@ -62,8 +92,10 @@ export function neighbour(board, x, y, side) {
   const [dx, dy] = SIDE_DELTA[side];
   return board[key(x + dx, y + dy)];
 }
+export const featureOf = (tile, fi) => TILE_TYPES[tile.t].features[fi];
 
-export function canPlace(board, x, y, t, r) {
+export function canPlace(state, x, y, t, r) {
+  const board = state.board;
   if (board[key(x, y)]) return false;
   const tile = { t, r };
   let touching = 0;
@@ -89,19 +121,20 @@ export function frontier(board) {
 }
 
 // Returns [{x, y, rots: [r...]}] for every legal spot of tile type t.
-export function validPlacements(board, t) {
+export function validPlacements(state, t = state.drawn) {
   const res = [];
-  const seenShapes = TILE_TYPES[t];
-  for (const [x, y] of frontier(board)) {
+  if (!t) return res;
+  for (const [x, y] of frontier(state.board)) {
     const rots = [];
-    for (let r = 0; r < 4; r++) if (canPlace(board, x, y, t, r)) rots.push(r);
+    for (let r = 0; r < 4; r++) if (canPlace(state, x, y, t, r)) rots.push(r);
     if (rots.length) res.push({ x, y, rots });
   }
-  void seenShapes;
   return res;
 }
 
 // ---------- feature groups ----------
+const weightOf = (k) => PIECES[k]?.weight ?? 0;
+
 // A group is the connected feature (road/city/field) spanning tiles.
 export function getGroup(board, k, fi) {
   const start = board[k];
@@ -119,8 +152,8 @@ export function getGroup(board, k, fi) {
     const feat = TILE_TYPES[tile.t].features[cf];
     nodes.push([ck, cf]);
     tiles.add(ck);
-    if (feat.pennant) pennants++;
-    if (tile.m && tile.m.f === cf) meeples.push({ key: ck, p: tile.m.p, f: cf });
+    if (feat.pennants) pennants += feat.pennants;
+    for (const pc of tile.pieces) if (pc.f === cf) meeples.push({ key: ck, p: pc.p, f: cf, k: pc.k, w: weightOf(pc.k) });
     const [x, y] = parseKey(ck);
     for (const wp of worldPorts(tile, cf)) {
       const s = Math.floor(wp / 3);
@@ -136,7 +169,8 @@ export function getGroup(board, k, fi) {
       if (!seen.has(id)) { seen.add(id); stack.push([nk, nf]); }
     }
   }
-  const id = [...seen].sort()[0];
+  let id = null;
+  for (const s of seen) if (id === null || s < id) id = s;
   return { id, type, nodes, tiles, openEdges, pennants, meeples, complete: type !== 'field' && openEdges === 0 };
 }
 
@@ -148,20 +182,24 @@ export function monasteryNeighbours(board, x, y) {
   return n;
 }
 
+// Players with the most follower strength among the given pieces.
 export function owners(meeples) {
   const counts = {};
-  for (const m of meeples) counts[m.p] = (counts[m.p] || 0) + 1;
+  for (const m of meeples) {
+    const w = m.w ?? weightOf(m.k);
+    if (w > 0) counts[m.p] = (counts[m.p] || 0) + w;
+  }
   const max = Math.max(0, ...Object.values(counts));
   return max === 0 ? [] : Object.keys(counts).filter((p) => counts[p] === max).map(Number);
 }
 
-export function groupPoints(g, endGame) {
+export function groupPoints(g) {
   if (g.type === 'road') return g.tiles.size;
   if (g.type === 'city') return (g.tiles.size + g.pennants) * (g.complete ? 2 : 1);
   return 0;
 }
 
-// Field scoring: 3 points per completed city bordering the field.
+// Completed cities bordering a field group.
 export function fieldCities(board, g) {
   const cities = new Map();
   for (const [k, fi] of g.nodes) {
@@ -179,7 +217,7 @@ export function drawTile(state) {
   state.drawn = null;
   while (state.deck.length) {
     const t = state.deck.pop();
-    if (validPlacements(state.board, t).length) { state.drawn = t; return t; }
+    if (validPlacements(state, t).length) { state.drawn = t; return t; }
     state.discarded.push(t); // unplayable tiles are removed from the game
   }
   return null;
@@ -187,40 +225,54 @@ export function drawTile(state) {
 
 export function placeTile(state, x, y, r) {
   if (state.phase !== 'place') throw new Error('Not in place phase');
-  if (!canPlace(state.board, x, y, state.drawn, r)) throw new Error('Illegal placement');
+  if (!canPlace(state, x, y, state.drawn, r)) throw new Error('Illegal placement');
   const k = key(x, y);
-  state.board[k] = { t: state.drawn, r, m: null, n: state.placed++ };
+  state.board[k] = { t: state.drawn, r, pieces: [], n: state.placed++ };
   state.last = k;
   state.drawn = null;
-  state.phase = 'meeple';
+  state.phase = 'action';
 }
 
-// Feature indices of the last-placed tile on which the current player may put a meeple.
-export function meepleOptions(state) {
-  if (state.phase !== 'meeple' || !state.last) return [];
-  if (state.players[state.current].meeples <= 0) return [];
-  const tile = state.board[state.last];
-  const feats = TILE_TYPES[tile.t].features;
+// Everything the current player may do after placing a tile (besides passing).
+// Each option is an action object accepted by finishTurn.
+export function followerOptions(state) {
+  if (state.phase !== 'action' || !state.last) return [];
+  const pl = state.players[state.current];
   const out = [];
-  feats.forEach((f, fi) => {
-    if (f.type === 'field' && !state.options.farmers) return;
-    if (f.type === 'monastery') { out.push(fi); return; }
-    if (getGroup(state.board, state.last, fi).meeples.length === 0) out.push(fi);
-  });
+  const k = state.last;
+  const tile = state.board[k];
+  const feats = TILE_TYPES[tile.t].features;
+  if (pl.supply.meeple > 0) {
+    feats.forEach((f, fi) => {
+      if (f.type === 'field' && !state.options.farmers) return;
+      if (f.type === 'river' || f.type === 'garden') return;
+      if (f.type === 'monastery') { out.push({ kind: 'follower', key: k, fi, k: 'meeple' }); return; }
+      if (getGroup(state.board, k, fi).meeples.some((m) => m.w > 0)) return;
+      out.push({ kind: 'follower', key: k, fi, k: 'meeple' });
+    });
+  }
   return out;
+}
+
+// Backwards-compatible helper: feature indexes where a meeple may go.
+export function meepleOptions(state) {
+  return followerOptions(state).filter((o) => o.kind === 'follower' && o.k === 'meeple').map((o) => o.fi);
 }
 
 function award(state, players, pts, kind) {
   for (const p of players) {
     state.players[p].score += pts;
-    state.players[p].breakdown[kind] += pts;
+    state.players[p].breakdown[kind] = (state.players[p].breakdown[kind] || 0) + pts;
   }
 }
 
-function returnMeeples(state, meeples) {
-  for (const m of meeples) {
-    state.board[m.key].m = null;
-    state.players[m.p].meeples++;
+function returnPieces(state, pieces) {
+  for (const m of pieces) {
+    const tile = state.board[m.key];
+    const i = tile.pieces.findIndex((pc) => pc.p === m.p && pc.f === m.f && pc.k === m.k);
+    if (i < 0) continue;
+    tile.pieces.splice(i, 1);
+    state.players[m.p].supply[m.k] = (state.players[m.p].supply[m.k] || 0) + 1;
   }
 }
 
@@ -244,30 +296,48 @@ export function scoreAfterPlacement(state, k, apply = true) {
   for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
     const mk = key(x + dx, y + dy);
     const mt = board[mk];
-    if (!mt || !mt.m) continue;
-    const feat = TILE_TYPES[mt.t].features[mt.m.f];
-    if (feat.type !== 'monastery') continue;
-    if (monasteryNeighbours(board, x + dx, y + dy) === 8) {
-      events.push({ kind: 'monastery', winners: [mt.m.p], points: 9, nodes: [[mk, mt.m.f]], meeples: [{ key: mk, p: mt.m.p, f: mt.m.f }], complete: true, tiles: 9 });
+    if (!mt) continue;
+    for (const pc of mt.pieces) {
+      const feat = TILE_TYPES[mt.t].features[pc.f];
+      if (feat.type !== 'monastery') continue;
+      if (monasteryNeighbours(board, x + dx, y + dy) === 8) {
+        events.push({ kind: 'monastery', winners: [pc.p], points: 9, nodes: [[mk, pc.f]], meeples: [{ key: mk, p: pc.p, f: pc.f, k: pc.k }], complete: true, tiles: 9 });
+      }
     }
   }
   if (apply) {
     for (const e of events) {
       if (e.winners.length) award(state, e.winners, e.points, e.kind);
-      returnMeeples(state, e.meeples);
+      returnPieces(state, e.meeples);
     }
   }
   return events;
 }
 
-export function finishTurn(state, featureIndex = null) {
-  if (state.phase !== 'meeple') throw new Error('Not in meeple phase');
-  if (featureIndex !== null && featureIndex !== undefined) {
-    if (!meepleOptions(state).includes(featureIndex)) throw new Error('Illegal meeple');
-    state.board[state.last].m = { p: state.current, f: featureIndex };
-    state.players[state.current].meeples--;
+function sameAction(a, b) {
+  return a.kind === b.kind && a.key === b.key && a.fi === b.fi && a.k === b.k;
+}
+
+// Finish the current turn: perform the follower-phase action (or pass with
+// null), score, then hand over to the next player and draw their tile.
+export function finishTurn(state, act = null) {
+  if (state.phase !== 'action') throw new Error('Not in action phase');
+  if (typeof act === 'number') act = { kind: 'follower', key: state.last, fi: act, k: 'meeple' };
+  const events = [];
+  if (act) {
+    const legal = followerOptions(state).find((o) => sameAction(o, act));
+    if (!legal) throw new Error('Illegal action');
+    if (act.kind === 'follower') {
+      state.board[act.key].pieces.push({ p: state.current, f: act.fi, k: act.k });
+      state.players[state.current].supply[act.k]--;
+    }
   }
-  const events = scoreAfterPlacement(state, state.last, true);
+  events.push(...scoreAfterPlacement(state, state.last, true));
+  endTurn(state);
+  return events;
+}
+
+function endTurn(state) {
   state.current = (state.current + 1) % state.players.length;
   state.turn++;
   drawTile(state);
@@ -277,6 +347,24 @@ export function finishTurn(state, featureIndex = null) {
   } else {
     state.phase = 'place';
   }
+}
+
+// Apply one serialisable action (used for network play and replays).
+//   { t: 'turn', x, y, r, act }   place the drawn tile, then do act (or null)
+//   { t: 'kind', seat, kind, level }   switch a seat between person and bot
+export function applyAction(state, a) {
+  let events = [];
+  if (a.t === 'turn') {
+    placeTile(state, a.x, a.y, a.r);
+    events = finishTurn(state, a.act || null);
+  } else if (a.t === 'kind') {
+    const p = state.players[a.seat];
+    p.kind = a.kind;
+    if (a.level) p.level = a.level;
+  } else {
+    throw new Error(`Unknown action ${a.t}`);
+  }
+  state.seq = (state.seq || 0) + 1;
   return events;
 }
 
@@ -286,22 +374,23 @@ export function finalScoring(state, apply = true) {
   const events = [];
   const seen = new Set();
   for (const [k, tile] of Object.entries(board)) {
-    if (!tile.m) continue;
-    const feat = TILE_TYPES[tile.t].features[tile.m.f];
-    if (feat.type === 'monastery') {
-      const [x, y] = parseKey(k);
-      const n = monasteryNeighbours(board, x, y);
-      events.push({ kind: 'monastery', winners: [tile.m.p], points: 1 + n, nodes: [[k, tile.m.f]], meeples: [{ key: k, p: tile.m.p, f: tile.m.f }], complete: false, tiles: 1 + n });
-      continue;
-    }
-    const g = getGroup(board, k, tile.m.f);
-    if (seen.has(g.id)) continue;
-    seen.add(g.id);
-    if (g.type === 'field') {
-      const cities = fieldCities(board, g).filter((c) => c.complete);
-      events.push({ kind: 'field', winners: owners(g.meeples), points: 3 * cities.length, nodes: g.nodes, meeples: g.meeples, cities: cities.map((c) => c.nodes), complete: false, tiles: g.tiles.size });
-    } else {
-      events.push({ kind: g.type, winners: owners(g.meeples), points: groupPoints(g, true), nodes: g.nodes, meeples: g.meeples, complete: false, tiles: g.tiles.size });
+    for (const pc of tile.pieces) {
+      const feat = TILE_TYPES[tile.t].features[pc.f];
+      if (feat.type === 'monastery') {
+        const [x, y] = parseKey(k);
+        const n = monasteryNeighbours(board, x, y);
+        events.push({ kind: 'monastery', winners: [pc.p], points: 1 + n, nodes: [[k, pc.f]], meeples: [{ key: k, p: pc.p, f: pc.f, k: pc.k }], complete: false, tiles: 1 + n });
+        continue;
+      }
+      const g = getGroup(board, k, pc.f);
+      if (seen.has(g.id)) continue;
+      seen.add(g.id);
+      if (g.type === 'field') {
+        const cities = fieldCities(board, g).filter((c) => c.complete);
+        events.push({ kind: 'field', winners: owners(g.meeples), points: 3 * cities.length, nodes: g.nodes, meeples: g.meeples, cities: cities.map((c) => c.nodes), complete: false, tiles: g.tiles.size });
+      } else {
+        events.push({ kind: g.type, winners: owners(g.meeples), points: groupPoints(g), nodes: g.nodes, meeples: g.meeples, complete: false, tiles: g.tiles.size });
+      }
     }
   }
   // Order like the rulebook: roads, cities, monasteries, then farms.
@@ -310,7 +399,7 @@ export function finalScoring(state, apply = true) {
   if (apply) {
     for (const e of events) {
       if (e.winners.length && e.points) award(state, e.winners, e.points, e.kind);
-      returnMeeples(state, e.meeples);
+      returnPieces(state, e.meeples);
     }
   }
   return events;
@@ -320,4 +409,11 @@ export function finalScoring(state, apply = true) {
 export function describeGroup(state, k, fi) {
   const g = getGroup(state.board, k, fi);
   return { ...g, points: groupPoints(g), owners: owners(g.meeples) };
+}
+
+// Pieces currently on the board, as a flat list.
+export function piecesOnBoard(state) {
+  const out = [];
+  for (const [k, t] of Object.entries(state.board)) for (const pc of t.pieces) out.push({ key: k, ...pc });
+  return out;
 }

@@ -1,0 +1,374 @@
+{
+  "slug": "abbot",
+  "name": "The Abbot",
+  "edition": "3rd edition (Hans im Glück 2014 new artwork / Z-Man ZM7810; WikiCarpedia calls it 'C2'). The rules and the 8 base garden tiles are the same in the 2021 refresh ('C3' / 20th Anniversary Edition).",
+  "sources": [
+    {
+      "title": "Z-Man Games – Carcassonne Supplementary Rules (rules sheet in the 3rd-edition base box ZM7810, PDF dated 2016), page 2 'The Abbot'",
+      "url": "https://lot.ahml.info/Carcassone%20Supplementary%20Rules.pdf",
+      "used_for": "Official 3rd-edition rules text: abbot only on the monastery/garden you just placed, only the abbot may go on gardens, 9 points when surrounded, take the abbot back 'if you decide not to place a meeple' and score like end-game monastery scoring, final scoring the same, 6-point example"
+    },
+    {
+      "title": "Hans im Glück / Z-Man – Carcassonne Big Box rulebook (English, 2021), p. 9 'The Abbot', pp. 22-23 tile list, p. 24 turn summary",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/06/Carc-Big-Box_Rulebook_EN-komprimiert.pdf-komprimiert_1.pdf",
+      "used_for": "Current official wording ('If you did not place a meeple during Step 2 of your turn, you can return your abbot ... You immediately go to Step 3'; 'A normal meeple cannot be placed on a garden'); the turn summary lists 'Remove and score Abbot' as one Step-2 alternative; the tile list marks one garden (G) copy each of V3-E, H, I, M, N, R, U, V"
+    },
+    {
+      "title": "WikiCarpedia – The Abbot",
+      "url": "https://wikicarpedia.com/car/The_Abbot",
+      "used_for": "Official clarifications with dates: recall only from an unfinished feature (11/2020); 'not placing a meeple' includes having none left; recall rules out every other phase-2 action, incl. builder/pig/barn (12/2014, updated 3/2015 and 9/2018); recall is scored at once in phase 2, before the dragon moves (3/2015, updated 10/2024); the abbot may use a magic portal (3/2015); the abbot may not go on a tower; gardens do not count as monasteries (HiG/Christof Tisch on BGG, 10/2018); list of garden tiles in each expansion"
+    },
+    {
+      "title": "WikiCarpedia – The Princess & the Dragon",
+      "url": "https://wikicarpedia.com/car/The_Princess_and_The_Dragon",
+      "used_for": "The dragon eats the abbot; the dragon moves between phase 2 and phase 3; on a volcano turn no abbot goes on the volcano tile but 'remove your abbot and score its points' is allowed; using the princess forbids the recall; the magic portal may carry the abbot; the fairy may stand by the abbot; no fairy +3 when the abbot is removed; fairy +3 also at final scoring"
+    },
+    {
+      "title": "WikiCarpedia – The Tower",
+      "url": "https://wikicarpedia.com/car/The_Tower",
+      "used_for": "The abbot may NOT be placed on a tower; the abbot CAN be captured (also your own, which goes back to your supply); buying back any figure costs 3 points"
+    },
+    {
+      "title": "WikiCarpedia – Traders and Builders",
+      "url": "https://wikicarpedia.com/car/Traders_and_Builders",
+      "used_for": "Builder needs one of your meeples on that road/city and the pig needs one of your farmers in that field; placing either is 'instead of placing a meeple'; a double turn repeats the 'meeple, figure or token placement' step"
+    },
+    {
+      "title": "WikiCarpedia – Inns and Cathedrals",
+      "url": "https://wikicarpedia.com/car/Inns_and_Cathedrals",
+      "used_for": "The C2 box contains 8 meeples AND 1 abbot in pink (6th player); describes the four-cap tile with a garden in its inner field"
+    },
+    {
+      "title": "WikiCarpedia – Order of Play",
+      "url": "https://wikicarpedia.com/car/Order_of_Play",
+      "used_for": "Phase 2: do 'one and only one' of: deploy a meeple (abbot only on garden or monastery) / one special action such as 'Remove your abbot and score its points' / place a tower floor / move the fairy ..."
+    },
+    {
+      "title": "WikiCarpedia – Base game (C2 and C3 tile distribution)",
+      "url": "https://wikicarpedia.com/car/Base_game",
+      "used_for": "72 tiles; E x5 (G;F;W;2x-), H x3 (G;W;-), I x2 (G;-), M x2 (G;-), N x3 (G;W;-), R x3 (G;W;-), U x8 (G;...), V x9 (G;...): one garden copy each; F x2 and G x1 as in the classic set"
+    },
+    {
+      "title": "Carcassonne Complete Annotated Rules (CAR) v7.3, December 2014 – 'New Carcassonne (C II)' and 'The Abbot' sections and figure table",
+      "url": "https://www.dover.nh.gov/Assets/government/city-operations/library/borrow/library-of-things/carcassonne-rules.pdf",
+      "used_for": "Original 2014 rules text (cross-check); fan figure table: abbot can be eaten by the dragon, captured by a tower, use the portal and have the fairy, but cannot go on a tower block"
+    },
+    {
+      "title": "JCloisterZone-Client tile data: expansions/basic.xml (tile-sets basic:1 vs basic:2) and river.xml, inns_and_cathedrals.xml, traders_and_builders.xml, princess_and_dragon.xml, tower.xml; addons/jcz/simplified/jsons (garden placement)",
+      "url": "https://github.com/farin/JCloisterZone-Client/tree/master/src/extraResources/expansions",
+      "used_for": "Exact geometry, ids and counts of the garden tiles (both base sets total 72); garden tiles of the other expansions and which plain tile each replaces"
+    },
+    {
+      "title": "JCloisterZone engine: game/capability/AbbotCapability.java, GardenCapability.java, figure/Abbot.java, SmallFollower.java, BigFollower.java, feature/Garden.java, game/phase/ActionPhase.java, AbstractActionPhase.java, TowerCapturePhase.java",
+      "url": "https://github.com/farin/JCloisterZone/tree/master/src/main/java/com/jcloisterzone",
+      "used_for": "Used only to check how the rules are read: abbot only on a monastery or garden; small and large followers never on a garden; recall offered only for the active player's abbot on an unfinished feature, as one of the phase-2 actions; recall score = tiles incl. its own; no fairy bonus on recall; the abbot extends Follower (can be eaten by the dragon, captured by a tower, carried by the portal)"
+    },
+    {
+      "title": "WikiCarpedia tile images Abbot-Base_Game_C2_Tile_{E,H,I,M,N,R,U,V}_Garden.jpg (and the expansion garden tiles)",
+      "url": "https://wikicarpedia.com/car/The_Abbot",
+      "used_for": "Looked at to measure where the garden is drawn on each tile"
+    },
+    {
+      "title": "Carcassonne Central forum – 'Maximizing Use of the Abbot (Carcassonne II)'",
+      "url": "https://www.carcassonnecentral.com/community/index.php?topic=1446",
+      "used_for": "Player advice (fan opinion) for ai_hints: put the abbot down often and take it back quickly"
+    }
+  ],
+  "components": [
+    {
+      "name": "Abbot",
+      "per_player": 1,
+      "notes": "Wooden abbot (also called 'abbess' in C3), one per player colour. The base box has 5 (yellow, red, green, blue, black); the pink 6th-player abbot comes in the C2 Inns & Cathedrals box (Big Box 6 counts it as base game). It is a meeple with placement limits: it may only stand on monasteries and gardens. It sits in the player's supply next to the 7 normal meeples (the 8th normal meeple is the score marker)."
+    },
+    {
+      "name": "Garden tiles",
+      "count": 8,
+      "notes": "Not extra tiles. In the 3rd-edition 72-tile base set, one copy each of E, H, I, M, N, R, U and V shows a garden. Without the Abbot, gardens are only decoration."
+    }
+  ],
+  "tiles": [
+    {
+      "id": "BA/CG",
+      "count": 1,
+      "name": "City edge with garden",
+      "base_letter": "E",
+      "replaces": "one of the 5 E tiles (E becomes 4 plain + 1 garden)",
+      "jcz_orientation": "same as tiles.js E",
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "field", "halves": ["EL", "ER", "SL", "SR", "WL", "WR"], "cities": [0] },
+        { "type": "garden", "anchor": [0.35, 0.58], "art_box": [0.10, 0.46, 0.59, 0.69] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile E: one city cap (a shallow wall crescent with houses and blue-roofed towers) along the whole north edge, meadow below. The garden is a rectangular flower bed seen at an angle (rows of red, yellow, pink, blue and purple flowers inside a low brown border). It lies in the meadow below the city, left of centre: box x 0.10-0.59, y 0.46-0.69, centre about (0.35, 0.58). The rest is plain grass. The garden touches no edge."
+    },
+    {
+      "id": "BA/CFCG",
+      "count": 1,
+      "name": "Two city caps with garden",
+      "base_letter": "H",
+      "replaces": "one of the 3 H tiles (H becomes 2 plain + 1 garden)",
+      "jcz_orientation": "JCZ has the caps N and S; this is turned 90 degrees clockwise to match tiles.js H (caps E and W)",
+      "features": [
+        { "type": "city", "sides": ["E"], "pennants": 0 },
+        { "type": "city", "sides": ["W"], "pennants": 0 },
+        { "type": "field", "halves": ["NL", "NR", "SL", "SR"], "cities": [0, 1] },
+        { "type": "garden", "anchor": [0.46, 0.32], "art_box": [0.34, 0.05, 0.57, 0.58] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile H in our orientation: two separate city caps on the east and west edges, with a meadow strip running north-south between them. The garden lies in that strip, centred left-right and a little north of centre: box x 0.34-0.57, y 0.05-0.58, centre about (0.46, 0.32). The printed tile and the JCZ data show the caps north and south with the garden centre-left; this is the same tile turned a quarter turn clockwise."
+    },
+    {
+      "id": "BA/CCG",
+      "count": 1,
+      "name": "Corner city caps with garden",
+      "base_letter": "I",
+      "replaces": "one of the 2 I tiles (I becomes 1 plain + 1 garden)",
+      "jcz_orientation": "JCZ has the caps N and W; this is turned 90 degrees clockwise to match tiles.js I (caps N and E)",
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["E"], "pennants": 0 },
+        { "type": "field", "halves": ["SL", "SR", "WL", "WR"], "cities": [0, 1] },
+        { "type": "garden", "anchor": [0.37, 0.64], "art_box": [0.12, 0.53, 0.62, 0.75] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile I in our orientation: two separate city caps on the north and east edges. Their walls nearly meet in the NE corner but do not join. Meadow covers the south and west. The garden is drawn as a tilted diamond in the open meadow, left of and below the centre: box x 0.12-0.62, y 0.53-0.75, centre about (0.37, 0.64). The printed tile and JCZ show the caps north and west with the diamond right of centre."
+    },
+    {
+      "id": "BA/Cc+G",
+      "count": 1,
+      "name": "City corner with shield & garden",
+      "base_letter": "M",
+      "replaces": "one of the 2 M tiles (M becomes 1 plain + 1 garden)",
+      "jcz_orientation": "same as tiles.js M",
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 1 },
+        { "type": "field", "halves": ["EL", "ER", "SL", "SR"], "cities": [0] },
+        { "type": "garden", "anchor": [0.75, 0.68], "art_box": [0.63, 0.43, 0.88, 0.93] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile M: a city corner filling the north-west half, with the wall running diagonally from the NE corner to the SW corner. The blue-and-white coat of arms sits deep in the city near the NW corner (printed at about (0.15, 0.15) in this orientation). The garden is in the south-east meadow: box x 0.63-0.88, y 0.43-0.93, centre about (0.75, 0.68)."
+    },
+    {
+      "id": "BA/CcG",
+      "count": 1,
+      "name": "City corner with garden",
+      "base_letter": "N",
+      "replaces": "one of the 3 N tiles (N becomes 2 plain + 1 garden)",
+      "jcz_orientation": "same as tiles.js N",
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 0 },
+        { "type": "field", "halves": ["EL", "ER", "SL", "SR"], "cities": [0] },
+        { "type": "garden", "anchor": [0.76, 0.66], "art_box": [0.64, 0.40, 0.88, 0.92] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile N (no coat of arms): a city corner filling the north-west half, with a diagonal wall from the NE corner to the SW corner. The garden is in the south-east meadow: box x 0.64-0.88, y 0.40-0.92, centre about (0.76, 0.66)."
+    },
+    {
+      "id": "BA/CccG",
+      "count": 1,
+      "name": "Big city with garden",
+      "base_letter": "R",
+      "replaces": "one of the 3 R tiles (R becomes 2 plain + 1 garden)",
+      "jcz_orientation": "same as tiles.js R",
+      "features": [
+        { "type": "city", "sides": ["N", "E", "W"], "pennants": 0 },
+        { "type": "field", "halves": ["SL", "SR"], "cities": [0] },
+        { "type": "garden", "anchor": [0.49, 0.78], "art_box": [0.27, 0.66, 0.70, 0.89] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile R (no coat of arms, no gate): a big city on the north, east and west edges. Its wall curves across the lower third, from the SW corner to the SE corner, leaving a meadow along the south edge. The garden sits in that meadow, centred left-right just under the wall: box x 0.27-0.70, y 0.66-0.89, centre about (0.49, 0.78)."
+    },
+    {
+      "id": "BA/RFrG",
+      "count": 1,
+      "name": "Straight road with garden",
+      "base_letter": "U",
+      "replaces": "one of the 8 U tiles (U becomes 7 plain + 1 garden)",
+      "jcz_orientation": "JCZ has the road W-E with the garden in the south field; this is turned 90 degrees clockwise to match tiles.js U (road N-S)",
+      "features": [
+        { "type": "road", "sides": ["N", "S"] },
+        { "type": "field", "halves": ["NR", "EL", "ER", "SL"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL", "WR", "NL"], "cities": [] },
+        { "type": "garden", "anchor": [0.31, 0.65], "art_box": [0.07, 0.53, 0.55, 0.77] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile U: a road from the middle of the north edge to the middle of the south edge, drawn with a gentle S-shaped wiggle. The garden is in the WEST meadow (feature 2), lower half, just left of the road: box x 0.07-0.55, y 0.53-0.77, centre about (0.31, 0.65). A few bushes and trees stand beside the road."
+    },
+    {
+      "id": "BA/RrG",
+      "count": 1,
+      "name": "Curved road with garden",
+      "base_letter": "V",
+      "replaces": "one of the 9 V tiles (V becomes 8 plain + 1 garden)",
+      "jcz_orientation": "same as tiles.js V",
+      "features": [
+        { "type": "road", "sides": ["S", "W"] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] },
+        { "type": "field", "halves": ["WR", "NL", "NR", "EL", "ER", "SL"], "cities": [] },
+        { "type": "garden", "anchor": [0.62, 0.22], "art_box": [0.36, 0.08, 0.87, 0.36] }
+      ],
+      "tags": [],
+      "art": "Drawn like base tile V: the road enters at the middle of the west edge, bends (with an S-wiggle) and leaves at the middle of the south edge, cutting off the small SW-corner meadow. The garden is in the large outer meadow (feature 2), north-east quarter: box x 0.36-0.87, y 0.08-0.36, centre about (0.62, 0.22)."
+    }
+  ],
+  "garden_tiles_in_other_expansions": {
+    "note": "IDs are JCloisterZone ids from the ':2' (3rd-edition) tile-sets. Each garden tile replaces the plain tile named (1 for 1), so expansion tile counts do not change.",
+    "river": [
+      { "id": "RI.1/IIG", "replaces": "one RI.1/II (river bend W-S; 3rd-edition River I has RI.1/II x1 + RI.1/IIG x1)", "what": "river bend with the garden in the large field" }
+    ],
+    "inns-cathedrals": [
+      { "id": "IC/CCCCG", "replaces": "IC/CCCC", "what": "four separate city caps N/E/S/W around an enclosed inner field (inner: true) with the garden in the centre" },
+      { "id": "IC/RFr.iG", "replaces": "IC/RFr.i", "what": "straight road W-E with an inn (house and pond north of the road); the garden is in the south field" }
+    ],
+    "traders-builders": [
+      { "id": "TB/CcRR.wG", "replaces": "TB/CcRR.w", "what": "wine city corner N-W, roads ending at the city from S and from E; the garden is between the two roads (SE)" },
+      { "id": "TB/CcR.cG", "replaces": "TB/CcR.c", "what": "cloth city corner N-W, one road from the E edge ending at the city; the garden is in the large south field" }
+    ],
+    "princess-dragon": [
+      { "id": "DG/C.dG", "replaces": "DG/C.d", "what": "city cap N, dragon symbol and garden in the field" },
+      { "id": "DG/Cc.pG", "replaces": "DG/Cc.p", "what": "city corner N-W with the princess and the garden in the field" }
+    ],
+    "tower": [
+      { "id": "TO/FG", "replaces": "TO/F", "what": "all-field tile with a tower foundation and a garden" },
+      { "id": "TO/RRG", "replaces": "TO/RR", "what": "roads from W and from S ending at the tower foundation, plus a garden" }
+    ],
+    "out_of_scope_fyi": [
+      "RI.2/IIG (River II, replaces RI.2/II)",
+      "AM/RG (Abbey & Mayor)",
+      "Hills & Sheep: the hill tile with roads W and S and a garden",
+      "C2 Flying Machines, Mage & Witch, Robbers, Bridges-Castles-Bazaars, Count-King-Robber, Under the Big Top and Spiel Doch! promo each have 1-2 garden tiles"
+    ]
+  },
+  "rules": {
+    "setup": [
+      "Each player puts the abbot of their colour in their supply, next to their 7 normal meeples.",
+      "Use the 3rd-edition 72-tile base set. One copy each of E, H, I, M, N, R, U and V shows a garden: E 4+1, H 2+1, I 1+1, M 1+1, N 2+1, R 2+1, U 7+1, V 8+1. No tiles are added or removed, and the other 64 tiles are unchanged.",
+      "Garden tiles from the other expansions in scope (River, Inns & Cathedrals, Traders & Builders, Princess & Dragon, Tower) are mixed in as usual and work the same way.",
+      "Playing without the Abbot: gardens do nothing (decoration) and the abbots stay in the box. Showing the garden art anyway is still true to the 3rd edition."
+    ],
+    "turn_sequence": [
+      "1. Place a tile: unchanged. A garden has no edges and never affects matching.",
+      "2. Place a meeple: the player does AT MOST ONE of these: (a) place a normal meeple on the tile just placed as usual, but never on a garden; (b) place their abbot (if it is in their supply) on the monastery or garden of the tile just placed; (c) CALL THE ABBOT HOME: take their abbot back from any monastery or garden on the board that is not yet surrounded by 8 tiles, and score at once 1 point for that tile plus 1 point for each tile in the 8 surrounding spaces (the tile just placed counts if it is one of them); (d) any other phase-2 action from an expansion (large meeple, builder, pig, tower floor, meeple onto a tower, move the fairy); or pass.",
+      "2b. (Princess & Dragon) If a dragon tile was placed, the dragon moves now: after the abbot was called home, before scoring.",
+      "3. Score: unchanged. In addition, every monastery or garden now surrounded by 8 tiles scores 9 points for the abbot (or monk) on it, and the figure goes back to its owner. A garden with no abbot scores nothing.",
+      "Game end: abbots still on the board score like monks (1 + number of neighbouring tiles)."
+    ],
+    "placement": [
+      "The abbot may only be placed on a monastery or a garden, and only on the tile just placed (the normal rule; the Princess & Dragon magic portal is the only exception).",
+      "The abbot may never be placed on a road, a city, a field (as a farmer) or a tower.",
+      "Normal meeples, the large meeple, the builder and the pig may never be placed on a garden. Only the abbot can occupy gardens. Normal and large meeples may still be monks on monasteries.",
+      "When you place a monastery tile you choose: a normal meeple as monk, OR the abbot, OR a meeple on another feature of the tile, OR nothing.",
+      "Each monastery or garden holds one figure. A monastery with a monk can't also take the abbot, and the other way round. On a newly placed tile the monastery or garden is always free.",
+      "A garden is its own one-tile feature in the middle of a field. It touches no edge, does not split or join fields, and does not change the field for farmers.",
+      "The abbot may be placed on a monastery or garden that the placed tile surrounds at once (it was put into a fully enclosed hole). It then scores 9 points in phase 3 of the same turn."
+    ],
+    "followers": [
+      "One abbot per player. It is a meeple (a follower with placement limits, like the Abbey & Mayor mayor). It counts as 1 for majorities, though in this scope it never shares a feature.",
+      "The abbot goes back to its owner's supply when: its monastery or garden is completed and scored (9 points); the owner calls it home (points scored at once); or another expansion removes it (eaten by the dragon, captured by a tower). Being removed by an expansion scores nothing.",
+      "The abbot is not a normal meeple for the builder or pig: those need a normal (or large) meeple on that road, city or field, which the abbot can never be."
+    ],
+    "scoring_during_game": [
+      "Garden completed (all 8 orthogonal and diagonal neighbour spaces filled): 9 points for the owner of the abbot on it, exactly like a monastery. It happens in phase 3 of whoever's turn placed the 8th tile.",
+      "Abbot on a completed monastery: 9 points, the same as a monk.",
+      "Gardens without an abbot are never scored.",
+      "Calling the abbot home: 1 point for its tile + 1 point for each tile in its 8 neighbour spaces at that moment, so 2 to 8 points (it is always at least 2 because a tile always touches another; never 9, because a fully surrounded feature can't be called home). The points are added at once in phase 2. Then the normal phase-3 scoring of features completed by this turn's tile follows."
+    ],
+    "scoring_end": [
+      "An abbot still on an unfinished monastery or garden scores like a monk: 1 point for the tile + 1 point per neighbouring tile (orthogonal and diagonal).",
+      "Gardens without an abbot score 0.",
+      "A garden scores exactly like a monastery; there are no other differences."
+    ],
+    "edge_cases": [
+      "Call home only from an UNFINISHED feature. If the tile you place is the 8th neighbour of your abbot's garden or monastery, you can't call it home. It simply scores 9 in phase 3, and you may still place a meeple in phase 2 of that turn. (WikiCarpedia The Abbot, official clarification 11/2020; JCZ AbbotCapability)",
+      "The call-home replaces ALL other phase-2 actions. No normal or large meeple, no abbot placement, no builder or pig, no tower floor or meeple on a tower, no fairy move in the same turn. (Big Box 2021 turn summary: 'Remove and score Abbot' is one Step-2 option; WikiCarpedia The Abbot 12/2014, 3/2015, 9/2018; Order of Play 'one and only one')",
+      "'Not placing a meeple' includes having none left: you may call the abbot home with an empty supply. (WikiCarpedia The Abbot; HiG wording 'If you did not place a meeple')",
+      "The abbot can be called home from anywhere on the board; it does not need to be next to the new tile. If the new tile is one of its neighbours, it counts. (Official 6-point example: Z-Man Supplementary Rules; Big Box p. 9)",
+      "You can't place your abbot and call it home in the same normal turn, because placing it is that turn's phase-2 action.",
+      "The call-home points are personal 'abbot' points, not a feature scoring: no Princess & Dragon fairy +3 bonus. (WikiCarpedia P&D; JCZ ActionPhase)",
+      "The call-home is scored at once in phase 2, before the dragon moves and before the regular phase-3 scoring. (WikiCarpedia The Abbot 3/2015, updated 10/2024; Big Box: 'You immediately go to Step 3')",
+      "An abbot removed by the dragon or captured by a tower scores nothing for its garden or monastery.",
+      "Gardens are not monasteries: rules that mention 'monasteries' do not apply to gardens. (HiG, Christof Tisch on BGG, 10/2018, via WikiCarpedia) No expansion in our scope has such a rule, but keep the 'monastery' and 'garden' feature types separate.",
+      "The 'abbot' of the German / Dutch & Belgian Monasteries expansions is a different, unrelated rule."
+    ],
+    "interactions": {
+      "base": [
+        "Gardens are printed on 8 base tiles (E, H, I, M, N, R, U, V). Without the Abbot they are decoration.",
+        "Normal meeples keep all their usual spots, including monasteries, but never gardens.",
+        "Fields and farmers are unchanged; a garden lies inside a field without affecting it.",
+        "Final scoring: the abbot is scored like a monk."
+      ],
+      "river": [
+        "3rd-edition River I has one garden tile (RI.1/IIG, a river bend; it replaces one of the two plain bends). The abbot may be placed on its garden, or on the river monastery tile, during the river phase like on any tile. Calling the abbot home is allowed during the river phase too.",
+        "Meeples can never be placed on the river itself; the garden is not river, so this changes nothing."
+      ],
+      "abbot": [],
+      "inns-cathedrals": [
+        "The large meeple may NOT be placed on a garden (only the abbot may). It may be a monk on a monastery as usual. Placing it is the phase-2 action, so no call-home that turn.",
+        "Garden tiles: IC/CCCCG (garden in the inner field enclosed by 4 city caps) and IC/RFr.iG (straight inn road + garden). Inns and cathedrals have no effect on gardens or abbots.",
+        "The C2 Inns & Cathedrals box contains the 6th player's (pink) abbot."
+      ],
+      "traders-builders": [
+        "The builder needs one of your normal or large meeples on that road or city, and the pig one of your farmers in that field. The abbot can never be on those features, so it never enables a builder or pig.",
+        "Placing the builder or the pig is the phase-2 action ('instead of placing a meeple'), so no call-home in that part of the turn.",
+        "Builder double turn: each part has its own phase 2. You may call the abbot home in either part, or call it home in one part and place it on a garden or monastery drawn in the other. By the rules as written you could even place it in part 1 and call it home in part 2. JCZ allows this; no official ruling found.",
+        "Garden tiles TB/CcRR.wG and TB/CcR.cG. Trade goods are unaffected."
+      ],
+      "princess-dragon": [
+        "Volcano tile: no figure, the abbot included, may be placed on the volcano tile. You may call your abbot home instead (listed as allowed on WikiCarpedia).",
+        "Dragon: the abbot is on the dragon's menu; an eaten abbot goes back to its owner with no points. The dragon moves after phase 2, so calling the abbot home on a dragon-tile turn saves it.",
+        "Fairy: may be placed next to your abbot. That is your phase-2 action, so no call-home that turn. While it stands there you get +1 point at the start of each of your turns, and +3 when the abbot's monastery or garden is scored on completion or at final scoring. You get NO +3 when the abbot is called home. The dragon can't enter the fairy's tile, which protects the abbot.",
+        "Princess: if you use a princess tile to remove a knight, you may take no phase-2 action: no abbot placement, no call-home. The princess can never remove the abbot, because it is never in a city.",
+        "Magic portal: the abbot may use it (official clarification 3/2015), but only onto an unoccupied, unfinished monastery or garden on any tile.",
+        "Garden tiles DG/C.dG (dragon tile) and DG/Cc.pG (princess tile). After placing DG/C.dG you may put the abbot on its garden; the dragon then moves and may eat it."
+      ],
+      "tower": [
+        "The abbot may NOT be placed on a tower.",
+        "A tower can capture the abbot like any meeple, including your own (which goes back to your supply with no points). A captured abbot is exchanged or bought back for 3 points like any meeple, and a bought-back abbot may be used in the same turn.",
+        "Placing a tower floor or a meeple on a tower is the phase-2 action, so no call-home that turn. Paying ransom is not a phase-2 action, so it can be combined with a call-home.",
+        "The fairy does not protect the abbot from capture.",
+        "Garden tiles TO/FG and TO/RRG carry both a tower foundation and a garden; the player still picks only one phase-2 action."
+      ]
+    },
+    "edition_differences": [
+      "1st edition (2000, original art): no gardens, no abbot. The Abbot exists only from the 2014 new-artwork edition (our '3rd edition', WikiCarpedia 'C2').",
+      "2021 refresh (WikiCarpedia 'C3', 20th Anniversary Edition): same rules and the same 8 base garden tiles; abbots are also called abbesses.",
+      "Wording: Z-Man (2014/2016) says 'if you decide not to place a meeple'; the HiG Big Box (2021) says 'If you did not place a meeple during Step 2'. HiG means that you may also call the abbot home with an empty supply (WikiCarpedia).",
+      "The base tile counts equal the classic A-X counts; the only change is that 8 copies show gardens (JCZ basic:1 vs basic:2, both 72; WikiCarpedia C2 and C3 lists; HiG 2021 tile list). CAR v7.3 (12/2014) claimed a city-bridge tile lost its pennant in C2. No other source confirms this: F x2 and G x1 everywhere else.",
+      "Newer 'C3.1' expansion editions (Dragon & Fairy, Towers & Thieves, 3rd-edition I&C and T&B) have different garden tiles. They are out of scope."
+    ],
+    "ai_hints": [
+      "Abbot targets are scarce: only a monastery or garden tile you draw (3rd-edition base: 6 monasteries + 8 gardens = 14 of 71 draws, about 20%; River adds 1 garden and 1 monastery, I&C/T&B/P&D/Tower 2 gardens each plus their monasteries). An abbot on the board can't take a new target, so quick turnover pays off.",
+      "If the abbot is in supply, use it instead of a normal meeple on a monastery. It scores the same, can be cashed in early, and keeps normal meeples free for roads, cities and fields.",
+      "Fit into ai.js estimate(): value an abbot on a monastery or garden like a monk now: keep = 9*p + (1+n)*(1-p), where n = neighbours and p = completion chance. Also set p = 0 if any empty neighbour space is a 'dead' hole that no remaining tile type can legally fill. Value the abbot in supply at about min(1, myRemainingDraws*0.2) * 5 points (chance to redeploy it times a typical haul). Add a move per turn: act = {kind:'recall', key, fi}, worth (1+n) points now + abbot back in supply. Compare it with every meeple move on the drawn tile, because they are mutually exclusive.",
+      "When to call it home: (a) a 'dead' turn, where the drawn tile gives no useful meeple spot (only opponents' features, or you are out of meeples) and n >= 3; (b) n >= 5-6 and the missing neighbours are hard or impossible to fill; (c) danger: a dragon tile was just placed, the dragon can reach the abbot's tile within its 6 moves, and the fairy is not there; or an opponent could raise an open tower whose new height reaches the abbot's tile in a straight line; (d) mid-game, while there is still a fair chance to draw another target.",
+      "Never offer a call-home from a feature completed by the tile just placed: it is illegal and pointless, since it scores 9 anyway.",
+      "Late game: a call-home gives exactly what final scoring would give for that spot. So in the last turns, only call home on otherwise wasted turns or to escape a threat. Don't give up a good meeple placement just to call home.",
+      "If the fairy stands by your abbot: you get +1 every turn and +3 on completion or at final scoring, but not on a call-home. So prefer leaving that abbot in place.",
+      "Tile placement: spots next to your own abbot raise its value by 1 each (toward 9). Avoid placing the 8th neighbour of an opponent's abbot, which gives them 9, unless your gain is bigger. Remember that any neighbour you add also raises the opponent's call-home value.",
+      "Builder double turn: two phase-2 steps. Call the abbot home in one and place it again on a fresh monastery or garden in the other.",
+      "Magic portal: with the abbot in supply, send it to the free, unfinished monastery or garden with the most neighbours anywhere on the board.",
+      "Tower: capturing an opponent's abbot is attractive. It removes their flexible scorer, and they must pay 3 points or wait for an exchange."
+    ],
+    "kid_rules_text": "THE ABBOT\nEvery player gets one extra figure: the abbot (the meeple in the long robe). Look closely at the tiles: 8 of them have a colourful flower garden in the meadow.\n\n1. Put your abbot down\nWhen the tile you just placed has a monastery or a garden, you may put your abbot on it instead of a normal meeple. The abbot is picky: he ONLY stands on monasteries and gardens, never on roads, cities or fields. Gardens are abbot-only: normal meeples can't go there. (Normal meeples can still be monks on monasteries.)\n\n2. Finish it for 9 points\nA garden scores just like a monastery. When all 8 spaces around it (corners too!) are filled with tiles, you score 9 points and your abbot comes back.\n\n3. The abbot's special trick\nOn your turn, instead of placing a meeple, you can call your abbot home from a garden or monastery that isn't finished yet. You score right away: 1 point for the abbot's tile + 1 point for every tile around it. Then he's ready for the next garden!\n- It's one or the other: place a meeple OR call the abbot home, never both in the same turn.\n- You may do it even if you have no meeples left.\n- If your tile just finished the garden, you don't need the trick: it scores 9 points by itself.\n\n4. End of the game\nAn abbot still on the board scores like a monk: 1 point for its tile + 1 for each tile around it. Gardens without an abbot score nothing.\n\nWith other expansions\nDragon: it eats abbots too, so call yours home before the dragon flies! Fairy: she can stand next to your abbot, but calling the abbot home gives no fairy bonus. Magic portal: it can send your abbot to any free, unfinished monastery or garden. Tower: a tower can capture your abbot (buy him back for 3 points), and the abbot can't stand on a tower. Builder and pig: they need normal meeples; the abbot can't help them. Large meeples can't go on gardens.",
+    "figures": [
+      "Meet the abbot: the abbot figure next to a normal meeple, and a strip of the 8 garden tiles (E, H, I, M, N, R, U, V) with each garden circled.",
+      "Where the abbot may stand: a just-placed garden tile with the abbot on the garden (check), a monastery with the abbot (check), the abbot on a road, city or field (cross), and a normal meeple on a garden (cross).",
+      "Finishing a garden: a 3x3 block with the garden tile in the middle and the abbot on it; the tiles numbered 1-9 and '+9'.",
+      "Calling the abbot home (the official example): the new tile (red outline) is placed with no meeple; an arrow lifts the abbot off a garden that has 5 neighbours (the new tile is one of them). 1 + 5 = 6 points.",
+      "One choice per turn: Place tile -> [ place a meeple | place the abbot | call the abbot home ] -> score finished features.",
+      "Not allowed: the tile just placed is the 8th neighbour, so there is no call-home. The garden scores 9 in step 3 instead.",
+      "End of the game: an abbot on an unfinished monastery with 3 neighbours scores 4; an empty garden scores 0.",
+      "Danger (with expansions): the dragon's path heading for the abbot, so call him home first; a tower within range capturing an abbot; a magic-portal arrow sending the abbot to a far-away garden."
+    ]
+  },
+  "implementation_notes": [
+    "Feature type: { type: 'garden', sides: [], ports: [] }, like monastery (no ports). Keep it a separate type from 'monastery'. The 'anchor' given above is the garden centre in tile units (x east, y south, canonical orientation) for art and the meeple spot.",
+    "Features of the 8 base garden tiles are listed in the SAME orientation and order as the matching tiles.js letter, with the garden appended last, so a garden tile = base features + garden() (H, I and U are turned a quarter turn from the JCZ XML).",
+    "Pieces: PIECES.abbot = { weight: 1, follower: true }; supply.abbot = 1 per player when the expansion is on.",
+    "followerOptions(): for the tile just placed, add { kind: 'follower', key, fi, k: 'abbot' } for each monastery or garden feature if supply.abbot > 0. Never offer k: 'meeple' (or large) on a garden. Add { kind: 'recall', key, fi, k: 'abbot' } for the current player's abbot on the board if monasteryNeighbours(board, x, y) < 8, counted after this turn's tile is on the board. Offer it only if no other phase-2 action is taken.",
+    "Recall: award 1 + monasteryNeighbours(...) at once and return the abbot to supply. Then run the dragon (if any) and the normal scoreAfterPlacement().",
+    "scoreAfterPlacement() and final scoring: treat pieces on 'garden' features exactly like pieces on 'monastery' (9 when 8 neighbours; 1 + n at the end).",
+    "Score breakdown: consider a separate 'garden' (or 'abbot') bucket so the results screen can show garden and call-home points."
+  ]
+}

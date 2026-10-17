@@ -14,12 +14,13 @@
 export const N = 0, E = 1, S = 2, W = 3;
 const side = (s) => [3 * s, 3 * s + 1, 3 * s + 2];
 
-const city = (sides, pennant = false) => ({ type: 'city', sides, ports: sides.flatMap(side), pennant });
+const city = (sides, pennant = false) => ({ type: 'city', sides, ports: sides.flatMap(side), pennants: pennant ? 1 : 0 });
 const road = (sides) => ({ type: 'road', sides, ports: sides.map((s) => 3 * s + 1) });
 const field = (ports, cities = []) => ({ type: 'field', ports, cities });
 const monastery = () => ({ type: 'monastery', sides: [], ports: [] });
 
 export const TILE_TYPES = {
+  // ---- base game (ids A–X as in the classic tile list) ----
   A: { count: 2, name: 'Monastery with road', features: [monastery(), road([S]), field([0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11])] },
   B: { count: 4, name: 'Monastery', features: [monastery(), field([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])] },
   C: { count: 1, name: 'Fortified city', features: [city([N, E, S, W], true)] },
@@ -48,8 +49,19 @@ export const TILE_TYPES = {
 
 export const START_TILE = 'D';
 
-for (const [id, t] of Object.entries(TILE_TYPES)) {
+for (const t of Object.values(TILE_TYPES)) t.exp = 'base';
+
+// Register tile types (used by expansion data modules).
+export function registerTiles(defs) {
+  for (const [id, t] of Object.entries(defs)) {
+    TILE_TYPES[id] = t;
+    finalizeTile(id, t);
+  }
+}
+
+function finalizeTile(id, t) {
   t.id = id;
+  t.tags = t.tags || [];
   // portFeature[p] = index of the feature touching port p (unrotated)
   t.portFeature = new Array(12).fill(-1);
   t.features.forEach((f, i) => f.ports.forEach((p) => {
@@ -62,14 +74,28 @@ for (const [id, t] of Object.entries(TILE_TYPES)) {
   // edge type of each side, unrotated
   t.edges = [0, 1, 2, 3].map((s) => t.features[t.portFeature[3 * s + 1]].type);
 }
+for (const [id, t] of Object.entries(TILE_TYPES)) finalizeTile(id, t);
 
-export function buildDeck() {
-  const deck = [];
+// Build the shuffled draw pile for the chosen expansions.
+// Returns { start, deck } where deck is drawn from the END (pop).
+export function buildDeck(expansions = {}, rnd = Math.random) {
+  const pile = [];
   for (const [id, t] of Object.entries(TILE_TYPES)) {
+    if (t.exp !== 'base') continue;
     const n = id === START_TILE ? t.count - 1 : t.count;
-    for (let i = 0; i < n; i++) deck.push(id);
+    for (let i = 0; i < n; i++) pile.push(id);
   }
-  return deck; // 71 tiles; the start tile is placed separately
+  shuffleInPlace(pile, rnd);
+  void expansions;
+  return { start: START_TILE, deck: pile };
+}
+
+function shuffleInPlace(arr, rnd) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 // Rotate an unrotated port by `rot` clockwise quarter turns.

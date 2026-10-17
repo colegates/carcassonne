@@ -1,0 +1,434 @@
+{
+  "slug": "inns-cathedrals",
+  "name": "Inns & Cathedrals",
+  "edition": "3rd edition (Hans im Glück 2015 / Z-Man 2015, the new-art edition with gardens; Wikicarpedia calls it 'C2'). The 2021 graphics refresh ('C3', Big Box 2021) has identical tiles and rules.",
+  "sources": [
+    { "key": "ZM3", "title": "Carcassonne Expansion 1: Inns & Cathedrals – official rulebook, 3rd edition (Z-Man ZM7811, (c) 2002/2015 Hans im Glück / F2Z), 4 pages", "url": "https://images.zmangames.com/filer_public/2c/91/2c91bb85-e2a9-41ba-9ca4-3f3bf458e13b/zm7811_carcassonne_exp1_rules.pdf (identical copy read from https://cdn.1j1ju.com/medias/fb/bd/f5-carcassonne-expansion-1-inns-cathedrals-rulebook.pdf)", "used_for": "All core rules (inn, cathedral, large meeple, ties, farmer), components (pink 6th set), the five tile clarifications with pictures (junction inn W+E, village stubs, monastery split, wall-to-corner field, four caps + garden)" },
+    { "key": "BB21", "title": "Carcassonne Big Box rulebook EN (Hans im Glück / Z-Man 2021), pp. 9-11 and 22", "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/06/Carc-Big-Box_Rulebook_EN-komprimiert.pdf-komprimiert_1.pdf", "used_for": "C3 wording ('2 points per tile with a segment of this completed road', '1 or 2 cathedrals'), tie example (large vs two meeples, both score 12), Abbot rule 'a normal meeple cannot be placed on a garden', C3 tile list V3-EA..V3-EQ with decoration letters" },
+    { "key": "WIC", "title": "Wikicarpedia – Inns and Cathedrals (C2/C3 rules page with official and community clarifications, tile distribution and tile images)", "url": "https://wikicarpedia.com/car/Inns_and_Cathedrals", "used_for": "Tile images (C2 A-Q incl. Ka/Kb, C3), FAQ: no meeple on inn/cathedral, cathedrals/inns may be added to opponents' features (official), large meeple never doubles points (official), tower ransom not doubled (official), inn affects only adjacent segment(s)" },
+    { "key": "WIC1", "title": "Wikicarpedia – Inns and Cathedrals (1st edition)", "url": "https://wikicarpedia.com/car/Inns_and_Cathedrals_(1st_edition)", "used_for": "Edition differences: junction inn only on the right-hand road, grey 6th set, original unclear village junction" },
+    { "key": "CAR", "title": "Carcassonne Complete Annotated Rules v7.3 (Dec 2014), I&C pp. 31-33, Princess p. 59, Tower notes", "url": "https://www.dover.nh.gov/Assets/government/city-operations/library/borrow/library-of-things/carcassonne-rules.pdf", "used_for": "1st-edition text and FAQs: big follower is one follower but strength 2, princess may remove a big follower like any knight, ransom not doubled, cathedral/inn sabotage allowed" },
+    { "key": "WPD", "title": "Wikicarpedia – The Princess & the Dragon", "url": "https://wikicarpedia.com/car/The_Princess_and_The_Dragon", "used_for": "Dragon eats the large meeple; magic portal may place the large meeple; fairy may be assigned to it and pays 3 points 'regardless of whether or not you score points for the feature', also in final scoring; dragon does not affect printed inns/cathedrals" },
+    { "key": "WTW", "title": "Wikicarpedia – The Tower", "url": "https://wikicarpedia.com/car/The_Tower", "used_for": "Large meeple may be captured and may be placed on a tower; buy-back always 3 points; automatic one-for-one prisoner exchange" },
+    { "key": "WTB", "title": "Wikicarpedia – Traders and Builders", "url": "https://wikicarpedia.com/car/Traders_and_Builders", "used_for": "Builder needs 'a meeple' of yours (HiG wording; ZMG 'normal meeple' is a known error) so a large meeple qualifies; pig needs your farmer; double-turn order" },
+    { "key": "WAB", "title": "Wikicarpedia – The Abbot", "url": "https://wikicarpedia.com/car/The_Abbot", "used_for": "Only the abbot may occupy gardens; the two I&C garden tiles; pink abbot comes with I&C" },
+    { "key": "WBG", "title": "Wikicarpedia – Base game", "url": "https://wikicarpedia.com/car/Base_game", "used_for": "7 meeples + 1 score marker per player; meeple size never multiplies points" },
+    { "key": "JCZ-T", "title": "JCloisterZone tile data inns_and_cathedrals.xml (tile-set inns-and-cathedrals:2)", "url": "https://github.com/farin/JCloisterZone-Client/blob/master/src/extraResources/expansions/inns_and_cathedrals.xml", "used_for": "Tile ids, counts, cities/roads/fields with half-edges, which field borders which city" },
+    { "key": "JCZ-E", "title": "JCloisterZone engine (Road.java, City.java, BigFollower.java, TowerCapability.java, FairyCapability.java) and engine tests (inns-scoring, cathedrals-scoring, fairy-endgame-incomplete-inn)", "url": "https://github.com/farin/JCloisterZone", "used_for": "Reference interpretation: inn road 2/tile or 0 if incomplete, cathedral city 3/(tile+pennant) or 0, big follower power 2 and not allowed on gardens, may go on towers, fairy bonus paid for an incomplete inn road at game end" },
+    { "key": "JCZ-A", "title": "JCloisterZone 'simplified' artwork (IC.json, features/*.json, resources.svg) and classic artwork package (1st-edition tile scans)", "url": "https://github.com/farin/JCloisterZone-Client/tree/master/src/extraResources/addons/jcz/simplified ; https://jcloisterzone.com/packages/classic/classic-6-5.9.0.jca", "used_for": "Shape cross-check (spiked city of IC/C!, inner field, inn placement) and 1st-edition art comparison" }
+  ],
+  "components": [
+    { "name": "Land tiles", "count": 18, "notes": "Marked with a small meeple symbol. 6 inns, 2 cathedrals, 2 gardens (IC/CCCCG and IC/RFr.iG), 1 monastery, 3 pennants. 17 distinct tile types (the cathedral tile twice)." },
+    { "name": "Large meeple", "per_player": 1, "notes": "One per colour (yellow, red, green, blue, black, pink). Placed instead of a normal meeple; counts as 2 followers when deciding majority in a road, city or field; it is still ONE figure for every other purpose (capture, ransom, dragon, princess, fairy, portal)." },
+    { "name": "Pink meeples (6th player)", "count": 8, "notes": "7 followers + 1 score marker, exactly like the base colours. 1st edition used grey. In Big Box 6/7 the pink set counts as part of the base game." },
+    { "name": "Pink abbot", "count": 1, "notes": "For The Abbot mini-expansion (base game has 5 abbots)." },
+    { "name": "Points tiles 50/100", "count": 6, "notes": "Only mark laps around the physical score track. Not needed in the app." }
+  ],
+  "tiles": [
+    {
+      "id": "IC/Cccc.c",
+      "count": 2,
+      "name": "Cathedral city",
+      "refs": { "wikicarpedia_c2": ["Inns_And_Cathedrals_C2_Tile_Ka.jpg", "Inns_And_Cathedrals_C2_Tile_Kb.jpg"], "bigbox_2021": ["V3-EKa", "V3-EKb"] },
+      "features": [
+        { "type": "city", "sides": ["N", "E", "S", "W"], "pennants": 0, "cathedral": true }
+      ],
+      "tags": [],
+      "art": "Full city tile: all four edges are city, no wall visible inside the tile, ochre/brown city ground. A large cathedral fills the middle ~70% of the tile, centred: cream stone walls with buttresses and tall arched windows, red-tiled cross-shaped roofs, a bell tower. Small market stalls with coloured awnings are scattered around it (mostly top-left and bottom-right). No pennant. The two copies are drawn differently: copy 1 ('Ka') has a fortress-like front block centre-left with a small red-roofed annex bottom-left, the nave running to the upper right and a round chapel on the right; copy 2 ('Kb') is a cruciform Gothic cathedral seen diagonally, twin-towered facade top-left, transept roof upper right, a long side aisle bottom-left.",
+      "art_layout": { "cathedral": [0.5, 0.5] }
+    },
+    {
+      "id": "IC/LRFR",
+      "count": 1,
+      "name": "Monastery on the road",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_D.jpg", "bigbox_2021": "V3-ED" },
+      "features": [
+        { "type": "road", "sides": ["W"] },
+        { "type": "road", "sides": ["E"] },
+        { "type": "monastery" },
+        { "type": "field", "halves": ["NL", "NR", "EL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL", "SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "Grass tile. A monastery (cream church with a tall red-spired bell tower at its west end and red roofs) stands in the centre ON the road line. One road comes from the middle of the W edge and ends at the monastery's west door; a second road starts at the monastery's east side and runs to the middle of the E edge. The two roads are separate (rulebook: 'this monastery cuts the road in 2 segments'). Monastery + both roads form one barrier from W edge to E edge, so the field north of it and the field south of it are separate. A few bushes, no other decoration.",
+      "art_layout": { "monastery": [0.5, 0.47] }
+    },
+    {
+      "id": "IC/CCCCG",
+      "count": 1,
+      "name": "Four city caps with garden",
+      "notes": "3rd-edition version of IC/CCCC (1st edition had no garden).",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_H.jpg", "bigbox_2021": "V3-EH" },
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["E"], "pennants": 0 },
+        { "type": "city", "sides": ["S"], "pennants": 0 },
+        { "type": "city", "sides": ["W"], "pennants": 0 },
+        { "type": "garden" },
+        { "type": "field", "inner": true, "halves": [], "cities": [0, 1, 2, 3] }
+      ],
+      "tags": [],
+      "art": "Four separate small city caps, one on each edge. Each cap's wall bows into the tile from one corner to the next (about 25% deep), so neighbouring caps meet exactly at the four corners and the caps do not connect to each other (4 different cities). The green field in the middle is completely enclosed: it touches no edge (inner field) and borders all four cities. A garden (square vegetable/flower plot with a low fence, drawn as a diamond in perspective) sits in the very centre of that field. No pennants.",
+      "art_layout": { "garden": [0.5, 0.5] }
+    },
+    {
+      "id": "IC/CCC",
+      "count": 1,
+      "name": "Three city caps",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_O.jpg", "bigbox_2021": "V3-EO" },
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["E"], "pennants": 0 },
+        { "type": "city", "sides": ["W"], "pennants": 0 },
+        { "type": "field", "halves": ["SL", "SR"], "cities": [0, 1, 2] }
+      ],
+      "tags": [],
+      "art": "Three separate small city caps on the N, E and W edges, each wall running corner to corner (N cap NW->NE corner, W cap NW->SW corner, E cap NE->SE corner, about 20-25% deep), the caps touching at the NW and NE corners. The field fills the middle and opens onto the whole S edge; it borders all three cities. Decoration: a thatched farmhouse in the field near the lower centre. No pennants.",
+      "art_layout": { "decor": [{ "kind": "farmhouse", "pos": [0.45, 0.8] }] }
+    },
+    {
+      "id": "IC/CRCR",
+      "count": 1,
+      "name": "Village between two city caps",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_I.jpg", "bigbox_2021": "V3-EI" },
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["S"], "pennants": 0 },
+        { "type": "road", "sides": ["W"] },
+        { "type": "road", "sides": ["E"] },
+        { "type": "field", "halves": ["WR"], "cities": [0] },
+        { "type": "field", "halves": ["EL"], "cities": [0] },
+        { "type": "field", "halves": ["ER"], "cities": [1] },
+        { "type": "field", "halves": ["WL"], "cities": [1] }
+      ],
+      "tags": [],
+      "art": "City caps on the N and S edges (walls corner to corner, about 28% deep), each with a small gate in the middle facing the centre. In the centre a small round walled village (cluster of red-roofed houses, radius ~0.15) where the roads end. Roads from the middle of the W edge and the middle of the E edge end at the village (two separate roads). Two very short road stubs connect the village to the N cap's gate and to the S cap's gate: they are decoration only (not a road feature, no meeple may stand on them) but they split the grass into four corner fields - NW and NE border the N city, SW and SE border the S city.",
+      "art_layout": { "village": [0.5, 0.5] }
+    },
+    {
+      "id": "IC/CCc+",
+      "count": 1,
+      "name": "Corner city with pennant and opposite cap",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_P.jpg", "bigbox_2021": "V3-EP" },
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 1 },
+        { "type": "city", "sides": ["S"], "pennants": 0 },
+        { "type": "field", "halves": ["EL", "ER"], "cities": [0, 1] }
+      ],
+      "tags": [],
+      "art": "A two-sided corner city covering the N and W edges with a coat of arms (pennant) top-left; its long diagonal wall runs from the NE corner down to the W edge just above the SW corner. A separate small city cap on the S edge (wall from the SW corner to the SE corner, about 22% deep). Between them a wedge of field that touches only the E edge (whole edge) and tapers to a point at the SW corner where the two walls nearly meet; it borders both cities. Decoration: a round tower with a grey conical roof ('water tower' illustration) inside the corner city near the top. (The 2021 Big Box picture shows this tile rotated 90 deg clockwise.)",
+      "art_layout": { "pennant": [0.12, 0.12], "decor": [{ "kind": "water tower", "pos": [0.35, 0.15] }] }
+    },
+    {
+      "id": "IC/C!",
+      "count": 1,
+      "name": "City wedge with wall to the corner",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_G.jpg (shown rotated 90 deg counter-clockwise: city on the W edge)", "bigbox_2021": "V3-EG" },
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "field", "halves": ["EL", "ER"], "cities": [0] },
+        { "type": "field", "halves": ["SL", "SR", "WL", "WR"], "cities": [0] }
+      ],
+      "tags": [],
+      "art": "Canonical orientation (city on N). A wedge-shaped city on the N edge: its west wall runs as a straight diagonal from the NW corner to the SE corner; its east wall runs from the NE corner down to the SE corner, bowing only slightly into the tile, so both walls meet IN the SE corner. Between the east wall and the E edge lies a thin lens-shaped strip of field (at most ~12% of the tile wide) touching only the E edge; below/left of the diagonal wall is a large triangular field covering the whole S and W edges. Because the wall reaches the corner, the strip and the big field are separate fields (rulebook: 'the field ends here'); both border the city. Decoration: a round tower with a grey conical roof ('water tower') in the city near the middle of the N edge. No pennant.",
+      "art_layout": { "decor": [{ "kind": "water tower", "pos": [0.55, 0.12] }] }
+    },
+    {
+      "id": "IC/CFR",
+      "count": 1,
+      "name": "City cap with road from its gate",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_J.jpg", "bigbox_2021": "V3-EJ" },
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "road", "sides": ["S"] },
+        { "type": "field", "halves": ["SR", "WL", "WR"], "cities": [0] },
+        { "type": "field", "halves": ["EL", "ER", "SL"], "cities": [0] }
+      ],
+      "tags": [],
+      "art": "A shallow city cap on the N edge (wall corner to corner, about 25% deep) with a gate in the middle of the wall. A winding road leaves the gate and runs to the middle of the S edge; the road ends at the gate (it does not enter the city). The road splits the grass into a west field and an east field, both bordering the city. Decoration: highwaymen (two robbers, one in a red cloak) under a tree in the east field; bushes in the west field.",
+      "art_layout": { "gate": [0.55, 0.22], "decor": [{ "kind": "highwaymen", "pos": [0.78, 0.72] }] }
+    },
+    {
+      "id": "IC/CcR",
+      "count": 1,
+      "name": "Corner city with gate road",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_F.jpg", "bigbox_2021": "V3-EF" },
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 0 },
+        { "type": "road", "sides": ["E"] },
+        { "type": "field", "halves": ["EL"], "cities": [0] },
+        { "type": "field", "halves": ["ER", "SL", "SR"], "cities": [0] }
+      ],
+      "tags": [],
+      "art": "A two-sided corner city covering the N and W edges; its diagonal wall runs from the NE corner to the SW corner with a gate a little left of and below the centre. A road runs from the middle of the E edge westwards (gently curving) to that gate and ends there. North of the road a small triangular field touches only the north half of the E edge; south of the road the large field covers the south half of the E edge and the whole S edge; both border the city. Decoration: a donkey stable (shed with donkeys in a fenced pen) in the SE. No pennant.",
+      "art_layout": { "gate": [0.38, 0.58], "decor": [{ "kind": "donkey stable", "pos": [0.72, 0.8] }] }
+    },
+    {
+      "id": "IC/CRcR+",
+      "count": 1,
+      "name": "City band with pennant and two gate roads",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_Q.jpg", "bigbox_2021": "V3-EQ" },
+      "features": [
+        { "type": "city", "sides": ["E", "W"], "pennants": 1 },
+        { "type": "road", "sides": ["N"] },
+        { "type": "road", "sides": ["S"] },
+        { "type": "field", "halves": ["NL"], "cities": [0] },
+        { "type": "field", "halves": ["NR"], "cities": [0] },
+        { "type": "field", "halves": ["SL"], "cities": [0] },
+        { "type": "field", "halves": ["SR"], "cities": [0] }
+      ],
+      "tags": [],
+      "art": "One city crossing the tile as a band from the W edge to the E edge, coat of arms (pennant) on its east side. The north wall sags from the NW corner to ~38% depth at the centre and back up to the NE corner; the south wall rises from the SW corner to ~78% at the centre and back down to the SE corner. A road comes from the middle of the N edge down to a gate in the north wall; another road comes from the middle of the S edge up to a gate in the south wall (two separate roads, each ending at the city). Each road splits its strip of grass, giving four small fields (top-left, top-right, bottom-right, bottom-left), each bordering the city. No decoration.",
+      "art_layout": { "pennant": [0.85, 0.5] }
+    },
+    {
+      "id": "IC/RCc.i",
+      "count": 1,
+      "name": "Corner city, gate road with inn",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_N.jpg", "bigbox_2021": "V3-EN" },
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 0 },
+        { "type": "road", "sides": ["S"], "inn": true },
+        { "type": "field", "halves": ["SR"], "cities": [0] },
+        { "type": "field", "halves": ["EL", "ER", "SL"], "cities": [0] }
+      ],
+      "tags": [],
+      "art": "A two-sided corner city covering the N and W edges (diagonal wall from the NE corner to the SW corner) with a gate a little below the centre. A road leaves the gate and runs straight down to the middle of the S edge (it ends at the gate). The inn (half-timbered house, red roof, chimney smoke) stands EAST of the road, level with the gate; its small lake lies just south of the inn, also east of the road, near the S edge. West of the road a small triangular field between the wall and the road touches only the west half of the S edge; the large east field covers the E edge and the east half of the S edge. Both fields border the city. No pennant.",
+      "art_layout": { "gate": [0.5, 0.62], "inn": [0.78, 0.65], "lake": [0.78, 0.88] }
+    },
+    {
+      "id": "IC/RrC.i",
+      "count": 1,
+      "name": "City cap, curved road with inn",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_M.jpg", "bigbox_2021": "V3-EM" },
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "road", "sides": ["S", "W"], "inn": true },
+        { "type": "field", "halves": ["EL", "ER", "SL", "WR"], "cities": [0] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A city cap on the N edge (wall from the NW corner dipping to ~40% depth at the centre and back to the NE corner). A road enters at the middle of the W edge, runs east to about x=0.35 and bends south to the middle of the S edge. The inn sits on the OUTER side of the bend, right at the tile centre just below the city; its lake lies to the inn's south-east, east of the road's southern leg. Inside the bend (SW corner field, which does not border the city) a dark bush / tree stump. The outer field (north half of W edge, whole E edge, east half of S edge) borders the city.",
+      "art_layout": { "inn": [0.55, 0.53], "lake": [0.75, 0.68], "decor": [{ "kind": "bush", "pos": [0.2, 0.83] }] }
+    },
+    {
+      "id": "IC/CcRr+.i",
+      "count": 1,
+      "name": "Corner city with pennant, curved road with inn",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_L.jpg", "bigbox_2021": "V3-EL" },
+      "features": [
+        { "type": "city", "sides": ["N", "W"], "pennants": 1 },
+        { "type": "road", "sides": ["E", "S"], "inn": true },
+        { "type": "field", "halves": ["EL", "SR"], "cities": [0] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A two-sided corner city covering the N and W edges, coat of arms (pennant) top-left; its diagonal wall runs from the NE corner to the W edge near the SW corner. A road enters at the middle of the E edge, runs west to about x=0.75 and bends south to the middle of the S edge. The inn and its lake are INSIDE the bend, in the SE-corner field: the inn just below the road's eastern leg, the lake below the inn near the S edge, a bush near the E edge. That SE field does not border the city; the narrow band between the city wall and the road (north half of E edge + west half of S edge) borders the city. (1st-edition art put the inn in that band instead - art only, no rules effect.)",
+      "art_layout": { "pennant": [0.13, 0.12], "inn": [0.72, 0.65], "lake": [0.68, 0.88], "decor": [{ "kind": "bush", "pos": [0.9, 0.55] }] }
+    },
+    {
+      "id": "IC/RRR.i",
+      "count": 1,
+      "name": "Junction without village, with inn",
+      "notes": "3rd-edition rule: the junction ends all three roads; the inn counts for the W and E roads, not the S road (ZM3 p.2, BB21 p.11). JCloisterZone (and the 1st-edition rules) put the inn on the E road only.",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_C.jpg", "bigbox_2021": "V3-EC" },
+      "features": [
+        { "type": "road", "sides": ["W"], "inn": true },
+        { "type": "road", "sides": ["E"], "inn": true },
+        { "type": "road", "sides": ["S"], "inn": false },
+        { "type": "field", "halves": ["NL", "NR", "EL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "Roads from the middles of the W, E and S edges meet slightly below the tile centre at a clump of trees/bushes. There is NO village or house at the junction, yet all three roads end there (three separate roads). North of the W-E road line: the lake at upper left-centre (spanning x 0.28-0.7) with the inn directly to its right; inn and lake together sit above both the W and the E road (that is why the inn counts for both), and both lie in the north field. SW field: a pigsty (shed with a pen and pigs). SE field: plain grass.",
+      "art_layout": { "junction": [0.5, 0.58], "inn": [0.75, 0.38], "lake": [0.45, 0.3], "decor": [{ "kind": "pigsty", "pos": [0.25, 0.78] }] }
+    },
+    {
+      "id": "IC/RFr.iG",
+      "count": 1,
+      "name": "Straight road with inn and garden",
+      "notes": "3rd-edition version of IC/RFr.i (1st edition had no garden).",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_B.jpg", "bigbox_2021": "V3-EB" },
+      "features": [
+        { "type": "road", "sides": ["W", "E"], "inn": true },
+        { "type": "garden" },
+        { "type": "field", "halves": ["NL", "NR", "EL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL", "SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A gently wavy road from the middle of the W edge to the middle of the E edge (one road). NORTH of the road: the inn (red roof, chimney smoke) at upper left-centre with its lake directly east of it, both just above the road, in the north field. SOUTH of the road: a garden (vegetable/flower plot with a low fence, drawn as a diamond) at lower centre-right, in the south field.",
+      "art_layout": { "inn": [0.33, 0.27], "lake": [0.6, 0.38], "garden": [0.6, 0.8] }
+    },
+    {
+      "id": "IC/Rr.i",
+      "count": 1,
+      "name": "Curved road with inn",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_A.jpg", "bigbox_2021": "V3-EA" },
+      "features": [
+        { "type": "road", "sides": ["S", "W"], "inn": true },
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "A road enters at the middle of the W edge, runs east to about x=0.45 and bends south to the middle of the S edge. The inn stands at top centre-right with its lake to the inn's south-east, both in the big field on the OUTER (north-east) side of the bend, the lake close to the bend. Inside the bend (SW corner field) highwaymen under a tree.",
+      "art_layout": { "inn": [0.65, 0.18], "lake": [0.72, 0.45], "decor": [{ "kind": "highwaymen", "pos": [0.2, 0.7] }] }
+    },
+    {
+      "id": "IC/RrRr",
+      "count": 1,
+      "name": "Two curved roads",
+      "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_E.jpg", "bigbox_2021": "V3-EE" },
+      "features": [
+        { "type": "road", "sides": ["N", "W"] },
+        { "type": "road", "sides": ["E", "S"] },
+        { "type": "field", "halves": ["NL", "WR"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL"], "cities": [] },
+        { "type": "field", "halves": ["NR", "EL", "SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "art": "Two separate curved roads that do not touch: one from the middle of the N edge curving to the middle of the W edge (cutting off the NW corner field), the other from the middle of the E edge curving to the middle of the S edge (cutting off the SE corner field). The broad diagonal band between them is one field with a thatched farmhouse in the centre.",
+      "art_layout": { "decor": [{ "kind": "farmhouse", "pos": [0.47, 0.5] }] }
+    }
+  ],
+  "rules": {
+    "setup": [
+      "Shuffle the 18 Inns & Cathedrals land tiles into the base-game stack. There is no new start tile. (ZM3 p.1)",
+      "Each player adds the large meeple of their colour to their supply: 7 normal meeples + 1 large meeple each (+ abbot if The Abbot is used). (ZM3 p.3)",
+      "Player count becomes 2-6. The 6th player uses the pink set: 8 pink meeples (7 followers + score marker), pink large meeple, pink abbot. The 1st edition used grey. (ZM3 p.1, WIC1)",
+      "The 50/100 points tiles only mark laps of the physical score track; the app does not need them. (ZM3 p.4)"
+    ],
+    "turn_sequence": [
+      "1. Place a tile: unchanged. The new tiles follow the normal edge-matching rules. (ZM3 p.1)",
+      "2. Place a meeple: new option - INSTEAD of a normal meeple you may place your large meeple, under the normal placement rules (tile just placed, unoccupied feature). Still at most one figure per turn. (ZM3 p.3)",
+      "3. Score completed features: a road containing >=1 inn scores 2 per tile; a city containing >=1 cathedral scores 3 per tile and 3 per pennant. Majority is decided by strength (normal meeple 1, large meeple 2). Return all figures from scored features, including large meeples, to their owners. (ZM3 pp.1-3)",
+      "Game end (final scoring): an incomplete road with an inn and an incomplete city with a cathedral score 0. Everything else as usual; a large meeple farmer counts as 2 farmers. (ZM3 pp.2-3)"
+    ],
+    "placement": [
+      "Tiles are placed exactly like base tiles; inns and cathedrals do not affect where a tile may go. (ZM3 p.1)",
+      "Inns and cathedrals are not features of their own: no meeple can stand 'on' them. A meeple on the inn's road is an ordinary highwayman; a meeple on a cathedral tile is a knight in that city (the cathedral is not a monastery). (WIC, community interpretation)",
+      "IC/RRR.i: the junction (trees, no village) ends all three roads; the inn counts for the W and E roads, not for the S road. (ZM3 p.2, BB21 p.11)",
+      "IC/CRCR: the W and E roads end at the central village. The two short stubs from the village to the city gates are not roads - nobody may be placed on them; they only split the fields into four. (ZM3 p.3, BB21 p.11)",
+      "IC/LRFR: the monastery cuts the road into two separate roads, each ending at the monastery; the fields north and south of it are separate. (ZM3 p.3, JCZ-T)",
+      "IC/C!: the city wall runs into a corner, so the strip of field along one edge and the big field on the two other edges are separate fields ('the field ends here'). (ZM3 p.3, BB21 p.11)",
+      "IC/CCCCG: four separate one-edge cities plus one enclosed field (touching no edge) with a garden in its centre. (ZM3 p.2)",
+      "Gardens (IC/CCCCG, IC/RFr.iG) can only be occupied by an abbot; without The Abbot they are pure decoration. (BB21 p.9, WAB)"
+    ],
+    "followers": [
+      "Large meeple: one per player. You place it instead of a normal meeple, following exactly the same rules: only on the tile you just placed (unless another expansion allows otherwise), never into a road/city/field that already holds any meeple. (ZM3 p.3; CAR p.32 note 46)",
+      "It may be a highwayman (road), knight (city), farmer (field, lying down) or monk (monastery). It may NOT be placed on a garden (only the abbot may). (ZM3 p.3; BB21 p.9; JCZ-E BigFollower)",
+      "Majority: when scoring a road, city or field the large meeple counts as 2 meeples. It never multiplies points - a feature is scored once per winning player; on a monastery it simply earns the monastery's points. (ZM3 p.3; official clarification in WIC/CAR note 47)",
+      "Ties are resolved as usual: large meeple (2) vs one normal meeple (1) -> only the large meeple's owner scores; large meeple (2) vs two normal meeples (2) -> both players score the full value. (ZM3 p.3 example 8 pts; BB21 p.11 example 12 pts each)",
+      "After its feature is scored the large meeple returns to its owner's supply and can be used again on a later turn. As a farmer it stays until the end of the game like any farmer. (ZM3 p.3; CAR p.32)",
+      "It is ONE figure for everything except majority: one capture by a tower, 3-point ransom (not 6), one dragon meal, one knight for the princess, one meeple for the fairy, one meeple through a magic portal. (WIC official tower clarification; WPD; WTW; CAR)"
+    ],
+    "scoring_during_game": [
+      "Completed road with one or more inns: 2 points per tile of the road (instead of 1). Two or more inns on the same road do not add anything: e.g. 5 tiles = 10 points with 1 or 2 inns. Tiles are counted, not segments: a tile crossed twice by the same road counts once. (ZM3 pp.1-2; BB21 p.10)",
+      "Completed city with one or both cathedrals: 3 points per tile + 3 points per pennant (instead of 2 + 2). Example: 7 tiles + 2 pennants = 9 x 3 = 27. A second cathedral adds nothing. (ZM3 p.2; BB21 p.10)",
+      "Roads without inns and cities without cathedrals score as in the base game.",
+      "Majority uses follower strength: normal meeple 1, large meeple 2. All tied leaders score the full points; the others score nothing. (ZM3 p.3)",
+      "The monastery on IC/LRFR is a normal monastery: 9 points when surrounded by 8 tiles. (ZM3 p.3)"
+    ],
+    "scoring_end": [
+      "Incomplete road containing an inn: 0 points for everyone (instead of 1 per tile). (ZM3 p.2)",
+      "Incomplete city containing a cathedral: 0 points for everyone (instead of 1 per tile + 1 per pennant). (ZM3 p.2)",
+      "All other incomplete roads, cities, monasteries (and gardens with The Abbot) score as usual.",
+      "Fields: majority with large meeple = 2 farmers; each completed city bordering the field gives 3 points. A completed cathedral city counts as one ordinary completed city for farmers (I&C does not change farm scoring); incomplete cathedral cities give farmers nothing, like any incomplete city. (ZM3 p.3)"
+    ],
+    "edge_cases": [
+      "An inn affects only the road segment(s) it is drawn next to, not every road on its tile. On IC/RRR.i that means the W and E roads but not the S road. (ZM3 p.2; BB21 p.11; WIC note 3)",
+      "Inns and cathedrals may be attached to OTHER players' roads/cities on purpose, threatening them with 0 points at game end. (official clarification: WIC; CAR p.33 note 51)",
+      "During the game an unfinished inn road or cathedral city is simply not scored yet; only game end turns it into 0.",
+      "A completed 2-tile road with an inn scores 4; a completed road loop with an inn scores 2 per tile. (derived from ZM3 p.1)",
+      "The large meeple cannot be placed in a feature where you already have a meeple (or anybody has one); it only gets there by a later tile merging two features. In the merged feature it counts 2. (ZM3 p.3 'placement rules are the same')",
+      "A player whose only remaining figure is the large meeple may still place it.",
+      "Large meeple on a monastery: allowed, but no advantage - still 9 points maximum and only one figure fits. (official clarification, WIC note 4)",
+      "Large meeple as farmer lies down and counts 2 farmers; e.g. your large farmer vs one blue farmer -> you alone score the field (example: 3 completed cities = 9 points). (ZM3 p.3)",
+      "IC/CRCR stubs are not roads: no highwayman may be placed there (rulebook pictures a red X). The W road and the E road are two separate roads. (ZM3 p.3)",
+      "IC/CCCC(G)'s enclosed field can never be joined by another tile: a farmer there is uncontestable and scores 3 per completed cap-city at game end (max 12). (ZM3 p.2; JCZ-T)",
+      "Fairy (P&D): its 3-point bonus is paid whenever the feature of the fairy's meeple is scored, even when the feature scores 0 - including an incomplete inn road or cathedral city in final scoring. (WPD 'regardless of whether or not you score points', notes 24-25; JCZ-E test fairy-endgame-incomplete-inn) - interpretation, no explicit official FAQ."
+    ],
+    "interactions": {
+      "base": [
+        "Farmers: unchanged 3rd-edition scoring (3 per adjacent completed city); a large meeple counts as 2 farmers; a completed cathedral city is worth 3 to a farm like any completed city. (ZM3 p.3)",
+        "The I&C monastery (IC/LRFR) is a normal monastery.",
+        "Up to 6 players; supply 7 meeples + 1 large meeple per player. (ZM3 p.1, WBG)",
+        "Unplayable-tile rule and turn order unchanged."
+      ],
+      "river": [
+        "No rule interaction. River tiles are placed first; the I&C tiles go into the normal stack afterwards. (ZM3 p.1)",
+        "The inn lakes are decoration: they are not river lakes, never connect to a river and do not end a river.",
+        "Roads on river tiles can of course be continued by I&C road tiles; an inn on any tile of the road makes the whole road an inn road."
+      ],
+      "abbot": [
+        "Two I&C tiles carry gardens (IC/CCCCG in the enclosed field, IC/RFr.iG in the south field); only an abbot may occupy a garden; it scores like a monastery (9 when surrounded, 1 + neighbours at end or when recalled). (WAB; BB21 p.9)",
+        "The large meeple can never be placed on a garden; it may be a monk on the IC/LRFR monastery, as may the abbot. (BB21 p.9; JCZ-E)",
+        "Recalling the abbot replaces the meeple placement, so you cannot place the large meeple and recall the abbot in the same turn. (BB21 p.9)",
+        "The pink abbot for the 6th player comes in the I&C box. (ZM3 p.1, WAB)"
+      ],
+      "inns-cathedrals": [
+        "Several inns on one road or both cathedrals in one city never stack: 2/tile resp. 3/(tile+pennant). (ZM3 p.2)",
+        "The large meeple is often decisive in cathedral cities and long inn roads because the stakes are high and the feature scores 0 if left unfinished."
+      ],
+      "traders-builders": [
+        "Builder: may be placed on a road/city that holds one of your meeples - a large meeple counts (HiG wording 'meeple'; ZMG 'normal meeple' is a known error). (WTB note)",
+        "Pig: may be placed in a field that holds your farmer - a large-meeple farmer counts. The pig never counts toward majority; the large meeple counts 2. With the pig each completed city is worth 4 instead of 3 to the farm majority holder, cathedral or not. (WTB)",
+        "Trade goods go to the player who completes the city, regardless of majority; a cathedral city distributes goods normally when completed. (WTB)",
+        "Double turn: scoring happens after the first tile, so a large meeple returned by that scoring may be placed on the second tile. (WTB double-turn example)"
+      ],
+      "princess-dragon": [
+        "Dragon: eats the large meeple like any meeple (it returns to its owner's supply); the fairy's tile is protected. The dragon does not affect printed inns or cathedrals. (WPD dragon menu and note)",
+        "Princess: when a princess tile extends an occupied city you may remove any one knight, including a large meeple (yours or an opponent's); if you remove one you may not place a figure this turn. (WPD; CAR p.59 note 162 - an early 1st-edition FAQ that protected the big follower was superseded)",
+        "Magic portal: may be used to place the large meeple on any unoccupied, unfinished feature of any tile (not a garden, not the dragon's tile). (WPD)",
+        "Fairy: may be assigned to a large meeple: 1 point at the start of your turn, dragon protection, and 3 points when its feature is scored (even if the feature scores 0, see edge cases). The fairy does not protect against the princess. (WPD)",
+        "Volcano tile: no meeple of any kind, so no large meeple, may be placed on it. (WPD)"
+      ],
+      "tower": [
+        "A tower may capture the large meeple (one capture removes the whole large meeple, i.e. 2 majority strength). (WTW)",
+        "Ransom is 3 points, not doubled: 'it may be big, but it's still only one person' (official clarification). (WIC; CAR p.32 note 48)",
+        "Prisoner exchange is automatic, figure for figure: a captured large meeple can be swapped for a normal meeple; with several prisoners the owner chooses which to take back. (WTW)",
+        "The large meeple may be placed on top of a tower (closing it); there it is in no road/city/field. (WTW community interpretation; JCZ-E allows it)",
+        "No I&C tile has a tower foundation."
+      ]
+    },
+    "edition_differences": [
+      "Naming: this '3rd edition' (2014 base / 2015 I&C new art, gardens) is Wikicarpedia's 'C2'; the 2021 graphics refresh 'C3' (Big Box 2021, 'cities with clipped buildings') has the same tiles and rules. 1st edition = 2002 art ('C1').",
+      "IC/RRR.i: 1st edition - 'the inn lies on the right-hand road segment' (inn only for the E road). 3rd edition - the inn counts for the left and right roads, not the one heading down. JCloisterZone encodes the 1st-edition version. (WIC1/CAR vs ZM3/BB21)",
+      "Gardens: 3rd edition adds gardens to the four-caps tile (IC/CCCCG) and the straight inn road (IC/RFr.iG); 1st edition IC/CCCC and IC/RFr.i had none.",
+      "6th player: grey meeples in the 1st edition, pink meeples + pink abbot in the 3rd edition (Big Box 6/7: pink set is part of the base game).",
+      "IC/CRCR: the original 2002 print did not clearly show the village ending the roads; later prints and the 3rd edition draw a clear village. Rule unchanged.",
+      "IC/CcRr+.i art: 1st edition draws the inn between the city and the road, 3rd edition inside the road's bend. No rules effect.",
+      "Terminology: 1st edition 'big follower', 'thief'; 3rd edition 'large meeple', 'highwayman'. Rules identical (strength 2, one figure).",
+      "Princess (P&D): an early 1st-edition FAQ allowed removing the big follower only if no other knight was present; Big Box 1-3 and the 3rd edition allow removing it like any knight."
+    ],
+    "ai_hints": [
+      "Large meeple = trump card for majorities. Best uses: (a) a city/road that will probably merge with an opponent's feature (2 beats 1, ties 2 vs 2); (b) a big field late in the game; (c) a cathedral city or long inn road where the stakes are high. Avoid wasting it on a monastery or a tiny feature where it is locked away for no extra value.",
+      "Do not hoard it forever: in 5-6 player games each player gets only ~15-18 turns; an unused large meeple is worth nothing.",
+      "Evaluate inn roads and cathedral cities with completion probability p: during play value ~ p x 2 x tiles (road) or p x 3 x (tiles+pennants) (city); at end value 0 if open. Estimate p from the number of open ends and how many remaining tiles fit them.",
+      "Late game (few tiles left): do not add an inn/cathedral to your own unfinished feature unless it is closable now; DO add one to an opponent's large unfinished road/city to zero it (officially allowed).",
+      "A cathedral tile has four city edges, so it usually adds open edges: place it where it fills a hole (2-4 city neighbours) for your own city; dropping it at the edge of an opponent's city late is strong sabotage.",
+      "IC/RRR.i: the inn affects only the W and E roads; route your own completable roads through those sides and keep an opponent's open road on the S side if you do not want to help.",
+      "IC/CCCC(G) and IC/CCC create many 1-edge city caps that are cheap to complete with another cap (2-tile city = 4 points). The enclosed field of IC/CCCC(G) is a private farm worth 3 per completed cap (up to 12) that nobody can contest.",
+      "With the Tower: keep your large meeple out of tower range when possible; capturing an opponent's large meeple removes 2 strength and costs them 3 points to buy back.",
+      "With the Princess: removing an opponent's large meeple from a contested city is a big swing. With the Dragon: a large meeple near the dragon is a juicy target; the fairy is worth assigning to it.",
+      "With Traders & Builders: pair the builder with a large meeple on a long road/city you will extend repeatedly; pig + large-meeple farmer secures a big farm."
+    ],
+    "kid_rules_text": "Inns & Cathedrals adds 18 new tiles, a big meeple for every player and pink meeples so up to 6 people can play.\n\nInns: Some roads pass a little inn by a lake. When a road with an inn is finished, it is worth 2 points for every tile instead of 1. But careful: if that road is still unfinished when the game ends, it is worth nothing at all! Two inns on one road are not better than one.\n\nCathedrals: Two tiles show a huge cathedral in the middle of a city. A finished city with a cathedral scores 3 points for every tile and every shield instead of 2. If it is still unfinished at the end of the game, it scores 0. A second cathedral does not add more. You may also add an inn or a cathedral to someone else's road or city - if they cannot finish it, they get nothing!\n\nThe big meeple: You place it instead of a normal meeple, with the normal rules - on the tile you just put down, and never on a road, city or field that already has a meeple. When the game checks who has the most meeples somewhere, your big meeple counts as two. It does not give double points - it just helps you win. If it is a tie, everyone tied gets the points. After scoring it comes back to you like any meeple. It cannot stand on a garden; only the abbot can.\n\nTricky tiles: The crossroads with the inn ends all three roads - the inn counts for the left and right roads, but not the one going down. The monastery sits in the middle of a road and cuts it in two. On the tile with the little village, the short paths to the city gates are not roads, so nobody can stand on them. The tile with four small cities has four separate cities and a closed field in the middle.",
+    "figures": [
+      "Inn road scoring: a finished 5-tile road with one inn = 10 points; the same road with two inns = still 10.",
+      "Final scoring: an unfinished road with an inn = 0 points (big red 0).",
+      "Cathedral city: 7 tiles + 2 shields finished = 9 x 3 = 27 points.",
+      "Unfinished cathedral city at game end = 0 points.",
+      "Large meeple vs one normal meeple in a 4-tile city: large meeple's owner scores 8, the other 0.",
+      "Large meeple vs two normal meeples in one city: tie - both score 12.",
+      "Large meeple lying down as a farmer next to one blue farmer: only you score 9 for three finished cities.",
+      "Size comparison: normal meeple next to the large meeple ('as thick as two').",
+      "Junction inn tile (IC/RRR.i): W and E roads highlighted as inn roads, the S road plain.",
+      "Village tile (IC/CRCR): red X on the two stubs to the city gates; arrows showing the W and E roads end at the village; four fields shaded in different colours.",
+      "Monastery tile (IC/LRFR): two separate roads ending at the monastery, north and south fields shaded.",
+      "Wall-to-corner tile (IC/C!) next to a city: arrow at the corner - 'the field ends here'.",
+      "Four-caps tile (IC/CCCCG): four separately coloured cities and the enclosed field with its garden (abbot only).",
+      "Sabotage: dropping a cathedral into an opponent's big unfinished city near the end of the game."
+    ]
+  }
+}

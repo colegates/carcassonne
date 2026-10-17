@@ -1,6 +1,6 @@
 // Board renderer: camera, pan/pinch-zoom, tiles, meeples, overlays & effects.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawMeeple, getTableTexture, rotUnit, ART_SIZE } from './art.js';
+import { getTileArt, drawPiece, getTableTexture, rotUnit, ART_SIZE } from './art.js';
 import { parseKey, PLAYER_COLORS } from './game.js';
 
 const HIT = 96;
@@ -165,7 +165,7 @@ export class BoardView {
         const arrow = this.vm.candidates && (this.arrows || []).find((a) => Math.hypot(a.ex - e.clientX, a.ey - e.clientY) < 24);
         if (arrow) { this.animateCam({ x: arrow.wx, y: arrow.wy, z: Math.max(this.cam.z, 70) }); return; }
         const [wx, wy] = this.toWorld(e.clientX, e.clientY);
-        this.onTap?.(wx, wy);
+        this.onTap?.(wx, wy, e.clientX, e.clientY);
       }
       if (this.pointers.size === 0) tapStart = null;
     };
@@ -267,7 +267,7 @@ export class BoardView {
     for (const e of this.effects) if (e.type === 'pop') popFx.set(e.key, e);
     const hidden = this.vm.hiddenMeeples || new Set();
     for (const v of visible) {
-      if (!v.tile.m || hidden.has(v.k)) continue;
+      if (!v.tile.pieces?.length || hidden.has(v.k)) continue;
       const fx = popFx.get(v.k);
       let dy = 0, a = 1;
       if (fx) {
@@ -275,12 +275,12 @@ export class BoardView {
         if (t <= 0) continue;
         dy = -(1 - easeOutBounce(t)) * z * 0.9; a = Math.min(1, t * 4);
       }
-      this.drawPlacedMeeple(v.tile, v.k, v.sx, v.sy + dy, a);
+      this.drawPieces(v.tile, v.tile.pieces, v.sx, v.sy, a, fx ? { key: v.k, f: fx.f, dy } : null);
     }
     for (const m of this.vm.extraMeeples || []) {
       const tile = board[m.key]; if (!tile) continue;
       const [x, y] = parseKey(m.key); const [sx, sy] = this.toScreen(x, y);
-      this.drawPlacedMeeple({ ...tile, m: { p: m.p, f: m.f } }, m.key, sx, sy, 1);
+      this.drawPieces(tile, [{ p: m.p, f: m.f, k: m.k || 'meeple' }], sx, sy, 1);
     }
     // ghost meeple choices
     if (this.vm.ghosts) this.drawGhosts(now);
@@ -324,12 +324,34 @@ export class BoardView {
     return [sx + (rx - 0.5) * z, sy + (ry - 0.5) * z];
   }
 
-  drawPlacedMeeple(tile, k, sx, sy, alpha = 1) {
-    const p = this.state.players[tile.m.p];
-    const color = PLAYER_COLORS[p.color];
-    const feat = TILE_TYPES[tile.t].features[tile.m.f];
-    const [mx, my] = this.anchorScreen(tile.t, tile.r, tile.m.f, sx, sy);
-    drawMeeple(this.ctx, mx, my, this.cam.z * 0.3, color, { lying: feat.type === 'field', alpha });
+  // Screen position of the i-th figure standing on a feature (several figures
+  // on one feature, e.g. a knight and a builder, are spread out a little).
+  piecePos(tile, fi, sx, sy, i = 0, n = 1) {
+    const [mx, my] = this.anchorScreen(tile.t, tile.r, fi, sx, sy);
+    if (n <= 1) return [mx, my];
+    const z = this.cam.z;
+    const off = (i - (n - 1) / 2) * z * 0.2;
+    return [mx + off, my + Math.abs(off) * 0.25];
+  }
+
+  drawPieces(tile, pieces, sx, sy, alpha = 1, pop = null) {
+    const z = this.cam.z;
+    const byFeature = new Map();
+    for (const pc of pieces) {
+      if (!byFeature.has(pc.f)) byFeature.set(pc.f, []);
+      byFeature.get(pc.f).push(pc);
+    }
+    for (const [fi, list] of byFeature) {
+      const feat = TILE_TYPES[tile.t].features[fi];
+      list.forEach((pc, i) => {
+        const p = this.state.players[pc.p];
+        const color = PLAYER_COLORS[p.color] || PLAYER_COLORS.red;
+        let [mx, my] = this.piecePos(tile, fi, sx, sy, i, list.length);
+        let a = 1;
+        if (pop && (pop.f === undefined || pop.f === fi)) { my += pop.dy; a = alpha; }
+        drawPiece(this.ctx, pc.k || 'meeple', mx, my, z * 0.3, color, { lying: feat.type === 'field', alpha: a });
+      });
+    }
   }
 
   drawCandidates(now) {
@@ -413,6 +435,14 @@ export class BoardView {
     }
   }
 
+  ghostScreenPos(g) {
+    const tile = this.state.board[g.key];
+    const [x, y] = parseKey(g.key);
+    const [sx, sy] = this.toScreen(x, y);
+    const others = tile.pieces.filter((pc) => pc.f === g.fi).length;
+    return others ? this.piecePos(tile, g.fi, sx, sy, others, others + 1) : this.anchorScreen(tile.t, tile.r, g.fi, sx, sy);
+  }
+
   drawGhosts(now) {
     const z = this.cam.z;
     const pulse = 0.5 + 0.5 * Math.sin(now / 230);
@@ -420,15 +450,17 @@ export class BoardView {
       const tile = this.state.board[g.key];
       const [x, y] = parseKey(g.key);
       const [sx, sy] = this.toScreen(x, y);
-      const [mx, my] = this.anchorScreen(tile.t, tile.r, g.fi, sx, sy);
+      const others = tile.pieces.filter((pc) => pc.f === g.fi).length;
+      const [mx, my] = others ? this.piecePos(tile, g.fi, sx, sy, others, others + 1) : this.anchorScreen(tile.t, tile.r, g.fi, sx, sy);
       const lying = TILE_TYPES[tile.t].features[g.fi].type === 'field';
+      const kind = g.k || 'meeple';
       if (g.selected) {
-        drawMeeple(this.ctx, mx, my - z * 0.04 * pulse, z * 0.32, this.vm.ghostColor, { lying });
+        drawPiece(this.ctx, kind, mx, my - z * 0.04 * pulse, z * 0.32, this.vm.ghostColor, { lying });
       } else {
         const ctx = this.ctx;
         ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`;
         ctx.beginPath(); ctx.arc(mx, my, z * 0.19, 0, 7); ctx.fill();
-        drawMeeple(ctx, mx, my, z * 0.26, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
+        drawPiece(ctx, kind, mx, my, z * 0.26, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
       }
       if (g.label && (g.selected || this.vm.showLabels)) {
         this.label(sx, sy + z * 0.5 + Math.max(12, z * 0.12), g.label);
@@ -511,7 +543,7 @@ export class BoardView {
     const [tx, ty] = e.to;
     const k = easeInOut(Math.min(1, t));
     const x = lerpN(fx, tx, k), y = lerpN(fy, ty, k) - Math.sin(k * Math.PI) * 80;
-    drawMeeple(this.ctx, x, y, lerpN(this.cam.z * 0.3, 22, k), e.color, { alpha: 1 - Math.max(0, (t - 0.85) / 0.15) });
+    drawPiece(this.ctx, e.kind || 'meeple', x, y, lerpN(this.cam.z * 0.3, 22, k), e.color, { alpha: 1 - Math.max(0, (t - 0.85) / 0.15) });
   }
 
   drawSparkle(e, t) {
