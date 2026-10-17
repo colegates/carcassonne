@@ -166,8 +166,11 @@ function withTile(state, k, t, r, fn, bridge = null) {
   if (hasExp(state, 'dragon') && hasTag(t, 'volcano')) state.dragon = k;
   if (hasExp(state, 'tower') && hasTag(t, 'tower')) state.towers[k] = { h: 0, top: null };
   if (bridge) state.board[bridge.key].bridge = bridge.axis;
+  const lastBridge = state.lastBridge;
+  state.lastBridge = bridge ? bridge.key : null;
   state.phase = 'action'; state.last = k;
   try { return fn(); } finally {
+    state.lastBridge = lastBridge;
     if (bridge && bridge.key !== k) delete state.board[bridge.key].bridge;
     delete state.board[k];
     state.dragon = saved.dragon; state.phase = saved.phase; state.last = saved.last;

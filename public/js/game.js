@@ -430,9 +430,11 @@ export function placeTile(state, x, y, r, bridge = null) {
   const t = state.drawn;
   state.board[k] = { t, r, pieces: [], n: state.placed++ };
   // Bridges, Castles & Bazaars: the bridge goes down together with the tile
+  state.lastBridge = null;
   if (bridge) {
     state.board[bridge.key].bridge = bridge.axis;
     state.players[state.current].bridges--;
+    state.lastBridge = bridge.key;
   }
   state.last = k;
   state.drawn = null;
@@ -697,16 +699,20 @@ function completedCloisters(board, x, y) {
   return out;
 }
 
-// Scoring caused by the tile at k. Mutates state when apply=true.
+// Scoring caused by the tile at k (and by a bridge built with it on a tile next
+// door, which can finish a road of its own). Mutates state when apply=true.
 export function scoreAfterPlacement(state, k, apply = true) {
   const events = [];
   const board = state.board;
   const tile = board[k];
   const seen = new Set();
   const goodsEvents = [];
-  featuresOf(tile).forEach((f, fi) => {
+  const parts = featuresOf(tile).map((f, fi) => [k, f, fi]);
+  const bk = state.lastBridge;
+  if (bk && bk !== k && board[bk]) parts.push([bk, featuresOf(board[bk])[bridgeFeature(board[bk])], bridgeFeature(board[bk])]);
+  parts.forEach(([pk, f, fi]) => {
     if (f.type !== 'road' && f.type !== 'city') return;
-    const g = getGroup(board, k, fi);
+    const g = getGroup(board, pk, fi);
     if (seen.has(g.id)) return;
     seen.add(g.id);
     if (!g.complete) return;
@@ -815,6 +821,7 @@ export function finishTurn(state, act = null, noBonus = false) {
 
 function scoreAndEnd(state) {
   const events = scoreAfterPlacement(state, state.last, true);
+  state.lastBridge = null;
   const loose = unsupportedFigures(state);
   if (loose.length) {
     returnPieces(state, loose);

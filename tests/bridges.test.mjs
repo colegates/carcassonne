@@ -107,3 +107,16 @@ test('a road over a bridge scores 1 per tile, the bridge tile once', () => {
   assert.equal(g.tiles.size, 2);
   assert.equal(G.groupPoints(g), 2);
 });
+
+test('a bridge next door can finish a road that does not touch the new tile', () => {
+  // two roads ending at monasteries point at a meadow tile (0,0) from west and east;
+  // a monastery placed north of it with a bridge across 0,0 joins them into one finished road
+  const s = setup([['0,0', 'B', 0], ['-1,0', 'A', 3], ['1,0', 'A', 1]], 'B');
+  const spots = G.bridgeSpots(s, 0, -1, 'B', 0);
+  assert.ok(spots.some((q) => q.key === '0,0' && q.axis === 1));
+  G.placeTile(s, 0, -1, 0, { key: '0,0', axis: 1 });
+  const ev = G.finishTurn(s, null);
+  const road = ev.find((e) => e.kind === 'road');
+  assert.ok(road, 'the road over the bridge was scored');
+  assert.equal(road.points, 3);
+});

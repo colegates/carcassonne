@@ -4,7 +4,7 @@ import { TILE_TYPES, isRiverTile } from './tiles.js';
 import * as G from './game.js';
 import { chooseMove, suggestMove, chooseDragonMove, chooseRansom } from './ai.js';
 import { BoardView } from './board.js';
-import { getTileArt, getTileBack, rotUnit } from './art.js';
+import { getTileArt, getTileBack, rotUnit, drawCastle } from './art.js';
 import { sfx } from './sound.js';
 import { fingerprint } from './net.js';
 import { $, sleep, store, escapeHtml, show, pieceIcon, banner, toast, ask } from './ui.js';
@@ -151,7 +151,20 @@ function extraText(p, i) {
   }
   const figs = [p.supply.large ? 'large' : null, ex.abbot && p.supply.abbot ? 'abbot' : null].filter(Boolean);
   if (figs.length) parts.push(figs.map((k) => miniIcon(p.color, k)).join(''));
+  // Bridges, Castles & Bazaars: bridges and castles still to build
+  if (ex.bridges) parts.push(`🌉${p.bridges || 0} ${castleIcon()}${p.castles || 0}`);
   return parts.join(' ');
+}
+
+let castleURL = null;
+function castleIcon() {
+  if (!castleURL) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 48;
+    drawCastle(c.getContext('2d'), 24, 42, 80);
+    castleURL = c.toDataURL();
+  }
+  return `<img class="mini" src="${castleURL}" alt="castles">`;
 }
 
 const miniIcons = new Map();
@@ -470,8 +483,11 @@ function previewPoints(x, y, r, bridge = null) {
   const k = G.key(x, y);
   state.board[k] = { t: state.drawn, r, pieces: [], n: 0 };
   if (bridge) state.board[bridge.key].bridge = bridge.axis;
+  const lastBridge = state.lastBridge;
+  state.lastBridge = bridge ? bridge.key : null;
   let all = [];
   try { all = G.scoreAfterPlacement(state, k, false); } finally {
+    state.lastBridge = lastBridge;
     if (bridge && bridge.key !== k) delete state.board[bridge.key].bridge;
     delete state.board[k];
   }
