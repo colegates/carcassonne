@@ -17,6 +17,7 @@ import INNS from './data/inns.js';
 import TRADERS from './data/traders.js';
 import DRAGON from './data/dragon.js';
 import TOWER from './data/tower.js';
+import BRIDGES from './data/bridges.js';
 
 export const N = 0, E = 1, S = 2, W = 3;
 const side = (s) => [3 * s, 3 * s + 1, 3 * s + 2];
@@ -83,7 +84,7 @@ function finalizeTile(id, t) {
 }
 for (const [id, t] of Object.entries(TILE_TYPES)) finalizeTile(id, t);
 // expansion tile sets (generated from docs/expansions/*.json)
-for (const set of [GARDENS, RIVER, INNS, TRADERS, DRAGON, TOWER]) registerTiles(set);
+for (const set of [GARDENS, RIVER, INNS, TRADERS, DRAGON, TOWER, BRIDGES]) registerTiles(set);
 
 export const RIVER_SPRING = 'RI/s';
 export const RIVER_LAKE = 'RI.1/I.e';
@@ -101,7 +102,7 @@ export function buildDeck(expansions = {}, rnd = Math.random) {
     if (t.replaces) counts[t.replaces] -= t.count;
   }
   counts[START_TILE] -= 1; // the start tile is placed separately (or returned to the box with the River)
-  const EXP_OF = { inns: 'inns', traders: 'traders', dragon: 'dragon', tower: 'tower' };
+  const EXP_OF = { inns: 'inns', traders: 'traders', dragon: 'dragon', tower: 'tower', bridges: 'bridges' };
   for (const [id, t] of Object.entries(TILE_TYPES)) {
     if (EXP_OF[t.exp] && expansions[EXP_OF[t.exp]]) counts[id] = (counts[id] || 0) + t.count;
   }

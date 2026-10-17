@@ -86,6 +86,10 @@ function buildHitMap(id, lay) {
   if (lay.house) stamp((g) => g.fillRect((lay.house[0] - 0.07) * H, (lay.house[1] - 0.06) * H, 0.14 * H, 0.12 * H), -2);
   if (lay.volcano) stamp((g) => { g.beginPath(); g.ellipse(lay.volcano[0] * H, lay.volcano[1] * H, 0.15 * H, 0.12 * H, 0, 0, 7); g.fill(); }, -2);
   if (lay.foundation) stamp((g) => g.fillRect((lay.foundation[0] - 0.115) * H, (lay.foundation[1] - 0.115) * H, 0.23 * H, 0.23 * H), -2);
+  // Bridges, Castles & Bazaars: the bazaar (it ends roads; with two roads it splits the meadow), farmhouse, bushes
+  if (lay.bazaar) stamp((g) => { g.beginPath(); g.ellipse(lay.bazaar[0] * H, lay.bazaar[1] * H, lay.bazaar[2] * H, lay.bazaar[2] * 0.8 * H, 0, 0, 7); g.fill(); }, -2);
+  if (lay.farmhouse) stamp((g) => { g.beginPath(); g.ellipse(lay.farmhouse[0] * H, lay.farmhouse[1] * H, 0.12 * H, 0.09 * H, -0.5, 0, 7); g.fill(); }, -2);
+  for (const p of [lay.highwaymen, lay.shrub]) if (p) stamp((g) => { g.beginPath(); g.arc(p[0] * H, p[1] * H, 0.05 * H, 0, 7); g.fill(); }, -2);
   for (const [x, y, lx, ly] of lay.inns) {
     stamp((g) => { g.fillRect((x - 0.075) * H, (y - 0.065) * H, 0.15 * H, 0.13 * H); g.beginPath(); g.ellipse(lx * H, ly * H, 0.07 * H, 0.045 * H, 0.2, 0, 7); g.fill(); }, -2);
   }
@@ -1005,6 +1009,106 @@ function innArt(ctx, x, y, lx, ly, S, k, rnd) {
   void rnd;
 }
 
+// Bridges, Castles & Bazaars: a market — striped awnings, canopies, crates and
+// shoppers on a patch of trodden earth (it ends any road that runs into it).
+const AWNINGS = [['#c4402e', '#f2e6cf'], ['#e1b13c', '#f6e7b4'], ['#3d7c48', '#e9efe2'], ['#3a5e9c', '#e3eaf4'], ['#f1ede2', '#d6cdb9'], ['#a04a6e', '#f0e0e6']];
+function bazaarArt(ctx, x, y, r, S, k, rnd) {
+  const cx = x * S, cy = y * S, R = r * S;
+  ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(40,30,15,0.4)';
+  ctx.beginPath(); ctx.ellipse(cx + 3 * k, cy + 4 * k, R, R * 0.8, 0, 0, 7); ctx.fill(); ctx.restore();
+  const g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
+  g.addColorStop(0, '#b4905f'); g.addColorStop(1, '#8c6b44');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2, rr = R * (0.93 + rnd() * 0.1);
+    const px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr * 0.8;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.save(); ctx.clip();
+  for (let i = 0; i < 70; i++) {
+    ctx.fillStyle = rnd() < 0.5 ? 'rgba(70,50,28,0.25)' : 'rgba(220,195,150,0.25)';
+    ctx.beginPath(); ctx.arc(cx + (rnd() - 0.5) * 2 * R, cy + (rnd() - 0.5) * 1.6 * R, (0.6 + rnd()) * k, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  // stalls round the square, shoppers and goods between them
+  const spots = [[-0.5, -0.38], [0.08, -0.55], [0.55, -0.22], [-0.6, 0.18], [0.02, 0.0], [0.5, 0.36], [-0.14, 0.5]];
+  spots.forEach(([ux, uy], i) => {
+    const w = (0.085 + rnd() * 0.03) * S, h = (0.06 + rnd() * 0.02) * S;
+    stall(ctx, cx + ux * R * 0.92, cy + uy * R * 0.74, w, h, AWNINGS[(i + Math.floor(rnd() * 2)) % AWNINGS.length], (rnd() - 0.5) * 0.6, k, i % 3 === 2);
+  });
+  for (let i = 0; i < 5; i++) {
+    const px = cx + (rnd() - 0.5) * 1.3 * R, py = cy + (rnd() - 0.5) * 1.0 * R;
+    if (rnd() < 0.5) { ctx.fillStyle = '#7a5530'; ctx.fillRect(px - 2.4 * k, py - 2.4 * k, 4.8 * k, 4.8 * k); ctx.strokeStyle = 'rgba(40,25,10,0.6)'; ctx.lineWidth = 0.6 * k; ctx.strokeRect(px - 2.4 * k, py - 2.4 * k, 4.8 * k, 4.8 * k); }
+    else { ctx.fillStyle = '#8a5d34'; ctx.beginPath(); ctx.arc(px, py, 2.6 * k, 0, 7); ctx.fill(); ctx.strokeStyle = 'rgba(40,25,10,0.6)'; ctx.lineWidth = 0.6 * k; ctx.stroke(); }
+  }
+  const DRESS = ['#6b3d8a', '#a83228', '#2f5d8c', '#3d6e3a', '#c08a2a', '#7a4a2a'];
+  for (let i = 0; i < 9; i++) {
+    const a = rnd() * 6.283, d = (0.25 + rnd() * 0.55) * R;
+    const px = cx + Math.cos(a) * d, py = cy + Math.sin(a) * d * 0.8;
+    ctx.fillStyle = 'rgba(40,25,10,0.3)'; ctx.beginPath(); ctx.ellipse(px + 1 * k, py + 1.5 * k, 2.2 * k, 1.4 * k, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = DRESS[i % DRESS.length]; ctx.beginPath(); ctx.arc(px, py, 2 * k, 0, 7); ctx.fill();
+    ctx.fillStyle = '#e8c6a0'; ctx.beginPath(); ctx.arc(px, py - 0.4 * k, 1 * k, 0, 7); ctx.fill();
+  }
+}
+
+// one market stall seen from above: a striped awning or a square canopy
+function stall(ctx, x, y, w, h, [c1, c2], rot, k, canopy) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.fillStyle = 'rgba(40,25,10,0.35)'; ctx.fillRect(-w / 2 + 2 * k, -h / 2 + 3 * k, w, h);
+  if (canopy) {
+    ctx.fillStyle = '#f1ece0'; ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.beginPath(); ctx.moveTo(-w / 2, h / 2); ctx.lineTo(0, 0); ctx.lineTo(w / 2, h / 2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w / 2, -h / 2); ctx.lineTo(0, 0); ctx.lineTo(w / 2, h / 2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(90,70,50,0.45)'; ctx.lineWidth = 0.7 * k;
+    ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(w / 2, h / 2); ctx.moveTo(w / 2, -h / 2); ctx.lineTo(-w / 2, h / 2); ctx.stroke();
+    // bunting along the front
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = [c1, '#e1b13c', '#3a5e9c'][i % 3];
+      const bx = -w / 2 + (i + 0.5) * (w / 5);
+      ctx.beginPath(); ctx.moveTo(bx - w / 14, h / 2); ctx.lineTo(bx + w / 14, h / 2); ctx.lineTo(bx, h / 2 + 2.4 * k); ctx.closePath(); ctx.fill();
+    }
+  } else {
+    const n = 6;
+    for (let i = 0; i < n; i++) { ctx.fillStyle = i % 2 ? c2 : c1; ctx.fillRect(-w / 2 + (i * w) / n, -h / 2, w / n + 0.4, h); }
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(-w / 2, -h / 2, w, h * 0.45);
+    ctx.fillStyle = 'rgba(0,0,0,0.14)'; ctx.fillRect(-w / 2, h * 0.05, w, h * 0.45);
+    // scalloped front edge
+    ctx.fillStyle = c1;
+    for (let i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(-w / 2 + (i + 0.5) * (w / n), h / 2, w / n / 2, 0, Math.PI); ctx.fill(); }
+  }
+  ctx.strokeStyle = 'rgba(60,40,25,0.5)'; ctx.lineWidth = 0.7 * k; ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+
+// a long thatched farmhouse with a shed beside it
+function farmhouseArt(ctx, x, y, S, k, rnd) {
+  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(-0.5);
+  const w = 0.2 * S, h = 0.085 * S;
+  ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)'; ctx.fillRect(-w / 2 + 3 * k, -h / 2 + 4 * k, w, h); ctx.restore();
+  house(ctx, -w / 2, -h / 2, w, h, mulberry(23), k, ['#cfae62', '#9c7c3a']);
+  ctx.strokeStyle = 'rgba(120,90,40,0.35)'; ctx.lineWidth = 0.6 * k;
+  for (let i = 1; i < 12; i++) { ctx.beginPath(); ctx.moveTo(-w / 2 + (i * w) / 12, -h / 2); ctx.lineTo(-w / 2 + (i * w) / 12 + 1.5 * k, -h / 2 + h * 0.6); ctx.stroke(); }
+  const sw = 0.08 * S, sh = 0.06 * S;
+  ctx.fillStyle = 'rgba(30,25,10,0.35)'; ctx.fillRect(-w / 2 + 2 * k, h / 2 + 5 * k, sw, sh);
+  house(ctx, -w / 2, h / 2 + 3 * k, sw, sh, mulberry(29), k, ['#a07a4a', '#76552e']);
+  ctx.restore();
+  bushCluster(ctx, (x + 0.12) * S, (y - 0.1) * S, 6 * k, rnd, k);
+}
+
+// two highwaymen lurking behind a bush (they mark nothing in the rules)
+function highwaymenArt(ctx, x, y, S, k, rnd) {
+  const px = x * S, py = y * S;
+  for (const [dx, dy] of [[-3.5, -3], [3.5, -2]]) {
+    ctx.fillStyle = 'rgba(30,25,15,0.35)'; ctx.beginPath(); ctx.ellipse(px + (dx + 1) * k, py + (dy + 2) * k, 3 * k, 2 * k, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#3a3128'; ctx.beginPath(); ctx.arc(px + dx * k, py + dy * k, 2.8 * k, 0, 7); ctx.fill();
+    ctx.fillStyle = '#20180f'; ctx.beginPath(); ctx.ellipse(px + dx * k, py + (dy - 0.6) * k, 3.6 * k, 1.6 * k, 0, 0, 7); ctx.fill();
+  }
+  bushCluster(ctx, px, py + 4 * k, 8 * k, rnd, k);
+}
+
 function gardenArt(ctx, x, y, S, k, rnd) {
   // a walled kitchen garden: low hedge, rows of flowers and vegetables, a tree in one corner
   const w = 0.27 * S, h = 0.18 * S;
@@ -1243,7 +1347,7 @@ export function getTileArt(id) {
   const rnd = mulberry(hashStr('carc' + id));
   // spots that trees and symbols keep clear of
   const busy = [...anchors];
-  for (const p of [lay.portal, lay.dragon, lay.house, lay.volcano, lay.foundation]) if (p) busy.push(p);
+  for (const p of [lay.portal, lay.dragon, lay.house, lay.volcano, lay.foundation, lay.bazaar, lay.farmhouse, lay.highwaymen, lay.shrub]) if (p) busy.push(p);
   for (const [x, y, lx, ly] of lay.inns) busy.push([x, y], [lx, ly]);
   paintGrass(ctx, S, rnd);
   paintFarmPatches(ctx, S, rnd, label, id);
@@ -1256,8 +1360,12 @@ export function getTileArt(id) {
   if (lay.trees) treeClumpArt(ctx, lay.trees, S, k, rnd);
   if (lay.house) cottageArt(ctx, lay.house[0], lay.house[1], S, k);
   for (const [x, y, lx, ly] of lay.inns) innArt(ctx, x, y, lx, ly, S, k, rnd);
+  if (lay.farmhouse) farmhouseArt(ctx, lay.farmhouse[0], lay.farmhouse[1], S, k, rnd);
+  if (lay.highwaymen) highwaymenArt(ctx, lay.highwaymen[0], lay.highwaymen[1], S, k, rnd);
+  if (lay.shrub) bushCluster(ctx, lay.shrub[0] * S, lay.shrub[1] * S, 7 * k, rnd, k);
   paintCities(ctx, S, rnd, lay, label);
   paintRoads(ctx, S, rnd, lay, 'over');
+  if (lay.bazaar) bazaarArt(ctx, lay.bazaar[0], lay.bazaar[1], lay.bazaar[2], S, k, rnd);
   if (lay.gate) gateArt(ctx, [lay.gate[0], lay.gate[1]], lay.gate[2], S, k);
   if (lay.monastery) {
     const m = lay.monastery;

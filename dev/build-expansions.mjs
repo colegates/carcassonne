@@ -4,7 +4,7 @@ import fs from 'fs';
 const ROOT = new URL('..', import.meta.url).pathname;
 const SIDES = { N: 0, E: 1, S: 2, W: 3 };
 const HALF = { NL: 0, NR: 2, EL: 3, ER: 5, SL: 6, SR: 8, WL: 9, WR: 11 };
-const MAP = { river: 'river', abbot: 'abbot', 'inns-cathedrals': 'inns', 'traders-builders': 'traders', 'princess-dragon': 'dragon', tower: 'tower' };
+const MAP = { river: 'river', abbot: 'abbot', 'inns-cathedrals': 'inns', 'traders-builders': 'traders', 'princess-dragon': 'dragon', tower: 'tower', 'bridges-castles-bazaars': 'bridges' };
 
 function convertTile(t, exp) {
   const feats = t.features.map((f) => ({ ...f }));
@@ -22,6 +22,7 @@ function convertTile(t, exp) {
       if (f.cathedral) o.cathedral = true;
       if (f.goods) o.goods = f.goods;
       if (f.princess) o.princess = true;
+      if (f.castle_base === false) o.noCastle = true; // Bridges, Castles & Bazaars: can never become a castle
     } else if (f.type === 'road' || f.type === 'river') {
       o.sides = f.sides.map((s) => SIDES[s]);
       o.ports = o.sides.map((s) => 3 * s + 1);

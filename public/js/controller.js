@@ -15,8 +15,9 @@ const PIECE_LABEL = {
   meeple: 'Meeple', large: 'Big meeple', abbot: 'Abbot', builder: 'Builder', pig: 'Pig', recall: 'Abbot home',
   fairy: 'Fairy', princess: 'Princess', floor: 'Tower floor', 'towerTop:meeple': 'Close a tower', 'towerTop:large': 'Close · big',
   'portal:meeple': 'Portal', 'portal:large': 'Portal · big', 'portal:abbot': 'Portal · abbot',
+  bridge: 'Bridge',
 };
-const GROUP_ICON = { recall: '⤴️', princess: '👸', floor: '🏰' };
+const GROUP_ICON = { recall: '⤴️', princess: '👸', floor: '🏰', bridge: '🌉' };
 const KIND_NAME = { meeple: 'meeple', large: 'big meeple', abbot: 'abbot', builder: 'builder', pig: 'pig' };
 
 export const view = new BoardView($('board'));
@@ -446,27 +447,34 @@ function refreshCandidates() {
 function setTentative(x, y, r, animate = true) {
   const pl = ui.placements.find((p) => p.x === x && p.y === y);
   const prev = ui.tentative && ui.tentative.x === x && ui.tentative.y === y ? ui.tentative.r : null;
-  ui.tentative = { x, y, r, rots: pl.rots };
+  // Bridges, Castles & Bazaars: a turn that only fits with a bridge gets one (it can be moved afterwards)
+  const bridge = pl.needsBridge?.[r]?.[0] || null;
+  ui.tentative = { x, y, r, rots: pl.rots, bridge };
   const prevDeg = ui.previewRotDeg;
   ui.previewRot = r;
   const delta = ((r * 90 - prevDeg) % 360 + 360) % 360;
   ui.previewRotDeg = prevDeg + delta;
   drawPreview();
-  view.setVM({ tentative: { x, y, r, t: state.drawn, ok: true, ...(animate && prev !== null ? { animFrom: prev, animStart: performance.now() } : {}) } });
+  view.setVM({ tentative: { x, y, r, t: state.drawn, ok: true, bridge, ...(animate && prev !== null ? { animFrom: prev, animStart: performance.now() } : {}) } });
   refreshCandidates();
-  const pts = helper() ? previewPoints(x, y, r) : '';
+  const pts = helper() ? previewPoints(x, y, r, bridge) : '';
+  const needs = bridge ? `🌉 Fits here with a bridge (you have ${cur().bridges}). ` : '';
   setDock({
-    instruction: pl.rots.length > 1 ? `Tap the tile or ⟳ to turn it, then ✓${pts}` : `It only fits this way here. Press ✓${pts}`,
+    instruction: needs + (pl.rots.length > 1 ? `Tap the tile or ⟳ to turn it, then ✓${pts}` : `It only fits this way here. Press ✓${pts}`),
     rotate: true, confirm: true, pulse: true,
   });
 }
 
 // What a placement would complete right now (helper mode)
-function previewPoints(x, y, r) {
+function previewPoints(x, y, r, bridge = null) {
   const k = G.key(x, y);
   state.board[k] = { t: state.drawn, r, pieces: [], n: 0 };
+  if (bridge) state.board[bridge.key].bridge = bridge.axis;
   let all = [];
-  try { all = G.scoreAfterPlacement(state, k, false); } finally { delete state.board[k]; }
+  try { all = G.scoreAfterPlacement(state, k, false); } finally {
+    if (bridge && bridge.key !== k) delete state.board[bridge.key].bridge;
+    delete state.board[k];
+  }
   const ev = all.filter((e) => e.winners.length);
   const goods = all.filter((e) => e.kind === 'goods').reduce((a, e) => a + Object.values(e.goods).reduce((x, y) => x + y, 0), 0);
   if (!ev.length && !goods) return '';
@@ -523,6 +531,12 @@ view.onTap = (wx, wy, sx, sy) => {
     // capture targets and other figure rings first (they sit on top of everything else)
     let best = nearest(ui.ghosts.filter((g) => g.type !== 'follower'));
     if (!best) {
+      // a bridge is not painted on the tile: a tap on it picks its road
+      const tile = state.board[G.key(x, y)];
+      const bf = tile ? G.bridgeFeature(tile) : -1;
+      if (bf >= 0 && Math.abs(tile.bridge === 0 ? wx - x : wy - y) < 0.12) best = ui.ghosts.find((g) => g.type === 'follower' && g.key === G.key(x, y) && g.fi === bf) || null;
+    }
+    if (!best) {
       // then the feature under the finger, so a tap in a meadow picks that meadow
       const tile = state.board[G.key(x, y)];
       if (tile) {
@@ -540,6 +554,7 @@ view.onTap = (wx, wy, sx, sy) => {
       showGhosts();
       return;
     }
+    if (best.type === 'bridge') { chooseBridge(best.act); return; }
     // second tap = place it (but a tower floor waits for a capture choice or ✓)
     if (ui.selected && sameOpt(best.act, ui.selected)) { if (!ui.capturing) onConfirm(); return; }
     selectOption(best.act);
@@ -565,12 +580,12 @@ async function onConfirm() {
   if (state?.phase === 'over' && !ui.busy) { showScores(); return; }
   if (!state || ui.busy || !isLocal() || pending.length) return;
   if (state.phase === 'place' && ui.tentative) {
-    const { x, y, r } = ui.tentative;
+    const { x, y, r, bridge } = ui.tentative;
     ui.snapshot = { state: G.cloneState(state), tentative: { ...ui.tentative } };
     const aside = state.setAside?.length || 0;
-    G.placeTile(state, x, y, r);
+    G.placeTile(state, x, y, r, bridge);
     if (aside && !state.setAside.length) toast(`🌋 The dragon has arrived! The ${aside} dragon tile${aside > 1 ? 's' : ''} put aside go${aside > 1 ? '' : 'es'} back into the pile`);
-    ui.placedAt = { x, y, r };
+    ui.placedAt = { x, y, r, bridge };
     ui.tentative = null;
     ui.noBonus = false; ui.bonusTold = false;
     view.setVM({ tentative: null, candidates: null, lastKey: state.last, lastColor: colorOf(cur()).light });
@@ -608,8 +623,9 @@ async function exchangeChoice(c) {
 // ---------- follower phase ----------
 const sameOpt = (a, b) => !!a && !!b && a.kind === b.kind && a.key === b.key && a.fi === b.fi && a.k === b.k;
 const optGroup = (o) => (o.kind === 'follower' ? (o.portal ? `portal:${o.k}` : o.k) : o.kind === 'towerTop' ? `towerTop:${o.k}` : o.kind);
+const sameBridge = (a, b) => !!a && !!b && a.key === b.key && a.axis === b.axis;
 const groupKind = (g) => (g.includes(':') ? g.split(':')[1] : ({ recall: 'abbot', fairy: 'fairy' }[g] || (G.PIECES[g] ? g : null)));
-const GROUP_ORDER = ['meeple', 'large', 'abbot', 'builder', 'pig', 'portal:meeple', 'portal:large', 'portal:abbot', 'princess', 'fairy', 'recall', 'floor', 'towerTop:meeple', 'towerTop:large'];
+const GROUP_ORDER = ['meeple', 'large', 'abbot', 'builder', 'pig', 'portal:meeple', 'portal:large', 'portal:abbot', 'princess', 'fairy', 'recall', 'floor', 'towerTop:meeple', 'towerTop:large', 'bridge'];
 
 // Traders & Builders: the builder's bonus tile may be declined
 function bonusToggle() { return ''; }
@@ -630,6 +646,7 @@ $('dock-extra').addEventListener('click', (e) => {
 
 function beginActionPhase() {
   const opts = G.followerOptions(state);
+  opts.push(...bridgeChoices());
   ui.options = opts;
   ui.selected = null; ui.capture = null; ui.capturing = false;
   if (state.bonus && state.part === 1 && state.deck.length && !ui.bonusTold) { ui.bonusTold = true; toast('🔨 Your builder earns you a bonus tile after this one!'); }
@@ -659,6 +676,43 @@ function beginActionPhase() {
   }
 }
 
+// Bridges, Castles & Bazaars: where a bridge could go with the tile just placed
+// (worked out on the board as it was before the tile went down). Shown as a
+// "Bridge" choice when there is something to choose: an optional bridge, or
+// another spot for the one the tile needs.
+function bridgeChoices() {
+  if (!state.options.expansions?.bridges || !ui.snapshot || !ui.placedAt || ui.placedAt.resumed) return [];
+  const before = ui.snapshot.state;
+  const { x, y, r } = ui.placedAt;
+  const spots = G.bridgeSpots(before, x, y, before.drawn, r);
+  const needed = !G.canPlace(before, x, y, before.drawn, r);
+  if (!spots.length || (needed && spots.length < 2)) return [];
+  return spots.map((b) => ({ kind: 'bridge', key: b.key, axis: b.axis }));
+}
+
+// Build, move or take back the bridge: put the tile down again from the copy
+// taken before it was placed.
+function chooseBridge(b) {
+  if (!ui.snapshot || ui.busy) return;
+  const { x, y, r } = ui.placedAt;
+  const before = ui.snapshot.state;
+  const next = sameBridge(b, ui.placedAt.bridge) ? null : { key: b.key, axis: b.axis };
+  if (!next && !G.canPlace(before, x, y, before.drawn, r)) { sfx.error(); toast('🌉 This tile only fits here with a bridge'); return; }
+  for (const k of Object.keys(state)) delete state[k];
+  Object.assign(state, G.cloneState(before));
+  G.placeTile(state, x, y, r, next);
+  ui.placedAt = { x, y, r, bridge: next };
+  ui.selected = null; ui.capture = null; ui.capturing = false;
+  view.setState(state);
+  view.setVM({ highlight: null, lastKey: state.last });
+  sfx.place();
+  if (next && next.key === state.last) toast('🌉 Bridge built — you can put a meeple on it');
+  else if (next) toast('🌉 Bridge built');
+  const group = ui.group;
+  beginActionPhase();
+  if (ui.options.some((o) => optGroup(o) === group)) { ui.group = group; showGhosts(); }
+}
+
 // The Abbot: gardens are easy to miss
 function gardenTip(opts) {
   if (!state.options.expansions?.abbot) return;
@@ -673,6 +727,7 @@ function gardenTip(opts) {
 }
 
 function ghostLabel(o) {
+  if (o.kind === 'bridge') return sameBridge(o, ui.placedAt?.bridge) ? '🌉 Take the bridge back' : '🌉 Bridge here';
   if (o.kind === 'fairy') return '🧚 Fairy here';
   if (o.kind === 'princess') return `👸 Send ${state.players[o.p].name}'s knight home`;
   if (o.kind === 'recall') {
@@ -708,7 +763,8 @@ function showGhosts() {
   const list = ui.options.filter((o) => optGroup(o) === ui.group);
   ui.ghosts = list.map((o) => ({
     key: o.key, fi: o.fi, k: o.kind === 'recall' ? 'abbot' : o.k || 'meeple', p: o.kind === 'recall' ? state.current : o.p,
-    type: ghostType(o), act: o, label: ghostLabel(o), selected: sameOpt(o, ui.selected),
+    type: ghostType(o), act: o, label: ghostLabel(o), selected: o.kind === 'bridge' ? sameBridge(o, ui.placedAt?.bridge) : sameOpt(o, ui.selected),
+    ...(o.kind === 'bridge' ? { axis: o.axis } : {}),
   }));
   // The Tower: after choosing a floor, the figures it can capture
   const wasCapturing = ui.capturing;
@@ -755,6 +811,7 @@ function pickerFor() {
 }
 
 const GROUP_HELP = {
+  bridge: '🌉 Bridge: carries a road over a meadow, on this tile or one next to it. Tap a bridge to build it, tap it again to take it back',
   abbot: '⛪ Abbot: only on a monastery or a garden. Later you can call him home early for points. Tap a ghost',
   large: '🍺 Big meeple: it counts as two meeples when deciding who wins. Tap a ghost',
   builder: '🔨 Builder: on a road or city where you have a meeple. Extend it later to play two tiles in one turn. Tap a ghost',
@@ -907,7 +964,7 @@ async function completeTurn(act, placedAt) {
   const placer = state.current;
   const k = state.last;
   const noBonus = !!(ui.noBonus && state.bonus);
-  const action = { t: 'turn', x: placedAt.x, y: placedAt.y, r: placedAt.r, act: act || null, ...(noBonus ? { noBonus: true } : {}) };
+  const action = { t: 'turn', x: placedAt.x, y: placedAt.y, r: placedAt.r, ...(placedAt.bridge ? { bridge: placedAt.bridge } : {}), act: act || null, ...(noBonus ? { noBonus: true } : {}) };
   const events = G.finishTurn(state, act, noBonus);
   ui.noBonus = false; ui.bonusTold = false;
   state.seq = (state.seq || 0) + 1;
@@ -960,7 +1017,7 @@ async function playTurnAction(a, token) {
   if (token !== turnToken) return;
   const placer = state.current;
   const aside = state.setAside?.length || 0;
-  G.placeTile(state, a.x, a.y, a.r);
+  G.placeTile(state, a.x, a.y, a.r, a.bridge || null);
   if (aside && !state.setAside.length) toast(`🌋 The dragon has arrived! The ${aside} dragon tile${aside > 1 ? 's' : ''} put aside go${aside > 1 ? '' : 'es'} back into the pile`);
   view.setVM({ tentative: null, lastKey: state.last, lastColor: colorOf(p).light });
   view.addEffect({ type: 'drop', key: state.last, dur: 380 });
@@ -998,7 +1055,7 @@ async function aiTurn(token) {
   await sleep(Math.max(0, 450 - (performance.now() - t0)));
   if (token !== turnToken) return;
   if (stale()) { ui.busy = false; catchUp(); return; }
-  const action = { t: 'turn', x: mv.x, y: mv.y, r: mv.r, act: mv.act || null };
+  const action = { t: 'turn', x: mv.x, y: mv.y, r: mv.r, ...(mv.bridge ? { bridge: mv.bridge } : {}), act: mv.act || null };
   sendMove(action);
   await playTurnAction(action, token);
 }

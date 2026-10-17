@@ -15,7 +15,7 @@ const LEVELS = {
 
 export const P = {
   hand: 3.2, handExtra: 1, cityGrow: 2.5, roadGrow: 1.2, fieldOpen: 0.4, decay: 0.6, base: 1.6, monBase: 2.2, oppScale: 0.9,
-  large: 6.5, abbot: 4, builder: 3, pig: 1, goods: 1.5, floor: 0.25, towerRisk: 0.35, dragonRisk: 0.5,
+  large: 6.5, abbot: 4, builder: 3, pig: 1, goods: 1.5, floor: 0.25, towerRisk: 0.35, dragonRisk: 0.5, bridge: 1.2,
 };
 
 function completionChance(openEdges, remaining) {
@@ -42,7 +42,7 @@ function grp(board, k, fi) {
 function fcities(board, g) {
   const out = new Map();
   for (const [k, fi] of g.nodes) {
-    for (const ci of featuresOf(board[k])[fi].cities) {
+    for (const ci of featuresOf(board[k])[fi].cities || []) {
       const cg = grp(board, k, ci);
       if (!out.has(cg.id)) out.set(cg.id, cg);
     }
@@ -160,17 +160,26 @@ function valueFor(est, me, oppWeight) {
 }
 
 // Pretend the drawn tile lies at k (with its volcano / tower effects) while fn runs.
-function withTile(state, k, t, r, fn) {
+function withTile(state, k, t, r, fn, bridge = null) {
   const saved = { dragon: state.dragon, phase: state.phase, last: state.last, tower: state.towers?.[k] };
   state.board[k] = { t, r, pieces: [], n: 999 };
   if (hasExp(state, 'dragon') && hasTag(t, 'volcano')) state.dragon = k;
   if (hasExp(state, 'tower') && hasTag(t, 'tower')) state.towers[k] = { h: 0, top: null };
+  if (bridge) state.board[bridge.key].bridge = bridge.axis;
   state.phase = 'action'; state.last = k;
   try { return fn(); } finally {
+    if (bridge && bridge.key !== k) delete state.board[bridge.key].bridge;
     delete state.board[k];
     state.dragon = saved.dragon; state.phase = saved.phase; state.last = saved.last;
     if (state.towers) { if (saved.tower) state.towers[k] = saved.tower; else delete state.towers[k]; }
   }
+}
+
+// tiles whose groups a bridge on a neighbour can change (besides the new tile's own neighbours)
+function bridgeDirty(b) {
+  if (!b) return [];
+  const [bx, by] = parseKey(b.key);
+  return [b.key, ...SIDE_DELTA.map(([dx, dy]) => key(bx + dx, by + dy))];
 }
 
 // Expand tower floors into one option per capture choice. Floors and tower tops that
@@ -330,11 +339,12 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
   const later = [];
   memo = { groups: new Map(), dirty: new Set() };
   try {
-    for (const { x, y, rots } of validPlacements(state, t)) {
+    for (const { x, y, rots, needsBridge } of validPlacements(state, t)) {
       const k = key(x, y);
-      for (const r of rots) {
+      // (a turn that only fits with a bridge tries each place the bridge could go)
+      for (const r of rots) for (const bridge of needsBridge?.[r] || [null]) {
         withTile(state, k, t, r, () => {
-          setDirty(k); // groups around the trial tile must not be taken from the memo
+          setDirty(k, bridgeDirty(bridge)); // groups around the trial tile must not be taken from the memo
           const options = [null];
           const global = [];
           if (rnd() < lvl.lookMeeple + 0.0001) {
@@ -347,16 +357,17 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
             }
           }
           let best = -Infinity;
-          const extra = builderBonus(state, k, me);
-          setDirty(k);
+          // a bridge is worth keeping for later
+          const extra = builderBonus(state, k, me) - (bridge ? P.bridge : 0);
+          setDirty(k, bridgeDirty(bridge));
           const completes = scoreAfterPlacement(state, k, false).some((e) => e.winners.length);
           for (const act of options) {
             const v = evaluate(state, k, act, me, lvl, extra) + (rnd() - 0.5) * lvl.noise;
             best = Math.max(best, v);
-            moves.push({ x, y, r, act, v, meeple: act && act.kind === 'follower' ? act.fi : null });
+            moves.push({ x, y, r, bridge, act, v, meeple: act && act.kind === 'follower' ? act.fi : null });
           }
-          if (global.length) later.push({ x, y, r, k, best, global, extra, completes });
-        });
+          if (global.length) later.push({ x, y, r, bridge, k, best, global, extra, completes });
+        }, bridge);
       }
     }
     // a tile that completes something may pair well with a capture or the fairy
@@ -365,11 +376,12 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
     let completing = 0;
     for (const pl of later.filter((l, i) => i < top || (l.completes && completing++ < 4))) {
       withTile(state, pl.k, t, pl.r, () => {
+        setDirty(pl.k, bridgeDirty(pl.bridge));
         for (const act of expandOptions(state, pl.global)) {
           const v = evaluate(state, pl.k, act, me, lvl, pl.extra) + (rnd() - 0.5) * lvl.noise;
-          moves.push({ x: pl.x, y: pl.y, r: pl.r, act, v, meeple: null });
+          moves.push({ x: pl.x, y: pl.y, r: pl.r, bridge: pl.bridge, act, v, meeple: null });
         }
-      });
+      }, pl.bridge);
     }
   } finally {
     memo = null;

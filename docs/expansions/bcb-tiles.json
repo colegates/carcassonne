@@ -1,0 +1,248 @@
+{
+  "slug": "bridges-castles-bazaars",
+  "name": "Bridges, Castles & Bazaars",
+  "edition": "3rd edition in our project's sense = WikiCarpedia 'C2': Hans im Glück 2017 (German 'Brücken, Burgen und Basare', (c) 2010, 2017), Z-Man English 2018 ((c) 2010, 2018), new tile art by Anne Pätzke. 12 land tiles = JCloisterZone tile set bridges-castles-and-bazaars:2 (the garden edition). The 1st edition (HiG 2010, art by Doris Matthäus, JCZ set :1) has the same 12 tiles and the same geometry; the only feature change is that BB/CFR! got an abbot garden (BB/CFR!G).",
+  "sources": [
+    {
+      "title": "JCloisterZone-Client tile data, src/extraResources/expansions/bridges_castles_and_bazaars.xml (commit 0f66860, 2023-07-17)",
+      "url": "https://github.com/farin/JCloisterZone-Client/blob/master/src/extraResources/expansions/bridges_castles_and_bazaars.xml",
+      "used_for": "PRIMARY for geometry and counts. Tile ids (kept as our ids), cities/roads/fields with half-edges, field-to-city adjacency, inn flags, bazaar flag, castle-base=\"false\" on the pointed city, tile sets :1 (1st ed., BB/CFR!) and :2 (garden edition, BB/CFR!G). Checked by script against this JSON: identical features and counts."
+    },
+    {
+      "title": "JCloisterZone engine (commit 29a1561): CastleCapability, BazaarCapability; JCloisterZone-Client GameSetupOverviewMixin / rules.js",
+      "url": "https://github.com/farin/JCloisterZone",
+      "used_for": "Semantics of the XML: a city segment is a castle base only if it has exactly one open edge and no castle-base=\"false\" (CastleCapability.initFeature); the bazaar is a tile-level modifier (BazaarCapability.initTile); the client uses tile-set edition 2 when gardens are enabled."
+    },
+    {
+      "title": "JCloisterZone 'classic' artwork package classic-6-5.9.0.jca (sha256 26b1fc8edc37c9df162b6b5a74164c6ba09951e450df7b62f2568c2db03327b0)",
+      "url": "https://jcloisterzone.com/packages/classic/classic-6-5.9.0.jca",
+      "used_for": "1st-edition (C1) images of all 11 layouts (images/BB/*.jpg) and the feature clip paths in jsons/tiles.json (e.g. the pointed city outline of BB/CFR!, the garden overlay of BB/CFR!G at translate(220 270) = centre about (0.72, 0.77))."
+    },
+    {
+      "title": "WikiCarpedia: Bridges, Castles and Bazaars (C2 page, raw wikitext fetched 2026-10-17)",
+      "url": "https://wikicarpedia.com/car/Bridges,_Castles_and_Bazaars",
+      "used_for": "3rd-edition tile distribution with the C2 tile scans A-K (110 px), counts (D x2, others x1), illustrations (farmhouse, water tower, garden), the misprint note (first HiG-Germany and Mindok runs lacked C and I and had E and J twice), the 'monastery in a city' and 'inns' tile clarifications, and the ruling that the 'witch-hat' city segment (tile I) cannot be part of a castle (HiG, 7/2010; Christof Tisch on BGG thread 538079)."
+    },
+    {
+      "title": "WikiCarpedia: Bridges, Castles and Bazaars (1st edition) (raw wikitext fetched 2026-10-17)",
+      "url": "https://wikicarpedia.com/car/Bridges,_Castles_and_Bazaars_(1st_edition)",
+      "used_for": "1st-edition distribution with the C1 scans 01-11 (01 x2, others x1) and the official clarification 'The yellow ground of a bazaar ends a road ... the wagon cannot cross a bazaar' (modified 10/2013)."
+    },
+    {
+      "title": "WikiCarpedia: The Abbot - list of garden tiles in every expansion (fetched 2026-10-17)",
+      "url": "https://wikicarpedia.com/car/The_Abbot",
+      "used_for": "Lists exactly ONE Bridges, Castles and Bazaars C2 garden tile: tile I (Abbot-Bridges_Castles_Bazaars_C2_Tile_I_Garden.jpg) = BB/CFR!G. Confirms that tile E has no garden."
+    },
+    {
+      "title": "WikiCarpedia: Carcassonne Tile List; Template:TileIllustrations; feature icons Feature_Highwayman_C2.png, Feature_WaterTower_C2.png, Feature_Farmhouse_C2.png, Feature_Garden_C2.png, Feature_Bazaar_C2.png",
+      "url": "https://wikicarpedia.com/car/Carcassonne_Tile_List",
+      "used_for": "Independent count check of every C1 and C2 tile and its edge group; identification of the small illustrations on the C2 tiles (tile E shows the official highwaymen icon, not a garden)."
+    },
+    {
+      "title": "Bridges, Castles and Bazaars - official 3rd-edition English rulebook (Hans im Glück / Z-Man, (c) 2010, 2018), 6 pages",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/07/carcassonne_exp8_rules.pdf",
+      "used_for": "Contents: '12 Land Tiles ... including 8 with a bazaar', 12 castle tiles, 12 wooden bridges; 3 bridges + 3 castles per player with 2-4 players, 2 + 2 with 5-6; tile art credit Anne Pätzke. No tile overview in the rulebook."
+    },
+    {
+      "title": "Brücken, Burgen und Basare - official German 3rd-edition rulebook (HiG (c) 2010, 2017; C&Co cc-2-1-8-erw-de.pdf)",
+      "url": "https://cundco.de/media/2a/e7/7d/1715104329/cc-2-1-8-erw-de.pdf",
+      "used_for": "Cross-check of the contents ('12 Landschaftsplättchen ... davon 8 Plättchen mit Basar') and of the small-city definition ('nur aus zwei halbrunden Stadtteilen')."
+    },
+    {
+      "title": "Carcassonne Standard Complete Annotated Rules (S-CAR) v7.3, Chris Ober, Dec 2014 - tile appendix",
+      "url": "https://www.dover.nh.gov/Assets/government/city-operations/library/borrow/library-of-things/carcassonne-rules.pdf",
+      "used_for": "Independent 1st-edition counts by edge pattern for this expansion: CCCC 2, CCCR 1, CFCF 2, CFRF 2, FFFF 1, FFFR 1, FRFR 3 (= 12); 8 bazaars; 2 monasteries; 2 inns."
+    },
+    {
+      "title": "BoardGameGeek image gallery of thing 66646 (box backs: Z-Man 2018 pic4221057, Mindok 2017 pic6931397; C1 misprint photo pic2915488)",
+      "url": "https://boardgamegeek.com/boardgame/66646/carcassonne-expansion-8-bridges-castles-and-bazaars/images",
+      "used_for": "Third source for the C2 art of BB/RFR.bi, BB/CFc.b and BB/R.bi (shown on both 3rd-edition box backs, matching the WikiCarpedia scans) and for the C1 art of BB/CCCR."
+    },
+    {
+      "title": "WikiCarpedia: Variants (Big Boxes and bundles); Castles and Bridges (C3.1, 2025)",
+      "url": "https://wikicarpedia.com/car/Variants",
+      "used_for": "Other boxes with these tiles: HiG Big Box 3 (2010, C1), Hobby World 'Wheel of Fortune' bundle (2012, C1), Hobby World Russian Big Box 2 'Royal Gift' (2019, C2). The 2025 'Castles & Bridges' (C3.1) is a different product (16 tiles, no bazaars) and is out of scope."
+    }
+  ],
+  "components": [
+    {
+      "name": "Land tiles",
+      "total": 12,
+      "notes": "11 layouts (BB/Cccc.b twice). 8 tiles show a bazaar (BB/Cccc.b x2, BB/CFc.b, BB/CFR.b, BB/F.b, BB/R.bi, BB/RFR.b, BB/RFR.bi). 2 tiles have an inn (BB/R.bi, BB/RFR.bi), 2 a monastery (BB/LCFc, BB/LRFr), 1 a garden (BB/CFR!G, 3rd edition only). No tile has a coat of arms (pennant). Each tile carries the expansion mark, a small dark bridge-arch icon (decoration only)."
+    },
+    {
+      "name": "Castle token",
+      "total": 12,
+      "per_player": { "2": 3, "3": 3, "4": 3, "5": 2, "6": 2 },
+      "notes": "Cardboard. 3rd-edition look: a roundish blob of meadow about one tile across with a white-stone castle on it (keep and towers with blue slate roofs, a small red flag, a ring wall around a courtyard). It is laid over a completed two-tile city of two semicircular caps (centred on the shared edge) and the knight is stood on it. See the rules file for castle rules."
+    },
+    {
+      "name": "Wooden bridge",
+      "total": 12,
+      "per_player": { "2": 3, "3": 3, "4": 3, "5": 2, "6": 2 },
+      "notes": "Brown wooden arch (a beam on two legs with a round opening). Laid straight N-S or W-E across one tile; both feet must stand in a field at the edge midpoints. Acts as a road segment. See the rules file."
+    }
+  ],
+  "tiles": [
+    {
+      "id": "BB/Cccc.b",
+      "count": 2,
+      "name": "Full city with bazaar",
+      "features": [
+        { "type": "city", "sides": ["N", "E", "S", "W"], "pennants": 0 }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_D.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_01.jpg", "jcz_image": "images/BB/Cccc.b.jpg" },
+      "layout_hint": { "bazaar": [0.55, 0.53, 0.23], "water_tower": [0.6, 0.22], "water_tower_copies": 1 },
+      "art": "The whole tile is city: packed red-roofed, half-timbered houses on sandy-brown lanes, no walls or gates on any edge (it continues the neighbouring cities on all four sides), a few small green trees between the roofs. The bazaar fills the middle: a cluster of market tents (a yellow awning and a red-and-white striped tent in front, green-and-white and blue tents and white canopies with bunting behind, crates, barrels and sacks) on a patch of trampled brown earth, box x 0.33-0.78, y 0.37-0.70, centre (0.55, 0.53). One of the two copies also has a round white stone tower with a conical blue-slate roof and a small blue-roofed annex just north of the bazaar (box x 0.53-0.68, y 0.08-0.36; WikiCarpedia calls it a 'water tower'); the other copy has houses there instead (no scan of it found). No coat of arms on either copy. 1st edition: same layout; the bazaar is a yellow oval with three blue and pink canopy stalls right of centre (x 0.47-0.83, y 0.35-0.62), houses in clusters around it, no tower."
+    },
+    {
+      "id": "BB/CCCR",
+      "count": 1,
+      "name": "Three city caps, road into the east cap",
+      "features": [
+        { "type": "city", "sides": ["W"], "pennants": 0 },
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["E"], "pennants": 0 },
+        { "type": "road", "sides": ["S"], "note": "ends at a gatehouse in the east city cap" },
+        { "type": "field", "halves": ["SR"], "cities": [0, 1, 2] },
+        { "type": "field", "halves": ["SL"], "cities": [2] }
+      ],
+      "tags": [],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_H.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_02.jpg", "jcz_image": "images/BB/CCCR.jpg" },
+      "layout_hint": { "cities": { "0": { "depth": 0.22 }, "1": { "depth": 0.2 }, "2": { "depth": 0.25 } }, "roads": { "3": { "end": [0.75, 0.5], "c1": [0.47, 0.5], "c2": [0.52, 0.4] } }, "shrub": [0.59, 0.61] },
+      "art": "Three separate city caps, none with a coat of arms: a north cap (wall from the NW corner to the NE corner, lowest at y 0.20), a west cap (wall from the NW corner to the SW corner, bulging east to x 0.22) and an east cap (wall from the NE corner to the SE corner, bulging west to x 0.75); each has blue-roofed wall towers with red roofs behind. The caps meet only at the NW and NE corner points: they are three different cities. The road enters at the S edge (0.52, 1.0), runs north to about (0.48, 0.55), then hooks east and ends at a gatehouse in the east cap's wall at (0.75, 0.50) (a road ending at a city gate). A dark green shrub stands inside the hook, in the small south-east meadow (x 0.50-0.68, y 0.50-0.72). Meadows: the big one lies west of the road and reaches north between all three caps (touches the S edge west of the road, borders the W cap, the N cap and the part of the E cap above the gate); the small one is the pocket east of the road between the road, the east cap and the S edge (borders only the east cap). 1st edition: same topology; the N cap is a thin strip with a gatehouse and the road curves up to a gate higher on the E cap (about (0.73, 0.28))."
+    },
+    {
+      "id": "BB/CFc.b",
+      "count": 1,
+      "name": "City band with bazaar",
+      "features": [
+        { "type": "city", "sides": ["W", "E"], "pennants": 0 },
+        { "type": "field", "halves": ["NL", "NR"], "cities": [0] },
+        { "type": "field", "halves": ["SL", "SR"], "cities": [0] }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_K.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_03.jpg", "jcz_image": "images/BB/CFc.b.jpg" },
+      "layout_hint": { "cities": { "0": { "top": 0.18, "bottom": 0.8 } }, "bazaar": [0.5, 0.53, 0.22] },
+      "art": "One city crossing the tile from W to E (both full sides): its north wall runs from the NW corner to the NE corner sagging to y 0.18, its south wall from the SW corner to the SE corner arching up to y 0.80; blue-roofed towers along both walls, red-roofed houses inside. Thin lens-shaped meadow caps along the N edge and the S edge. The bazaar (market tents on brown earth, as on BB/Cccc.b) stands inside the city in the middle: box x 0.28-0.72, y 0.35-0.70, centre (0.50, 0.53). It is decoration inside the city and splits nothing. No coat of arms. The expansion mark is printed in the north meadow. 1st edition: same layout, the yellow bazaar oval in the upper middle of the band (x 0.35-0.75, y 0.25-0.55), a round tower and gate towers on the south wall."
+    },
+    {
+      "id": "BB/CFR!G",
+      "count": 1,
+      "name": "Pointed city with gate road and garden",
+      "first_edition_id": "BB/CFR!",
+      "features": [
+        { "type": "city", "sides": ["W"], "pennants": 0, "castle_base": false, "note": "pointed 'witch-hat' segment: not semicircular, so it can never be part of a small city turned into a castle (HiG 7/2010; JCZ castle-base=false)" },
+        { "type": "road", "sides": ["E"], "note": "ends at the city gate in the diagonal wall" },
+        { "type": "garden" },
+        { "type": "field", "halves": ["NL", "NR"], "cities": [0] },
+        { "type": "field", "halves": ["EL"], "cities": [0] },
+        { "type": "field", "halves": ["ER", "SL", "SR"], "cities": [0] }
+      ],
+      "tags": [],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_I.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_06.jpg", "jcz_image": "images/BB/CFR!.jpg" },
+      "layout_hint": { "cities": { "0": { "shape": "capSpike" } }, "roads": { "1": { "end": [0.53, 0.52] } }, "garden": [0.64, 0.8] },
+      "art": "The 'witch-hat' city (WikiCarpedia C2 tile I). The city covers the whole W edge and narrows to a point in the NE corner. Its north wall runs just below the N edge from the NW corner to the NE corner (dipping to y 0.13), leaving a thin meadow strip along the N edge. Its other wall is an almost straight diagonal from the SW corner to the NE corner with a gatehouse in the middle at (0.50, 0.52). Red and blue roofs inside, towers along the walls. The road comes in from the E edge (1.0, 0.53) and runs west to end at that gate (about (0.53, 0.52)). The diagonal wall above the road, the road and the E edge enclose a triangular meadow touching the E edge between the NE corner and the road. Everything south of the road and the diagonal wall is one big meadow, and in it lies the garden: a rectangular flower bed seen at an angle (rows of red, purple, yellow, blue and white flowers inside a low border), box x 0.40-0.88, y 0.68-0.92, centre (0.64, 0.80). No coat of arms. Because the city's tip touches the NE corner, the N strip and the small triangle are separate fields. Outline = Inns & Cathedrals 'C!' (layout.js capSpike) turned so that the city sits on the west: capSpike at rot 3 gives exactly a N strip about 0.14 deep and a diagonal from just below the NE corner to the SW corner. 1st edition (BB/CFR!, same features minus the garden): the diagonal wall bulges towards the south-east so the gate and the road end lie near the E edge (about (0.80, 0.48)), the N strip is deeper (about 0.2) and the expansion mark sits in the south meadow where the garden is now."
+    },
+    {
+      "id": "BB/CFR.b",
+      "count": 1,
+      "name": "City cap with road to a bazaar",
+      "features": [
+        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "road", "sides": ["S"], "note": "ends at the bazaar" },
+        { "type": "field", "halves": ["EL", "ER", "SL", "SR", "WL", "WR"], "cities": [0] }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_B.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_05.jpg", "jcz_image": "images/BB/CFR.b.jpg" },
+      "layout_hint": { "cities": { "0": { "depth": 0.21 } }, "roads": { "1": { "end": [0.5, 0.71] } }, "bazaar": [0.51, 0.55, 0.23] },
+      "art": "A city cap along the N edge (wall from the NW corner to the NE corner, lowest at y 0.21, blue-roofed towers, red roofs behind). The road starts at the S edge (0.49, 1.0) and runs straight north to end at the bazaar. The bazaar (market tents on brown earth) sits a little below the centre, box x 0.27-0.75, y 0.38-0.72, centre (0.51, 0.55); it does not touch the city wall (a band of meadow lies between them). So one meadow surrounds the bazaar and the road end and borders the city. No coat of arms. Expansion mark bottom right. 1st edition: the same, with the yellow bazaar oval at x 0.22-0.77, y 0.43-0.80."
+    },
+    {
+      "id": "BB/F.b",
+      "count": 1,
+      "name": "Meadow with bazaar",
+      "features": [
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "SR", "WL", "WR"], "cities": [] }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_A.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_07.jpg", "jcz_image": "images/BB/F.b.jpg" },
+      "layout_hint": { "bazaar": [0.4, 0.31, 0.24], "farmhouse": [0.72, 0.77] },
+      "art": "Plain meadow, no road or city. The bazaar (market tents on brown earth) stands up and left of centre: box x 0.17-0.65, y 0.12-0.50, centre (0.40, 0.31). Lower right a farmhouse: a long thatched half-timbered house with a smaller shed beside it and a few bushes, set diagonally, box x 0.53-0.92, y 0.63-0.92 (decoration; WikiCarpedia's 'farmhouse' illustration). Expansion mark bottom centre-left. 1st edition: the bazaar sits in the centre (x 0.22-0.80, y 0.35-0.68) and there is no farmhouse."
+    },
+    {
+      "id": "BB/LCFc",
+      "count": 1,
+      "name": "Monastery in a city",
+      "features": [
+        { "type": "city", "sides": ["W", "E"], "pennants": 0 },
+        { "type": "monastery", "note": "stands inside the city; monk and knight are independent" },
+        { "type": "field", "halves": ["NL", "NR"], "cities": [0] },
+        { "type": "field", "halves": ["SL", "SR"], "cities": [0] }
+      ],
+      "tags": [],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_G.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_04.jpg", "jcz_image": "images/BB/LCFc.jpg" },
+      "layout_hint": { "cities": { "0": { "top": 0.17, "bottom": 0.76 } }, "monastery": [0.53, 0.5, 1.0] },
+      "art": "City band from W to E as on BB/CFc.b: north wall from the NW corner to the NE corner sagging to y 0.17 with a thin meadow cap along the N edge; south wall from the SW corner to the SE corner rising to y 0.76, with two gate towers, and a meadow cap along the S edge. In the middle of the city stands a church/monastery (red tiled roof, a square stone tower with a red pyramid roof at its west end, doors facing south), box x 0.33-0.75, y 0.30-0.72, centre (0.53, 0.50), its foot against the south wall. Red-roofed houses and blue-roofed towers fill the rest of the city. The monastery is a separate feature inside the city: the city still runs unbroken from W to E around it (one city, not two), and the church touches no tile edge. Keep the knight spot in the city away from the church (e.g. west part, about (0.15, 0.45)) and the monk spot on the church. No coat of arms. Expansion mark in the south meadow. 1st edition: same layout, church a little lower (x 0.28-0.72, y 0.30-0.80)."
+    },
+    {
+      "id": "BB/LRFr",
+      "count": 1,
+      "name": "Monastery with curving road",
+      "features": [
+        { "type": "road", "sides": ["W", "E"] },
+        { "type": "monastery" },
+        { "type": "field", "halves": ["WR", "NL", "NR", "EL"], "cities": [] },
+        { "type": "field", "halves": ["ER", "SL", "SR", "WL"], "cities": [] }
+      ],
+      "tags": [],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_F.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_11.jpg", "jcz_image": "images/BB/LRFr.jpg" },
+      "layout_hint": { "roads": { "0": { "c1": [0.2, 1.0], "c2": [0.8, 1.0] } }, "monastery": [0.48, 0.46, 1.15] },
+      "art": "A church/monastery (red roof, square tower with a red pyramid roof at its west end, entrance facing south-west) stands just above the centre, box x 0.20-0.77, y 0.20-0.72, centre (0.48, 0.46). The road enters at the W edge (0, 0.52), swings down in a wide U below the church to y 0.87 at x 0.48 and climbs back to the E edge (1, 0.50); it touches neither the church nor the S edge. It is one road from W to E (not two roads ending at the monastery). The church stands in the north meadow (W-north, N, E-north); the south meadow is the crescent below the road. Bushes at the church's foot. Expansion mark bottom left. 1st edition: same (church a bit higher, bottom of the U at y 0.88)."
+    },
+    {
+      "id": "BB/R.bi",
+      "count": 1,
+      "name": "Road with inn ending at a bazaar",
+      "features": [
+        { "type": "road", "sides": ["S"], "inn": true, "note": "ends at the bazaar" },
+        { "type": "field", "halves": ["NL", "NR", "EL", "ER", "SL", "SR", "WL", "WR"], "cities": [] }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_J.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_08.jpg", "jcz_image": "images/BB/R.bi.jpg" },
+      "layout_hint": { "roads": { "0": { "end": [0.58, 0.48] } }, "bazaar": [0.6, 0.31, 0.24], "inns": [[0.25, 0.58, 0.3, 0.84]] },
+      "art": "One meadow with a dead-end road. The road starts at the S edge (0.49, 1.0) and runs north-north-east to end at the bazaar in the upper right (market tents on brown earth, box x 0.36-0.85, y 0.12-0.50, centre (0.60, 0.31)); it meets the bazaar at about (0.58, 0.48). West of the road stands the inn: a red-roofed half-timbered house with a smoking chimney, box x 0.10-0.40, y 0.47-0.70, centre (0.25, 0.58), and below it its lake (blue pond), box x 0.18-0.42, y 0.75-0.93, centre (0.30, 0.84). The inn belongs to this road. Expansion mark bottom right. 1st edition: same layout (bazaar x 0.33-0.92, y 0.10-0.45; inn and lake in the lower left; a bush left of the bazaar)."
+    },
+    {
+      "id": "BB/RFR.b",
+      "count": 1,
+      "name": "Two roads ending at a bazaar",
+      "features": [
+        { "type": "road", "sides": ["N"], "note": "ends at the bazaar" },
+        { "type": "road", "sides": ["S"], "note": "ends at the bazaar" },
+        { "type": "field", "halves": ["SR", "WL", "WR", "NL"], "cities": [] },
+        { "type": "field", "halves": ["NR", "EL", "ER", "SL"], "cities": [] }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_E.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_09.jpg", "jcz_image": "images/BB/RFR.b.jpg" },
+      "layout_hint": { "roads": { "0": { "end": [0.45, 0.15] }, "1": { "end": [0.33, 0.46], "c1": [0.5, 0.72], "c2": [0.72, 0.55] } }, "bazaar": [0.37, 0.3, 0.24], "highwaymen": [0.8, 0.75], "shrub": [0.07, 0.91] },
+      "art": "The bazaar (market tents on brown earth) sits in the upper left: box x 0.13-0.60, y 0.12-0.47, centre (0.37, 0.30). A short road comes in from the N edge (0.50, 0) and ends at the bazaar's north-east side (about (0.45, 0.14)); a second road leaves the bazaar's south side (about (0.33, 0.47)), curves east to about (0.57, 0.62) and then runs south to the S edge (0.50, 1.0). The bazaar ends both roads: two separate roads, not one through road. The two roads and the bazaar split the meadow into a west part and an east part. In the east meadow: highwaymen, two robbers (red and purple-blue clothes) lurking behind a dark green bush, box x 0.70-0.90, y 0.65-0.85 (decoration only; WikiCarpedia's distribution list wrongly calls it a garden, see the notes). A small round shrub in the SW corner. Expansion mark bottom, left of centre. 1st edition: the bazaar lies in the lower middle (x 0.28-0.88, y 0.55-0.82), so the N road is long (with a bush beside it) and the S road is a short stub; no robbers."
+    },
+    {
+      "id": "BB/RFR.bi",
+      "count": 1,
+      "name": "Two roads to a bazaar, with inn",
+      "features": [
+        { "type": "road", "sides": ["N"], "note": "ends at the bazaar" },
+        { "type": "road", "sides": ["S"], "inn": true, "note": "ends at the bazaar; only this road has the inn" },
+        { "type": "field", "halves": ["SR", "WL", "WR", "NL"], "cities": [] },
+        { "type": "field", "halves": ["NR", "EL", "ER", "SL"], "cities": [] }
+      ],
+      "tags": ["bazaar"],
+      "refs": { "wikicarpedia_c2": "Bridges_Castles_Bazaars_C2_Tile_C.jpg", "wikicarpedia_c1": "Bridges_Castles_Bazaars_C1_Tile_10.jpg", "jcz_image": "images/BB/RFR.bi.jpg" },
+      "layout_hint": { "roads": { "0": { "end": [0.5, 0.14] }, "1": { "end": [0.45, 0.48], "c1": [0.53, 0.8], "c2": [0.42, 0.62] } }, "bazaar": [0.43, 0.3, 0.24], "inns": [[0.76, 0.57, 0.81, 0.84]] },
+      "art": "The bazaar (market tents on brown earth) sits in the upper middle: box x 0.20-0.66, y 0.13-0.48, centre (0.43, 0.30). A short road from the N edge (0.53, 0) ends at its top (about (0.50, 0.14)); a second road leaves its bottom (about (0.45, 0.48)) and runs down with a slight S-bend to the S edge (0.53, 1.0). East of this south road stands the inn (red-roofed two-winged building), box x 0.62-0.90, y 0.47-0.67, centre (0.76, 0.57), with its lake below it, box x 0.68-0.94, y 0.73-0.95, centre (0.81, 0.84). The inn belongs only to the south road. A few white-flowered shrubs north-east of the bazaar (about (0.78, 0.36)). The roads and the bazaar split the meadow into a west part and an east part. Expansion mark bottom, left of centre. 1st edition: same layout (bazaar x 0.12-0.70, y 0.12-0.42; inn and lake in the lower right; a bush in the west meadow)."
+    }
+  ]
+}

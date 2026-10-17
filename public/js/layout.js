@@ -225,6 +225,18 @@ const H = {
   'TO/RCr': { cities: { 0: { depth: 0.47 } }, roads: { 1: { c1: [0.33, 0.47], c2: [0.67, 0.47] } }, gate: [0.5, 0.435, -Math.PI / 2] },
   'TO/CcR!': { cities: { 0: { shape: 'cornerSpike' } }, roads: { 1: { end: [0.7, 0.5] } } },
   'TO/CccC+': { cities: { 0: { depth: 0.7 }, 1: { depth: 0.13 } }, pennant: [0.82, 0.15] },
+  // ---- Bridges, Castles & Bazaars (bazaar: [x, y, r]) ----
+  'BB/Cccc.b': { bazaar: [0.55, 0.53, 0.23] },
+  'BB/CCCR': { cities: { 0: { depth: 0.22 }, 1: { depth: 0.2 }, 2: { depth: 0.25 } }, roads: { 3: { end: [0.75, 0.5], c1: [0.47, 0.5], c2: [0.52, 0.4] } }, shrub: [0.59, 0.61] },
+  'BB/CFc.b': { cities: { 0: { top: 0.18, bottom: 0.8 } }, bazaar: [0.5, 0.53, 0.22] },
+  'BB/CFR!G': { cities: { 0: { shape: 'capSpike' } }, roads: { 1: { end: [0.53, 0.52] } }, garden: [0.64, 0.8] },
+  'BB/CFR.b': { cities: { 0: { depth: 0.21 } }, roads: { 1: { end: [0.5, 0.71] } }, bazaar: [0.51, 0.55, 0.23] },
+  'BB/F.b': { bazaar: [0.4, 0.31, 0.24], farmhouse: [0.72, 0.77] },
+  'BB/LCFc': { cities: { 0: { top: 0.17, bottom: 0.76 } }, monastery: [0.53, 0.5, 1.0] },
+  'BB/LRFr': { roads: { 0: { c1: [0.2, 1.0], c2: [0.8, 1.0] } }, monastery: [0.48, 0.46, 1.15] },
+  'BB/R.bi': { roads: { 0: { end: [0.58, 0.48] } }, bazaar: [0.6, 0.31, 0.24], inns: [[0.25, 0.58, 0.3, 0.84]] },
+  'BB/RFR.b': { roads: { 0: { end: [0.45, 0.15] }, 1: { end: [0.33, 0.46], c1: [0.5, 0.72], c2: [0.72, 0.55] } }, bazaar: [0.37, 0.3, 0.24], highwaymen: [0.8, 0.75], shrub: [0.07, 0.91] },
+  'BB/RFR.bi': { roads: { 0: { end: [0.5, 0.14] }, 1: { end: [0.45, 0.48], c1: [0.53, 0.8], c2: [0.42, 0.62] } }, bazaar: [0.43, 0.3, 0.24], inns: [[0.76, 0.57, 0.81, 0.84]] },
 };
 export const LAYOUT_HINTS = H;
 
@@ -275,6 +287,8 @@ export function layoutOf(id) {
     princess: cities.some((c) => c.princess) ? h.princess || [0.22, 0.2] : null,
     foundation: t.foundation || null,
     pennant: h.pennant || null, gate: h.gate || null, splitFields: !!h.splitFields,
+    bazaar: tags.includes('bazaar') ? h.bazaar || [0.5, 0.5, 0.22] : null,
+    farmhouse: h.farmhouse || null, highwaymen: h.highwaymen || null, shrub: h.shrub || null,
   };
   cache.set(id, lay);
   return lay;

@@ -29,6 +29,8 @@ export const GOODS = ['wine', 'grain', 'cloth'];
 export const FLOORS = { 2: 10, 3: 9, 4: 7, 5: 6, 6: 5 };
 // The Princess & the Dragon: the dragon flies this many tiles
 export const DRAGON_STEPS = 6;
+// Bridges, Castles & Bazaars: bridges (and castles) each player gets
+export const BRIDGES = (players) => (players >= 5 ? 2 : 3);
 const FOLLOWER_KINDS = ['meeple', 'large', 'abbot'];
 
 export const key = (x, y) => `${x},${y}`;
@@ -71,6 +73,8 @@ export function newGame(players, options = {}, rnd = Math.random) {
       supply: supply(),
       goods: exp.traders ? { wine: 0, grain: 0, cloth: 0 } : undefined,
       floors: exp.tower ? FLOORS[players.length] || 5 : 0,
+      bridges: exp.bridges ? BRIDGES(players.length) : 0,
+      castles: exp.bridges ? BRIDGES(players.length) : 0,
       prisoners: [], // figures of other players held by this player (The Tower)
       breakdown: { road: 0, city: 0, monastery: 0, field: 0, goods: 0, fairy: 0, tower: 0 },
     })),
@@ -190,24 +194,74 @@ export function riverSidesWorld(t, r) {
   return f ? f.sides.map((s) => (s + r) % 4) : [];
 }
 
-function edgesMatch(board, x, y, t, r) {
-  const tile = { t, r };
+// Do all edges of tile t at (x, y, r) match its neighbours? With a bridge
+// ({ key, axis }) built on the new tile or on a neighbour as part of the placement.
+function edgesMatch(board, x, y, t, r, bridge = null) {
+  const k = key(x, y);
+  const tile = { t, r, bridge: bridge && bridge.key === k ? bridge.axis : undefined };
   let touching = 0;
   for (let s = 0; s < 4; s++) {
-    const nb = neighbour(board, x, y, s);
+    const [dx, dy] = SIDE_DELTA[s];
+    const nk = key(x + dx, y + dy);
+    let nb = board[nk];
     if (!nb) continue;
     touching++;
+    if (bridge && bridge.key === nk) nb = { ...nb, bridge: bridge.axis };
     if (edgeType(tile, s) !== edgeType(nb, (s + 2) % 4)) return false;
   }
-  return touching > 0;
+  if (touching === 0) return false;
+  if (bridge && bridge.key !== k) {
+    // a bridge on a neighbour: its far end must meet a road too (or an empty square)
+    const [bx, by] = parseKey(bridge.key);
+    const nb = { ...board[bridge.key], bridge: bridge.axis };
+    for (const s of bridge.axis === 0 ? [0, 2] : [1, 3]) {
+      const [dx, dy] = SIDE_DELTA[s];
+      const fk = key(bx + dx, by + dy);
+      if (fk === k) continue;
+      const far = board[fk];
+      if (far && edgeType(far, (s + 2) % 4) !== edgeType(nb, s)) return false;
+    }
+  }
+  return true;
 }
 
-export function canPlace(state, x, y, t, r) {
+// Bridges, Castles & Bazaars: can a bridge go across this tile along axis
+// (0 north–south, 1 east–west)? Both its ends must be on meadow edges.
+function bridgeFits(tile, axis) {
+  if (tile.bridge !== undefined && tile.bridge !== null) return false; // one bridge per tile
+  return (axis === 0 ? [0, 2] : [1, 3]).every((s) => edgeType(tile, s) === 'field');
+}
+
+// Bridges the current player could build with tile t at (x, y, r): on the new
+// tile or on a tile next to it, such that every edge still matches.
+export function bridgeSpots(state, x, y, t, r) {
+  if (!hasExp(state, 'bridges') || !(state.players[state.current].bridges > 0)) return [];
+  const board = state.board;
+  const k = key(x, y);
+  const out = [];
+  for (const axis of [0, 1]) if (bridgeFits({ t, r }, axis)) out.push({ key: k, axis });
+  for (let s = 0; s < 4; s++) {
+    const [dx, dy] = SIDE_DELTA[s];
+    const nk = key(x + dx, y + dy);
+    const nb = board[nk];
+    if (!nb) continue;
+    for (const axis of [0, 1]) if (bridgeFits(nb, axis)) out.push({ key: nk, axis });
+  }
+  return out.filter((b) => edgesMatch(board, x, y, t, r, b));
+}
+
+export function canPlace(state, x, y, t, r, bridge = null) {
   const board = state.board;
   if (board[key(x, y)]) return false;
-  if (!edgesMatch(board, x, y, t, r)) return false;
+  if (bridge) {
+    if (!bridgeSpots(state, x, y, t, r).some((b) => b.key === bridge.key && b.axis === bridge.axis)) return false;
+  } else if (!edgesMatch(board, x, y, t, r)) return false;
+  return riverOK(state, x, y, t, r);
+}
+
+// The River: continue the open end, never two bends the same way in a row.
+function riverOK(state, x, y, t, r) {
   if (isRiverTile(t)) {
-    // The River: continue the open end, never two bends the same way in a row.
     const rv = state.river;
     if (!rv || !rv.open) return false;
     const [dx, dy] = SIDE_DELTA[rv.open.side];
@@ -236,14 +290,26 @@ export function frontier(board) {
   return [...out].map(parseKey);
 }
 
-// Returns [{x, y, rots: [r...]}] for every legal spot of tile type t.
+// Returns [{x, y, rots: [r...]}] for every legal spot of tile type t. With
+// Bridges, Castles & Bazaars, needsBridge = { r: [bridge spots] } lists the
+// rotations that only fit with a bridge (they are in rots too).
 export function validPlacements(state, t = state.drawn) {
   const res = [];
   if (!t) return res;
+  const bridges = hasExp(state, 'bridges') && state.players[state.current]?.bridges > 0;
   for (const [x, y] of frontier(state.board)) {
     const rots = [];
-    for (let r = 0; r < 4; r++) if (canPlace(state, x, y, t, r)) rots.push(r);
-    if (rots.length) res.push({ x, y, rots });
+    let needsBridge = null;
+    for (let r = 0; r < 4; r++) {
+      if (canPlace(state, x, y, t, r)) { rots.push(r); continue; }
+      if (!bridges) continue;
+      if (state.board[key(x, y)] || !riverOK(state, x, y, t, r)) continue;
+      const spots = bridgeSpots(state, x, y, t, r);
+      if (!spots.length) continue;
+      rots.push(r);
+      (needsBridge ||= {})[r] = spots;
+    }
+    if (rots.length) res.push(needsBridge ? { x, y, rots, needsBridge } : { x, y, rots });
   }
   return res;
 }
@@ -336,7 +402,7 @@ export function fieldCities(board, g) {
   const cities = new Map();
   for (const [k, fi] of g.nodes) {
     const tile = board[k];
-    for (const ci of featuresOf(tile)[fi].cities) {
+    for (const ci of featuresOf(tile)[fi].cities || []) {
       const cg = getGroup(board, k, ci);
       if (!cities.has(cg.id)) cities.set(cg.id, cg);
     }
@@ -357,12 +423,17 @@ export function drawTile(state) {
   return null;
 }
 
-export function placeTile(state, x, y, r) {
+export function placeTile(state, x, y, r, bridge = null) {
   if (state.phase !== 'place') throw new Error('Not in place phase');
-  if (!canPlace(state, x, y, state.drawn, r)) throw new Error('Illegal placement');
+  if (!canPlace(state, x, y, state.drawn, r, bridge)) throw new Error('Illegal placement');
   const k = key(x, y);
   const t = state.drawn;
   state.board[k] = { t, r, pieces: [], n: state.placed++ };
+  // Bridges, Castles & Bazaars: the bridge goes down together with the tile
+  if (bridge) {
+    state.board[bridge.key].bridge = bridge.axis;
+    state.players[state.current].bridges--;
+  }
   state.last = k;
   state.drawn = null;
   state.phase = 'action';
@@ -893,14 +964,14 @@ function gameOver(state) {
 }
 
 // Apply one serialisable action (used for network play and replays).
-//   { t: 'turn', x, y, r, act, noBonus? }   place the drawn tile, then do act (or null)
+//   { t: 'turn', x, y, r, bridge?, act, noBonus? }   place the drawn tile (and a bridge), then do act (or null)
 //   { t: 'dragon', key }   the next player in turn moves the dragon one tile
 //   { t: 'ransom', from, k }   the current player buys a prisoner back
 //   { t: 'kind', seat, kind, level }   switch a seat between person and bot
 export function applyAction(state, a) {
   let events = [];
   if (a.t === 'turn') {
-    placeTile(state, a.x, a.y, a.r);
+    placeTile(state, a.x, a.y, a.r, a.bridge || null);
     events = finishTurn(state, a.act || null, !!a.noBonus);
   } else if (a.t === 'dragon') {
     events = moveDragon(state, a.key);

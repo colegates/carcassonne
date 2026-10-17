@@ -1,6 +1,6 @@
 // Board renderer: camera, pan/pinch-zoom, tiles, meeples, overlays & effects.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawPiece, drawTower, drawTowerBadge, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
+import { getTileArt, drawPiece, drawTower, drawTowerBadge, drawBridge, drawCastle, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
 import { parseKey, PLAYER_COLORS, featuresOf, bridgeFeature } from './game.js';
 
 const HIT = 96;
@@ -257,6 +257,8 @@ export class BoardView {
         ctx.globalAlpha = alpha;
       }
       this.drawTile(v.tile.t, v.tile.r, v.sx, v.sy - lift, z * scale);
+      // Bridges, Castles & Bazaars: a bridge built across the tile
+      if (v.tile.bridge !== undefined && v.tile.bridge !== null) drawBridge(ctx, v.sx, v.sy - lift, z * scale, v.tile.bridge);
       ctx.globalAlpha = 1;
     }
     // last placed tile marker
@@ -499,6 +501,13 @@ export class BoardView {
     ctx.drawImage(getTileArt(t.t).canvas, -z / 2, -z / 2, z, z);
     ctx.restore();
     const pulse = 0.5 + 0.5 * Math.sin(now / 200);
+    // Bridges, Castles & Bazaars: the bridge this placement needs (on the tile or next to it)
+    if (t.bridge) {
+      const [bx, by] = parseKey(t.bridge.key);
+      const onTile = bx === t.x && by === t.y;
+      const [px, py] = this.toScreen(bx, by);
+      drawBridge(ctx, px, py - (onTile ? lift : 0), z, t.bridge.axis, { alpha: 0.75 + 0.25 * pulse });
+    }
     ctx.lineWidth = Math.max(2.5, z * 0.05);
     ctx.strokeStyle = t.ok ? `rgba(120,255,120,${0.6 + 0.4 * pulse})` : `rgba(255,80,60,${0.6 + 0.4 * pulse})`;
     ctx.strokeRect(sx - z / 2, sy - z / 2 - lift, z, z);
@@ -573,6 +582,10 @@ export class BoardView {
       return [bx, by - (Math.min(h, 6) + 0.5) * this.towerFloorH(g.key, h + 1)];
     }
     if (type === 'towerTop') return this.figurePos(g.key, 'top');
+    if (type === 'bridge') {
+      const [bx, by] = parseKey(g.key); const [px, py] = this.toScreen(bx, by);
+      return g.axis === 0 ? [px, py - z * 0.3] : [px + z * 0.3, py];
+    }
     const tile = this.state.board[g.key];
     const [x, y] = parseKey(g.key);
     const [sx, sy] = this.toScreen(x, y);
@@ -607,6 +620,11 @@ export class BoardView {
           ctx.beginPath(); ctx.moveTo(mx + Math.cos(ang) * r * 0.7, my + Math.sin(ang) * r * 0.7); ctx.lineTo(mx + Math.cos(ang) * r * 1.3, my + Math.sin(ang) * r * 1.3); ctx.stroke();
         }
         ctx.restore();
+      } else if (type === 'bridge') {
+        // Bridges, Castles & Bazaars: a bridge you could build (solid when chosen)
+        const [bx, by] = parseKey(g.key); const [px, py] = this.toScreen(bx, by);
+        drawBridge(ctx, px, py, z, g.axis, { alpha: g.selected ? 1 : 0.35 + 0.3 * pulse });
+        if (!g.selected) { ctx.fillStyle = `rgba(255,240,170,${0.3 + 0.3 * pulse})`; ctx.beginPath(); ctx.arc(mx, my, Math.max(9, z * 0.09), 0, 7); ctx.fill(); }
       } else if (type === 'fairy') {
         if (!g.selected) { ctx.fillStyle = `rgba(200,230,255,${0.25 + 0.25 * pulse})`; ctx.beginPath(); ctx.arc(mx, my, z * 0.15, 0, 7); ctx.fill(); }
         drawPiece(ctx, 'fairy', mx, my - (g.selected ? z * 0.04 * pulse : 0), z * (g.selected ? 0.32 : 0.26), FAIRY_COLOR, { alpha: g.selected ? 1 : 0.6 + 0.25 * pulse });
