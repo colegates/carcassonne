@@ -1,0 +1,11 @@
+// Generated from docs/expansions/abbot.json by dev/build-expansions.mjs — do not edit by hand.
+export default {
+  "BA/CG": {"exp":"base","count":1,"name":"City edge with garden","features":[{"type":"city","sides":[0],"ports":[0,1,2],"pennants":0},{"type":"field","ports":[3,5,6,8,9,11,4,7,10],"cities":[0]},{"type":"garden","ports":[]}],"tags":[],"replaces":"E"},
+  "BA/CFCG": {"exp":"base","count":1,"name":"Two city caps with garden","features":[{"type":"city","sides":[1],"ports":[3,4,5],"pennants":0},{"type":"city","sides":[3],"ports":[9,10,11],"pennants":0},{"type":"field","ports":[0,2,6,8,1,7],"cities":[0,1]},{"type":"garden","ports":[]}],"tags":[],"replaces":"H"},
+  "BA/CCG": {"exp":"base","count":1,"name":"Corner city caps with garden","features":[{"type":"city","sides":[0],"ports":[0,1,2],"pennants":0},{"type":"city","sides":[1],"ports":[3,4,5],"pennants":0},{"type":"field","ports":[6,8,9,11,7,10],"cities":[0,1]},{"type":"garden","ports":[]}],"tags":[],"replaces":"I"},
+  "BA/Cc+G": {"exp":"base","count":1,"name":"City corner with shield & garden","features":[{"type":"city","sides":[0,3],"ports":[0,1,2,9,10,11],"pennants":1},{"type":"field","ports":[3,5,6,8,4,7],"cities":[0]},{"type":"garden","ports":[]}],"tags":[],"replaces":"M"},
+  "BA/CcG": {"exp":"base","count":1,"name":"City corner with garden","features":[{"type":"city","sides":[0,3],"ports":[0,1,2,9,10,11],"pennants":0},{"type":"field","ports":[3,5,6,8,4,7],"cities":[0]},{"type":"garden","ports":[]}],"tags":[],"replaces":"N"},
+  "BA/CccG": {"exp":"base","count":1,"name":"Big city with garden","features":[{"type":"city","sides":[0,1,3],"ports":[0,1,2,3,4,5,9,10,11],"pennants":0},{"type":"field","ports":[6,8,7],"cities":[0]},{"type":"garden","ports":[]}],"tags":[],"replaces":"R"},
+  "BA/RFrG": {"exp":"base","count":1,"name":"Straight road with garden","features":[{"type":"road","sides":[0,2],"ports":[1,7]},{"type":"field","ports":[2,3,5,6,4],"cities":[]},{"type":"field","ports":[8,9,11,0,10],"cities":[]},{"type":"garden","ports":[]}],"tags":[],"replaces":"U"},
+  "BA/RrG": {"exp":"base","count":1,"name":"Curved road with garden","features":[{"type":"road","sides":[2,3],"ports":[7,10]},{"type":"field","ports":[8,9],"cities":[]},{"type":"field","ports":[11,0,2,3,5,6,1,4],"cities":[]},{"type":"garden","ports":[]}],"tags":[],"replaces":"V"},
+};

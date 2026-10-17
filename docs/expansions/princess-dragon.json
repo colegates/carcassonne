@@ -1,0 +1,1437 @@
+{
+  "slug": "princess-dragon",
+  "name": "The Princess & the Dragon",
+  "edition": "3rd edition (Hans im Glück 2014/2016 art by Anne Pätzke, Z-Man English 2016; tiles with gardens)",
+  "sources": [
+    {
+      "title": "The Princess & the Dragon - English 3rd-edition rulebook (HiG 2005/2016, English text Z-Man/F2Z 2016)",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/08/carcassonne-expansion-3-the-princess-the-dragon-rulebook.pdf",
+      "used_for": "Primary rules source: volcano, dragon flight, dragon's menu, princess (may), portal, fairy (next to a meeple), interactions page. Same text as Z-Man's zm7813_carcassonne_exp3_rules.pdf"
+    },
+    {
+      "title": "Z-Man Games rulebook PDF zm7813 (2017 file) and product page",
+      "url": "https://cdn.svc.asmodee.net/production-zman/uploads/2024/09/zm7813_carcassonne_exp3_rules.pdf",
+      "used_for": "Cross-check: text identical to the HiG-hosted English rulebook; product photos of 3rd-ed tiles F.v and RRR.g (https://www.zmangames.com/en/products/carcassonne-the-princess-the-dragon/)"
+    },
+    {
+      "title": "Burgfräulein und Drache - German 3rd-edition rulebook (HiG 2016, 'Carc II')",
+      "url": "https://www.hans-im-glueck.de/_Resources/Persistent/80fc117f79052213dfca1bebf62ce03a60767512/Carc_II_D_Erw3_Regel_low.pdf",
+      "used_for": "Original-language wording: meeple may be placed on a dragon tile, 'then the game is briefly interrupted: the dragon moves'; every player MUST move it; tunnel fields not divided"
+    },
+    {
+      "title": "Burgfräulein und Drache - German rulebook (HiG 2007, 2nd printing)",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/08/Spielanleitung_Carcassonne_Burgfraeulein_und_Drache.pdf",
+      "used_for": "Edition differences (princess 'must', fairy 'on a tile')"
+    },
+    {
+      "title": "The Princess & the Dragon - Z-Man English rulebook (2012, 1st-ed art)",
+      "url": "https://cundco.de/media/bd/dd/b8/1715104317/cc-1-0-3-exp-en.pdf",
+      "used_for": "Explicit 'Then, before scoring, the game is interrupted' wording; 6 different tiles; tunnel fields not divided"
+    },
+    {
+      "title": "Carcassonne Complete Annotated Rules (CAR) v7.3, Dec 2014 (Wikicarpedia/BGG community document)",
+      "url": "https://www.dover.nh.gov/Assets/government/city-operations/library/borrow/library-of-things/carcassonne-rules.pdf",
+      "used_for": "Official FAQ rulings and edition history: dragon before scoring (HiG/ZMG) vs after (RGG); no followers on the dragon's tile; fairy next to one follower; portal never to completed features; tower/dragon/princess interactions; River II volcano lake"
+    },
+    {
+      "title": "JCloisterZone tile data princess_and_dragon.xml (tile-set princess-and-dragon:2)",
+      "url": "https://github.com/farin/JCloisterZone-Client/blob/master/src/extraResources/expansions/princess_and_dragon.xml",
+      "used_for": "Tile ids, counts and feature geometry (half-edges)"
+    },
+    {
+      "title": "JCloisterZone engine (Java): DragonCapability, DragonPhase, DragonMovePhase, FairyCapability, FairyPhase, PortalCapability, PrincessCapability, AbstractActionPhase, ActionPhase, GameStatePhaseReducer, Rule; client models/rules.js",
+      "url": "https://github.com/farin/JCloisterZone",
+      "used_for": "Reference interpretation and the rule variants (princess may/must, fairy next-follower/on-tile, dragon before/after scoring) with their HiG/ZMG/RGG flags"
+    },
+    {
+      "title": "JCloisterZone classic artwork package classic-6-5.9.0.jca (1st-edition art by Doris Matthäus)",
+      "url": "https://jcloisterzone.com/packages/classic/classic-6-5.9.0.jca",
+      "used_for": "Looked at all 29 tile pictures to describe layouts and symbol positions"
+    },
+    {
+      "title": "BoardGameGeek photos of 3rd-edition tiles",
+      "url": "https://boardgamegeek.com/image/3233867",
+      "used_for": "2016 English punchboard (18 tiles in 3rd-ed art); image 2969451 (https://boardgamegeek.com/image/2969451) shows the 3rd-ed three-sided portal city WITHOUT a pennant"
+    },
+    {
+      "title": "Board Game Arena Carcassonne game help",
+      "url": "https://en.doc.boardgamearena.com/Gamehelpcarcassonne",
+      "used_for": "Secondary cross-check (no meeples on the dragon's tile); BGA simplifies some rules"
+    }
+  ],
+  "components": [
+    {
+      "name": "Land tiles",
+      "total": 30,
+      "notes": "6 volcano, 12 dragon, 6 magic portal, 6 princess (2 of them with a garden)"
+    },
+    {
+      "name": "Dragon",
+      "per_player": 0,
+      "total": 1,
+      "notes": "neutral wooden figure; enters the board on the first volcano tile"
+    },
+    {
+      "name": "Fairy",
+      "per_player": 0,
+      "total": 1,
+      "notes": "neutral wooden figure; starts beside the board"
+    }
+  ],
+  "art_notes": "Symbol looks: volcano = small erupting volcano with glowing crater and lava bombs; dragon = red dragon (head + wings) in a white oval; portal = dark cave mouth in a grassy mound with three arrows pointing outwards; princess = crowned blonde lady in a white tower-battlement frame; garden = rectangular flower bed.",
+  "tiles": [
+    {
+      "id": "DG/F.v",
+      "count": 1,
+      "name": "Volcano in a field",
+      "features": [
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "volcano"
+      ],
+      "art": "All field (one field touching all eight half-edges). A large smoking volcano with a glowing crater just left of centre; in 3rd-ed art a small farmhouse near the NE corner."
+    },
+    {
+      "id": "DG/R.v",
+      "count": 1,
+      "name": "Volcano with road end",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "volcano"
+      ],
+      "art": "A road enters at the midpoint of the S edge and dead-ends at the foot of a volcano standing in the centre / upper half. The single field wraps all the way round the road end."
+    },
+    {
+      "id": "DG/C.v",
+      "count": 1,
+      "name": "City cap with volcano",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [
+        "volcano"
+      ],
+      "art": "City cap along the N edge (wall arcing from the NW to the NE corner). Volcano in the lower half of the big field (centre-south)."
+    },
+    {
+      "id": "DG/Rr.v",
+      "count": 1,
+      "name": "Curved road with volcano",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR",
+            "WL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "volcano"
+      ],
+      "art": "Road from the W edge midpoint curving down to the S edge midpoint, enclosing a small SW corner field. Volcano in the upper middle of the large field (slightly towards NE)."
+    },
+    {
+      "id": "DG/RFr.v",
+      "count": 1,
+      "name": "Straight road with volcano",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "W",
+            "E"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SL",
+            "SR",
+            "ER"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "volcano"
+      ],
+      "art": "Gently wavy road from W to E, drawn a little below the centre line. Volcano centred in the north field."
+    },
+    {
+      "id": "DG/CC.v",
+      "count": 1,
+      "name": "Two city caps with volcano",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "city",
+          "sides": [
+            "E"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "WR",
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0,
+            1
+          ]
+        }
+      ],
+      "tags": [
+        "volcano"
+      ],
+      "art": "Two separate small city caps, one along the N edge and one along the E edge (their walls do not touch). Volcano in the SW part of the field."
+    },
+    {
+      "id": "DG/C.dG",
+      "count": 1,
+      "name": "City cap with dragon and garden",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "garden"
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "City cap along the N edge. Big field below with a garden (flower bed) left of centre, slightly low (W/SW), and the dragon symbol in the lower right (SE).",
+      "edition_note": "3rd-edition version of the 1st-edition tile DG/C.d (identical apart from the added garden)."
+    },
+    {
+      "id": "DG/LRRR.d",
+      "count": 1,
+      "name": "Monastery with three roads, dragon",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SR"
+          ],
+          "cities": []
+        },
+        {
+          "type": "monastery"
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "Monastery church in the centre; roads from the E, S and W edge midpoints each end at the monastery (three separate roads). The north field runs unbroken across the top; small fields in the SE and SW corners between the roads. Dragon symbol in the NE of the north field."
+    },
+    {
+      "id": "DG/RRR.d",
+      "count": 1,
+      "name": "Three-way junction, dragon",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR",
+            "WL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "Roads from the E, S and W edges meet in the centre at a small fenced farmstead (a junction: three separate roads end there). Dragon symbol in the NW of the north field."
+    },
+    {
+      "id": "DG/LCcc.d",
+      "count": 1,
+      "name": "Monastery inside a three-sided city, dragon",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "E",
+            "W"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "monastery",
+          "note": "stands inside the city; separate feature from the city"
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "Three-sided city covering the N, E and W edges; field strip along the S edge below the city's south wall (with a gate). Inside the city, in its W/NW part, stands a monastery church with a small green yard - a separate monastery feature. Dragon symbol bottom right (SE), on the field/wall boundary."
+    },
+    {
+      "id": "DG/Rr.d",
+      "count": 2,
+      "name": "Curved road, dragon",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "W",
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR",
+            "WL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "Road from the W edge midpoint curving to the S edge midpoint, enclosing a small SW corner field. Dragon symbol in the NE of the large field."
+    },
+    {
+      "id": "DG/RFr.d",
+      "count": 1,
+      "name": "Straight road, dragon",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "W",
+            "E"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SL",
+            "SR",
+            "ER"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "Gently wavy road from W to E, a little below the centre line. Dragon symbol in the NW of the north field."
+    },
+    {
+      "id": "DG/Cc.d",
+      "count": 1,
+      "name": "City corner, dragon",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR",
+            "EL",
+            "ER"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "City filling the NW half (N and W edges), wall running diagonally from the NE corner to the SW corner. Dragon symbol in the SE field."
+    },
+    {
+      "id": "DG/CFc+.d",
+      "count": 1,
+      "name": "City band with pennant, dragon",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "W",
+            "E"
+          ],
+          "pennants": 1
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "NR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "City band running across the middle from the W edge to the E edge (walls bow inwards at top and bottom); narrow field strips along the N and S edges. Pennant on the E side of the city; dragon symbol in the NW corner."
+    },
+    {
+      "id": "DG/CRcr.d",
+      "count": 1,
+      "name": "Tunnel: city band with road passing underneath, dragon",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "W",
+            "E"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "road",
+          "sides": [
+            "N",
+            "S"
+          ],
+          "tunnel": true,
+          "note": "one road: it runs under the city through a tunnel"
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "NR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "City band across the middle from the W edge to the E edge; narrow field strips along the N and S edges. A short road from the N edge midpoint enters a tunnel gate in the city's north wall and re-emerges from a gate in the south wall to the S edge midpoint: it is ONE continuous road. The road does NOT divide the north field (NL+NR is one field) nor the south field (SL+SR). Dragon symbol in the W/NW part of the city."
+    },
+    {
+      "id": "DG/RrC.d",
+      "count": 1,
+      "name": "City cap with road curving W-S, dragon",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S",
+            "W"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SR"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "City cap along the N edge. Road from the W edge midpoint curving down to the S edge midpoint (SW quarter, enclosing a small SW corner field). Dragon symbol on the right (E) side of the big field."
+    },
+    {
+      "id": "DG/CRr.d",
+      "count": 1,
+      "name": "City cap with road curving E-S, dragon",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "WL",
+            "WR",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "dragon"
+      ],
+      "art": "City cap along the N edge. Road from the E edge midpoint curving down to the S edge midpoint (trees at the bend in 3rd-ed art), enclosing a small SE corner field. Dragon symbol on the left (W) side of the big field."
+    },
+    {
+      "id": "DG/RrRr.g",
+      "count": 1,
+      "name": "Two curved roads, magic portal",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "N",
+            "W"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S",
+            "E"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "WR"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "ER"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NR",
+            "EL",
+            "SR",
+            "WL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "portal"
+      ],
+      "art": "Two separate curved roads: one from the N edge bending to the W edge (cutting off the NW corner field), one from the S edge bending to the E edge (cutting off the SE corner field). The broad field between them runs from the NE corner to the SW corner; the magic portal sits in its NE part."
+    },
+    {
+      "id": "DG/RRR.g",
+      "count": 1,
+      "name": "Three-way junction, magic portal",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR",
+            "WL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "portal"
+      ],
+      "art": "Roads from the E, S and W edges end at a clump of trees in the centre (junction). In the north field: a farmhouse with a small barn in the NW and the magic portal in the NE (3rd-ed art, Z-Man product photo)."
+    },
+    {
+      "id": "DG/Ccc+.g",
+      "count": 1,
+      "name": "Three-sided city, magic portal",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "E",
+            "W"
+          ],
+          "pennants": 0,
+          "note": "3rd-edition art shows NO pennant; 1st edition and JCloisterZone have 1 pennant (hence the '+' in the id) - see uncertainties"
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [
+        "portal"
+      ],
+      "art": "Three-sided city covering the N, E and W edges; field strip along the S edge with the magic portal centred in it just below the city's south wall. (1st-edition art had a pennant in the NW of the city.)"
+    },
+    {
+      "id": "DG/CcRr.g",
+      "count": 1,
+      "name": "City corner with curved road, magic portal",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "portal"
+      ],
+      "art": "City filling the NW half (N and W edges). Road from the E edge midpoint curving down to the S edge midpoint in the SE quarter. The field between wall and road touches the north half of E and the west half of S; the magic portal sits in the small SE corner field inside the road's curve."
+    },
+    {
+      "id": "DG/RrC.g",
+      "count": 1,
+      "name": "City cap with road curving W-S, magic portal",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S",
+            "W"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SR"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "portal"
+      ],
+      "art": "City cap along the N edge. Road from the W edge midpoint curving down to the S edge midpoint, enclosing a small SW corner field. Magic portal on the right (E) side of the big field."
+    },
+    {
+      "id": "DG/CRr.g",
+      "count": 1,
+      "name": "City cap with road curving E-S, magic portal",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "WL",
+            "WR",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [
+        "portal"
+      ],
+      "art": "City cap along the N edge. Road from the E edge midpoint curving down to the S edge midpoint, enclosing a small SE corner field. Magic portal on the left (W) side of the big field, slightly below centre (3rd-ed rulebook portal example)."
+    },
+    {
+      "id": "DG/CRRR.p",
+      "count": 1,
+      "name": "Princess city cap over a three-way junction",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "princess": true
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "EL"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SR"
+          ],
+          "cities": []
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [],
+      "art": "City cap along the N edge with the princess portrait in its NW part. Roads from the E, S and W edges end at a clump of trees in the centre (junction). A strip of field lies between the city wall and the E/W roads (touching the upper halves of the W and E edges); small SW and SE corner fields."
+    },
+    {
+      "id": "DG/CCc+.p",
+      "count": 1,
+      "name": "Princess city and pennant corner city with enclosed field",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "princess": true,
+          "note": "cap on the N edge whose wall narrows into a city band running diagonally down to the SW corner (touches the W side only at the corner point)"
+        },
+        {
+          "type": "city",
+          "sides": [
+            "E",
+            "S"
+          ],
+          "pennants": 1
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "WR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [],
+          "cities": [
+            0,
+            1
+          ],
+          "inner": true
+        }
+      ],
+      "tags": [],
+      "art": "Two separate cities. City 1 (princess): a cap on the N edge that continues as a narrow city band diagonally down to the SW corner; princess portrait in its NW/upper-left part. City 2: a corner city filling the SE, i.e. the whole E and S edges, with a pennant near the SE corner. A narrow field strip runs along the W edge (borders city 1). Between the two cities a diagonal field band runs from the NE corner to the SW corner; it touches no edge (enclosed 'inner' field) and borders both cities. Same layout in 1st- and 3rd-ed art."
+    },
+    {
+      "id": "DG/Ccc.p",
+      "count": 1,
+      "name": "Three-sided city with princess",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "E",
+            "W"
+          ],
+          "pennants": 0,
+          "princess": true
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [],
+      "art": "Three-sided city covering the N, E and W edges; field strip along the S edge below a curved south wall. Princess portrait at the NW; in 3rd-ed art a round tower with a blue spire in the NE of the city. No pennant."
+    },
+    {
+      "id": "DG/Cc!.p",
+      "count": 1,
+      "name": "Large princess city on N and W with two separate fields",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0,
+          "princess": true,
+          "note": "fills most of the tile; its east and south walls meet at the SE corner"
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        }
+      ],
+      "tags": [],
+      "art": "City covering the N and W edges and most of the tile. Its east wall runs down just inside the E edge and its south wall just inside the S edge; the two walls meet at the SE corner, so the narrow field strip along the E edge and the narrow strip along the S edge are two separate fields (both border the city). Princess portrait at the NW."
+    },
+    {
+      "id": "DG/Cc.pG",
+      "count": 1,
+      "name": "City corner with princess and garden",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0,
+          "princess": true
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR",
+            "EL",
+            "ER"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "garden"
+        }
+      ],
+      "tags": [],
+      "art": "City filling the NW half (N and W edges, diagonal wall NE corner to SW corner) with the princess portrait at the NW. Garden (flower bed) in the SE field.",
+      "edition_note": "3rd-edition version of the 1st-edition tile DG/Cc.p (identical apart from the added garden)."
+    },
+    {
+      "id": "DG/CcRr.p",
+      "count": 1,
+      "name": "City corner with princess and curved road",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0,
+          "princess": true
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E",
+            "S"
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": []
+        }
+      ],
+      "tags": [],
+      "art": "City filling the NW half (N and W edges) with the princess portrait at the NW. Road from the E edge midpoint curving down to the S edge midpoint in the SE quarter; the field between wall and road touches the north half of E and the west half of S; small SE corner field inside the curve."
+    }
+  ],
+  "rules": {
+    "setup": [
+      "Shuffle the 30 new tiles into the main face-down supply (never into the River stack).",
+      "Put the dragon and the fairy beside the play area. Both are neutral and belong to no player. The dragon only enters the board when the first volcano tile is placed; the fairy enters when a player first moves it next to one of their followers.",
+      "No extra per-player components."
+    ],
+    "turn_sequence": [
+      "1. START OF TURN - fairy point: if the fairy stands next to one of YOUR followers, score 1 point immediately. (Only once per turn: not again for the builder's second tile.)",
+      "2. DRAW. If the tile shows the dragon symbol and the dragon is not on the board yet (no volcano placed so far), set the tile aside face up and draw a replacement (repeat if needed). A tile that cannot be placed is discarded as in the base game.",
+      "3. PLACE THE TILE (normal placement rules). Then resolve its symbol: (a) VOLCANO: move the dragon from wherever it is (or from beside the board) straight onto this tile; nothing is eaten. If this is the first volcano, shuffle all set-aside dragon tiles back into the face-down supply now. (b) PRINCESS: if the city segment with the princess joins a city containing one or more knights, you MAY return one of those knights (any player's, including your own; a large meeple counts as one knight) to its owner. If you do, skip step 4 completely.",
+      "4. FOLLOWER STEP - do at most ONE of: (a) place one figure on the new tile by the normal rules - not allowed if the new tile is a volcano, and never on the tile where the dragon stands; (b) MAGIC PORTAL tile: place one follower (meeple, large meeple or abbot) on an unoccupied, uncompleted feature of ANY tile already in play (or on the portal tile itself as usual) - builder and pig only normally on the portal tile; (c) move the FAIRY next to one of your followers anywhere on the board; (d) other expansions' alternatives (return your abbot and score it; tower piece or follower on a tower).",
+      "5. DRAGON FLIGHT (only if the new tile has the dragon symbol - which means the dragon is in play): starting with you and going clockwise, each player in turn MUST move the dragon one tile orthogonally onto an adjacent placed tile, until it has made 6 moves or has no legal move. It may not enter a tile it has already visited during this flight (including its starting tile) nor the fairy's tile. Each tile it enters: every figure on it is eaten (returned to its owner's supply). Builders/pigs whose owner just lost their last follower in that road/city/field also return.",
+      "6. SCORING of features completed this turn (after the dragon has flown). Fairy bonus: the owner of the follower standing next to the fairy gets +3 if that follower's feature is scored (regardless of majority). The follower returns, the fairy stays on the tile.",
+      "7. (Traders & Builders) builder double turn: repeat steps 2-6 for the second tile; step 1 is not repeated."
+    ],
+    "placement": [
+      "All 30 tiles are placed with the normal edge-matching rules.",
+      "Dragon tiles cannot be played until the dragon is on the board: a dragon tile drawn before the first volcano has been placed is set aside face up and the player draws again. As soon as the first volcano tile is placed, all set-aside dragon tiles are shuffled back into the supply before play continues (rulebook 'Important' box).",
+      "Volcano tile: placed normally; then the dragon is put on it (taken from its current tile, or from beside the board the first time). The dragon does not eat anything when it jumps to a volcano (the new tile is empty).",
+      "Tunnel tile DG/CRcr.d: the road runs under the city band through a tunnel; the N and S road segments are ONE road. The road does not split the field strips: NL+NR is one field, SL+SR is one field (German 2016 rules: 'Die untere Wiese ist nicht unterbrochen, die obere Wiese ebenfalls nicht'; Z-Man 2012: 'each field (top and bottom) is not divided into two sections').",
+      "Monastery in the city DG/LCcc.d: the monastery is its own feature. A monk may be placed there even if the city already has knights, and vice versa. It scores as a normal monastery (9 points when surrounded by 8 tiles), even if the city is unfinished.",
+      "Each new tile carries exactly one symbol: 6 volcano, 12 dragon, 6 magic portal, 6 princess."
+    ],
+    "followers": [
+      "Volcano: you may not place any figure on a volcano tile in the turn you place it (no meeple, large meeple, abbot, builder or pig). You MAY move the fairy instead (3rd-ed rule; older FAQs said no), or use another expansion's non-placement action (e.g. a tower piece).",
+      "Dragon's tile: no follower may ever be placed on the tile where the dragon currently stands (CAR: 'At no point may followers occupy the same tile as the dragon'; JCloisterZone DragonCapability.isMeepleDeploymentAllowed). This matters for magic-portal placement (and, by our interpretation, for a follower on top of a tower on that tile).",
+      "Dragon tiles: you may place a meeple on a dragon tile as usual - but the dragon flies right after, before scoring, and may eat it.",
+      "Magic portal: instead of placing on the portal tile you may place ONE follower on any other tile in play. Normal rules apply: the feature must be unoccupied and not completed (a feature completed by the portal tile itself counts as completed - CAR); abbots only on monasteries/gardens; farmers only if farmers are used; never on a river, never on the dragon's tile. Usable by normal meeple, large meeple and abbot (3rd-ed: 'all figures that are used like meeples'). NOT usable for builder or pig. Placing a follower on a tower top is a Tower action, not a portal use.",
+      "Princess: if the princess's city segment continues a city occupied by knights, you may remove ONE knight of your choice from that whole connected city - any player's, even your own; a large meeple is removed like any knight. Only the city containing the princess counts (on DG/CCc+.p the pennant city is not affected). If you remove a knight you may not place any figure this turn (not even on a road/field of the princess tile), nor move the fairy, recall an abbot or take a tower action. If you remove nobody, you play step 4 normally.",
+      "Fairy: on any turn in which you do not place (or move/recall) a figure, you may move the fairy - from beside the board or from wherever it stands - and assign it to ONE of your followers by standing it directly next to that follower. Any follower anywhere qualifies (knight, thief, monk, farmer, large meeple, abbot, follower on a tower) but not a builder or pig. You need at least one follower on the board. Allowed after placing a volcano, and allowed when you have no meeples left in supply.",
+      "The fairy stays assigned to that follower until someone moves the fairy. If the follower leaves the board (scored, princess, tower capture, abbot recall), the fairy remains standing on that tile, assigned to nobody: it still keeps the dragon off that tile but gives no points until it is moved again.",
+      "Only one figure action per turn (per part of a builder double turn): placing a follower/figure, using the portal, moving the fairy, recalling the abbot, tower action and princess removal are mutually exclusive."
+    ],
+    "scoring_during_game": [
+      "Fairy, start of turn: 1 point if the fairy is next to one of your followers at the start of your turn (once per turn).",
+      "Fairy, feature scoring: when a feature is scored that contains the follower the fairy is assigned to, that follower's owner scores 3 additional points - even if they lose the majority and score 0 for the feature. Flat 3 (a large meeple does not double it). The follower returns to supply, the fairy stays where it is.",
+      "Because the dragon flies BEFORE scoring, a follower eaten during the flight does not score; a feature emptied by the dragon is completed but scores nobody (HiG FAQ in CAR; Z-Man 2012 'before scoring').",
+      "Because the princess acts right after the tile is placed, a knight removed by a princess tile that completes the city does not take part in that city's scoring.",
+      "A follower moved next to the fairy this very turn (step 4) and completed this turn (step 6) earns the +3 immediately (CAR footnote 130).",
+      "Interpretation: returning your abbot early scores its monastery/garden, so the fairy's +3 applies if the fairy is assigned to that abbot (JCloisterZone does not award it - see uncertainties)."
+    ],
+    "scoring_end": [
+      "No new end-game scoring. During final scoring, if the fairy is assigned to a follower in a feature being scored (incomplete road/city/monastery/garden, or a farm), that follower's owner gets +3 (the rule names farms, which only score at the end; JCloisterZone applies it in final scoring).",
+      "The dragon and fairy themselves score nothing. Set-aside dragon tiles that never re-entered (only possible if no volcano was ever placed) are simply unused."
+    ],
+    "edge_cases": [
+      "Dragon flight order: active player first, then clockwise; with 2 players A,B,A,B,A,B; 3 players A,B,C,A,B,C; 4 players A,B,C,D,A,B; 5 players A..E,A; 6 players one step each (rulebook example with 4 players).",
+      "Players may not pass or skip a dragon step; if at least one legal move exists the player must make one (German: 'muss ... ziehen'; 'Der Drache zieht immer 6 Plättchen weit').",
+      "The dragon only moves onto placed tiles (never across gaps) and only orthogonally.",
+      "The dragon may not return to its starting tile during the flight (CAR fn 140) and never visits a tile twice in one flight; earlier flights do not matter.",
+      "Dead end: if every orthogonal neighbour is empty, already visited or the fairy's tile, the flight ends early.",
+      "The fairy's tile is off-limits to the dragon even when the fairy is not assigned to any follower (it 'occupies' the tile).",
+      "The dragon eats every figure on each tile it enters, of every player, including the active player's meeple placed this turn: meeples (knight, thief, monk, farmer), large meeple, abbot, builder, pig, meeple on a tower (3rd-ed 'dragon's menu'). It does not eat the fairy, tower pieces or tiles. Eaten figures go back to their owners' supplies.",
+      "If the dragon eats a player's last knight (or thief) in a city (road) where that player has a builder, the builder returns too; same for a pig when the last farmer of that player in the pig's field is eaten - even if the builder/pig is on a tile the dragon did not visit (rulebook interactions page).",
+      "The dragon does not eat on the tile where its flight starts; it does eat on the tile where it ends.",
+      "A volcano placed while the dragon is already on the board simply makes it jump to the new volcano; set-aside tiles only exist before the first volcano.",
+      "A volcano tile can still complete features (e.g. DG/C.v closing a city): they are scored normally that turn. The rulebook's 'Then it is the next player's turn' only means the dragon does not fly.",
+      "Placing a meeple via the portal on an OLDER volcano tile is allowed once the dragon has left it (the volcano restriction only applies in the turn the volcano is placed; the permanent restriction is the dragon's current tile) - interpretation, consistent with JCloisterZone.",
+      "Fairy cannot be co-located with the dragon: the dragon never enters the fairy's tile and the fairy can only be moved next to a follower, and the dragon's tile never holds followers.",
+      "If the fairy's assigned follower is removed (scored, princess, tower capture, abbot recall), the fairy stays on the tile unassigned; the next player who moves it takes it from there.",
+      "The fairy 1-point bonus goes to the owner of the assigned follower at the start of THAT player's turn (not the active player's). The +3 goes to the owner even when another player completed the feature (rulebook example: Blue completes the city, Red gets 8 + 3).",
+      "A player with no follower on the board cannot move the fairy (nothing to stand next to) - CAR fn 123.",
+      "Princess: removal is optional (3rd ed 'may'); you may remove your own knight. It applies only if the princess city segment connects to an already occupied city; a princess tile that starts a new city or joins an empty city has no effect (place a meeple normally).",
+      "Princess and knights in a city completed by the princess tile: removal happens before scoring, so the remaining knights decide the majority.",
+      "Princess: a follower on top of a tower is not in the city (CAR fn 165); a monk on the monastery of DG/LCcc.d is not in the city; captured prisoners are not on the board - none of these can be removed.",
+      "Princess + builder: if the removed knight was its owner's last knight in that city, the owner's builder returns too (rulebook interactions page).",
+      "Magic portal: you cannot reach a feature that is completed, even if it was completed by the portal tile itself this turn (CAR fn 160); you can still place on the portal tile's own features under the normal rules, including a feature the portal tile just completed.",
+      "Magic portal: the follower may go onto a field (if farmers are used), a monastery or garden (abbot or monk rules), a road or a city - anywhere - but only one follower in total.",
+      "Dragon tile + tower: placing a tower piece (and capturing) is the step-4 action, so the capture happens before the dragon flies (CAR fn 138).",
+      "Unplaceable dragon/volcano tile: discarded under the base rule; nothing happens (no flight, no dragon jump).",
+      "The no-revisit restriction applies per flight ('during one movement phase' - Z-Man 2012). If both tiles of a builder double turn are dragon tiles, the dragon flies twice and the second flight may cross tiles visited in the first (JCloisterZone resets the visited list after each flight).",
+      "Builder double turn and princess: a princess removal cancels only the follower step of the half in which the princess tile was placed; the other half has its own normal follower step (CAR order of play: the double turn repeats steps 2-8).",
+      "Builder double turn and dragon: the second tile is still drawn if the dragon eats your builder (or its last knight/thief) during the first half - the double turn is triggered when the tile extending the builder's road/city is placed (JCloisterZone TilePhase marks the builder as used at placement), just as completing the builder's road still grants the second tile."
+    ],
+    "interactions": {
+      "base": [
+        "Farmers on fields can be eaten like any meeple; the fairy next to a farmer is a classic long-term play (1 point every turn, safe from the dragon, +3 at final farm scoring).",
+        "Monasteries on DG/LRRR.d and DG/LCcc.d are normal monasteries.",
+        "Cities with a princess and the pennant cities score exactly like base cities; the princess portrait is not a pennant."
+      ],
+      "river": [
+        "River tiles are ordinary land tiles for the dragon: it can fly over them (not over gaps) and eats followers on their roads/cities/fields. No follower may ever be placed on the river itself, portal included.",
+        "The 30 P&D tiles go into the main stack, so no dragon tile can come up while the River is being laid.",
+        "River II (only if that set is used): its lake tile carries a volcano. When it is placed (last river tile) the dragon is put on it and dragon tiles become playable; the placing player may not put a follower on it. River II's own rules add that this player then immediately draws and places another tile (CAR, River II section) - a River II exception to the normal volcano rule. Without P&D the volcano is just decoration."
+      ],
+      "abbot": [
+        "The abbot is eaten by the dragon like any meeple (3rd-ed 'dragon's menu': Abbot (base game)); it returns to supply without scoring.",
+        "The abbot may be placed through a magic portal onto any unoccupied, uncompleted monastery or garden elsewhere (rulebook: 'abbot ... may be placed via the magic portal').",
+        "The fairy may be assigned to the abbot (1 point per turn, +3 when its monastery/garden is scored).",
+        "Recalling the abbot (score it now instead of placing a meeple) is your step-4 action: you cannot also move the fairy that turn, and it happens before the dragon flies, so it is a way to save the abbot from an incoming dragon. After a princess removal you may not place the abbot (rulebook interactions page) and, by the same logic, not recall it. Our interpretation: the recall scores the monastery/garden, so a fairy assigned to that abbot gives +3.",
+        "Gardens on DG/C.dG and DG/Cc.pG are normal gardens (abbot only). No abbot can be placed on a volcano tile (volcano tiles have no monastery/garden anyway)."
+      ],
+      "inns-cathedrals": [
+        "The large meeple is eaten by the dragon, can be removed by a princess (it counts as one knight), may use a magic portal and may have the fairy assigned to it.",
+        "The fairy bonus is a flat +1 / +3 for a large meeple (not doubled); inns and cathedrals do not change the fairy's 3 points.",
+        "The princess tile may join a cathedral city; the usual cathedral scoring applies to whoever is left."
+      ],
+      "traders-builders": [
+        "Builder and pig are eaten by the dragon if it enters their tile (rulebook menu).",
+        "When the dragon eats, or the princess removes, a player's last knight/thief in a feature with that player's builder, the builder returns as well; a pig returns when its owner's last farmer in that field is eaten.",
+        "A magic portal may not be used to place a builder or pig; they can still be placed normally on the portal tile itself.",
+        "The fairy can only be assigned to a follower, never to a builder or pig. Moving the fairy is the turn's figure action: no builder/pig placement that turn (and vice versa). Same after a princess removal.",
+        "Builder double turn: the fairy's start-of-turn point is scored only once. Each part has its own step 4, so the fairy may be moved in either part. A dragon tile in either part makes the dragon fly in that part, before that part's scoring.",
+        "No builder or pig may be placed on a volcano tile; but a volcano tile that extends a road/city containing your builder does trigger the double turn (the builder is already on the board).",
+        "Goods tokens are unaffected (they go to the player who completes the city, even if the dragon emptied it)."
+      ],
+      "princess-dragon": [
+        "Fairy vs dragon: the dragon may never enter the fairy's tile - this is how the fairy protects ALL figures on her tile, of every player.",
+        "Princess and fairy: after a princess removal you may not move the fairy. If the removed knight had the fairy, the fairy stays on that tile unassigned.",
+        "Portal and dragon: a portal can never put a follower on the dragon's current tile.",
+        "Volcano and fairy: placing a volcano still allows moving the fairy (3rd ed).",
+        "Each tile has exactly one symbol, so a dragon flight never coincides with a princess or portal effect on the same tile."
+      ],
+      "tower": [
+        "The dragon eats a follower standing on top of a tower on a tile it enters (rulebook menu: 'Meeple on a tower'); after that the tower may be built higher again. Tower pieces are not eaten and do not block the dragon.",
+        "The fairy does NOT protect a follower from capture by a tower (rulebook). If the fairy's follower is captured, the fairy stays on the tile unassigned.",
+        "The fairy may be assigned to a follower on top of a tower (CAR fn 124): +1 per turn and dragon protection, but no +3 since tower followers never score.",
+        "Placing a tower piece / follower on a tower is the step-4 action: it excludes moving the fairy, using the portal or placing another figure; after a princess removal no tower action is allowed. Capture happens before the dragon flies (CAR fn 138).",
+        "The princess cannot remove a follower standing on a tower (the tower is not part of the city); captured followers (prisoners) are off the board and immune to dragon and princess.",
+        "Our interpretation: no follower may be placed on top of a tower that stands on the dragon's current tile (followers may never occupy the dragon's tile); JCloisterZone does allow it. After placing a volcano you may still place a tower piece (CAR fn 134) or, by the same reasoning, put a follower on a tower elsewhere - the volcano restriction is only 'on the volcano tile' (JCloisterZone allows both).",
+        "A magic portal is not needed (and not used) to reach tower tops - towers are always reachable by the Tower rules; the portal cannot be used to place a follower on a tower."
+      ]
+    },
+    "edition_differences": [
+      "Tiles: the 3rd edition (2014/2016 art by Anne Pätzke) replaces DG/C.d and DG/Cc.p by garden versions DG/C.dG and DG/Cc.pG; geometry otherwise identical to the 1st edition (JCloisterZone sets :1 vs :2).",
+      "Pennant on the three-sided portal city: 1st-ed art and JCloisterZone give it 1 pennant; the 3rd-ed tile photographed on BGG (image 2969451) has none. We use 0 for the 3rd edition (flagged).",
+      "Princess: 'must' remove a knight (HiG 2005/2007, RGG, Z-Man 2012) became 'may' (HiG from Big Box 2; Z-Man 2016 3rd ed).",
+      "Fairy: placed 'on a tile with one of your followers' (RGG, Z-Man 2012 - any of your followers on that tile could profit) became 'next to ONE follower' (HiG; Z-Man 2016).",
+      "Fairy after a volcano: old FAQ forbade moving the fairy when placing a volcano; 3rd ed explicitly allows it.",
+      "Dragon timing: HiG and Z-Man rules - the dragon flies after the follower step and before scoring; the RGG Big Box had it after scoring. JCloisterZone offers both ('before-scoring' flagged HiG/ZMG).",
+      "Builders and pigs used to count as followers (could be seduced by the princess/used with portal in old FAQs); now they are not followers but are on the dragon's menu, and they return when their last supporting follower is removed.",
+      "Magic portal: the 2005 wording allowed reaching completed-but-unscored features; corrected by FAQ: never completed features.",
+      "Volcano: early printings allowed builder/pig on a volcano tile; current rules allow no figure at all on it.",
+      "2025 'Dragon & Fairy' (C3.1) redesign with 24 tiles and no princess is a different product and not covered here."
+    ],
+    "ai_hints": [
+      "Dragon steering: on each of your steps pick the neighbour that maximises (value of opponents' figures eaten - value of your own figures eaten) over the rest of the flight. The tree is tiny (at most 3 branches x 6 steps); model the other players' steps as greedy for their own score (max-n) or simply assume opponents steer towards your figures (paranoid).",
+      "Value of an eaten figure ~ expected points of its feature for its owner (farmers late in the game can be worth 10+; a knight in a big nearly-closed city a lot; a lone thief little) plus ~2 for the tempo of losing a meeple; the large meeple counts for its extra majority weight.",
+      "Remember the dragon flies before scoring: completing a feature with a dragon tile is risky if the dragon can reach it within the flight; opponents will try to eat your knight before the city scores.",
+      "Volcano placement decides the dragon's next start: put volcanoes next to opponents' followers and far from yours. You can't place a meeple on a volcano, so consider moving the fairy that turn.",
+      "Dragon threat map: a tile within path-distance <= 6 (through placed tiles, avoiding the fairy) is threatened, mostly within 3-4. Weight the risk by the share of dragon tiles left in the stack (12 total).",
+      "Fairy uses, in rough order: (1) save a valuable follower that the dragon can reach; (2) farmer or long-lived follower = +1 every turn; (3) a follower in a feature you are about to complete this turn (moving the fairy happens before scoring: +3 now) or that the opponent is likely to complete.",
+      "Moving the fairy costs your placement - prefer it on turns where your best placement is weak or you have few meeples left.",
+      "Princess: remove the opponent's knight when it lets you take/keep the majority in a valuable city (or score a city the princess tile completes alone). Do not use it if keeping your placement is worth more; removing your own knight is only useful to recover a meeple from a hopeless city.",
+      "Magic portal: rank every legal open feature on the board (big unclaimed cities near completion, monasteries with 6-7 neighbours, large fields late in the game, joining a feature to share it) and discount by dragon risk.",
+      "Avoid dropping fresh followers next to the dragon when many dragon tiles remain, unless the fairy covers that tile.",
+      "When you place a dragon tile you make the first dragon step (and in 2-player games steps 1, 3 and 5) - plan the whole path before choosing where to place the tile and meeple.",
+      "Keep the abbot recall in mind as an emergency escape from an approaching dragon (it resolves before the flight)."
+    ],
+    "kid_rules_text": "The Princess & the Dragon adds 30 new tiles, a big red dragon and a little fairy. Every new tile shows one of four pictures.\n\nVOLCANO (6 tiles): place it like any tile. The dragon flies straight onto it, wherever it was before. You can't put a meeple on a volcano tile, but you may move the fairy instead.\n\nDRAGON (12 tiles): place it and, if you dare, put a meeple on it. Then the dragon wakes up! Starting with you and going round the table, each player must move the dragon one tile up, down, left or right, until it has moved 6 times. It can't fly over empty gaps, it never visits the same tile twice in one flight (not even the one it started on) and it is scared of the fairy, so it never lands on her tile. If it gets stuck, it stops early. Every figure on a tile it lands on gets eaten - meeples, big meeples, abbots, builders and pigs - and goes back to its owner. The dragon flies before points are counted, so eaten meeples score nothing. Dragon tiles drawn before the first volcano are put aside and shuffled back in once the dragon has arrived. Nobody may ever put a meeple on the dragon's tile.\n\nPRINCESS (6 tiles): if the princess's city joins a city that already has knights, you may send ONE of those knights home - even your own. If you do, you can't place a meeple or move the fairy this turn.\n\nMAGIC PORTAL (6 tiles): you may put your meeple on this tile OR on any tile already on the table - but only on a road, city, field or monastery that is empty and not finished, and never on the dragon's tile.\n\nTHE FAIRY: instead of placing a meeple, you can move the fairy next to one of your meeples anywhere. She keeps the dragon away from her whole tile, gives you 1 point at the start of each of your turns while she stands with your meeple, and gives you 3 extra points when that meeple's road, city, monastery or field is scored - even if someone else wins it. When the meeple leaves, the fairy stays on her tile until someone moves her.",
+    "figures": [
+      "Dragon flight example (4 players, like the rulebook): a 3x3 block of tiles with numbered arrows 1-6 (A up, B left, C down, D left, A up, B up), a crossed-out arrow back onto a visited tile, and the blue and red meeples it lands on flying home.",
+      "Fairy protection: the dragon's path bending around the tile where the fairy stands next to a red meeple (all figures on that tile are safe).",
+      "Volcano: a new volcano tile with the dragon jumping onto it from far away, a red 'no meeple' badge on the volcano tile, and 'you may move the fairy instead'.",
+      "Dragon's menu: icons of meeple, large meeple, abbot, builder, pig and meeple-on-tower under 'eats'; fairy, tower pieces and tiles under 'doesn't eat'.",
+      "Princess: a princess tile added to a city with a blue knight; the blue knight walks home; a crossed-out meeple and crossed-out fairy show 'no placement this turn'.",
+      "Magic portal: an arrow from the portal tile across the board to an empty, unfinished city, with a crossed-out arrow to a completed city and to the dragon's tile.",
+      "Fairy points: '+1' at the start of the owner's turn and '+3' when the feature scores (city example: both players score 8, the fairy's owner gets 11).",
+      "Turn strip: draw -> place (volcano/princess) -> meeple OR portal OR fairy -> dragon flies -> score, so players see the dragon comes before scoring.",
+      "Tunnel tile close-up: one road passing under the city; the field above and the field below each stay whole."
+    ]
+  }
+}

@@ -129,7 +129,7 @@ export class GameRoom extends DurableObject {
     if (msg.type === 'lobby') {
       if (r.phase !== 'lobby') return;
       const seat = r.seats[msg.seat];
-      const COLORS = ['red', 'blue', 'green', 'yellow', 'black', 'grey'];
+      const COLORS = ['red', 'blue', 'green', 'yellow', 'black', 'pink'];
       const freeColor = (want) => (want && COLORS.includes(want) && !r.seats.some((x) => x.color === want)
         ? want : COLORS.find((c) => !r.seats.some((x) => x.color === c)));
       switch (msg.op) {

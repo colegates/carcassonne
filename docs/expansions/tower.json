@@ -1,0 +1,1561 @@
+{
+  "slug": "tower",
+  "name": "The Tower",
+  "edition": "3rd edition (Hans im Glück 2016 / Z-Man-F2Z English 2017; new art with gardens). Rules identical to the 2016 HiG text; tiles = JCloisterZone tile-set tower:2.",
+  "sources": [
+    {
+      "title": "The Tower – official 3rd-edition English rulebook (Hans im Glück / Z-Man; (c) 2005, 2016 HiG, English (c) 2017 F2Z Entertainment), 4 pages",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/07/carcassonne-ii-ext4-rules.pdf",
+      "used_for": "PRIMARY. Components, floors per player count (10/9/7/6/5), the 4 step-2 choices, capture of 1 meeple (any player incl. yourself; own goes to supply), range rule (tower tile + 1 tile per floor in the 4 directions; over gaps and over towers; unlimited height), meeple on a tower closes it and can still be captured, automatic exchange (owner chooses if several), buy back 1 per turn for 3 points (needs >= 3 points; usable same turn), figure table (large meeple may go on a tower; abbot may not; abbot/large meeple capturable; builder/pig not), fairy gives no protection, dragon eats a meeple on a tower, special-case bridge tile. Byte-identical copy on Z-Man's CDN: https://cdn.svc.asmodee.net/production-zman/uploads/2024/09/carcassonne-ii-ext4-rules.pdf and in HiG's C&Co archive: https://cundco.de/media/b3/fd/26/1715104332/cc-2-1-4-exp-en.pdf"
+    },
+    {
+      "title": "Der Turm – official 3rd-edition German rulebook (HiG (c) 2006, 2016; C&Co cc-2-1-4-erw-de.pdf = HiG Carc_II_D_Erw4_Regel_Web.pdf)",
+      "url": "https://cundco.de/media/62/72/ca/1715104329/cc-2-1-4-erw-de.pdf",
+      "used_for": "Cross-check of the English text. Extra wording: 'genau eine der folgenden 4 Möglichkeiten' (exactly one); capture works across gaps, towers of any height AND the river; after a buy back you may not have fewer than 0 points; a tower-top meeple stays 'unless removed by another tower'; the bridge tile's road splits both meadows but not the city."
+    },
+    {
+      "title": "Carcassonne Standard Complete Annotated Rules (S-CAR) v7.3, Chris Ober, Dec 2014 – The Tower pp. 67-71, double-turn table p. 39, figure tables pp. 212-214",
+      "url": "https://www.dover.nh.gov/Assets/government/city-operations/library/borrow/library-of-things/carcassonne-rules.pdf",
+      "used_for": "Dated official HiG clarifications: the tower reopens when its top meeple is removed by the dragon or another tower (11/2013); no meeple on an empty foundation; a shorter tower may capture from a taller one; capture happens before the dragon moves; a tower piece may be played after a volcano; the fairy may stand by a tower-top meeple; the princess can't remove a tower-top meeple; buy back once per (double) turn, exchanges any number of times; large-meeple ransom not doubled; builder/pig return when their last follower is removed; edition-change table."
+    },
+    {
+      "title": "The Tower – 1st-edition English rules (Z-Man 2012 printing of the 2006 rules; C&Co cc-1-0-4-exp-en.pdf)",
+      "url": "https://cundco.de/media/bf/8d/05/1715104320/cc-1-0-4-exp-en.pdf",
+      "used_for": "Edition differences: only opponents' followers could be captured; 'a follower atop a tower may not be captured'; ransom refused below 3 points; 6 players need Inns & Cathedrals."
+    },
+    {
+      "title": "Carcassonne – Der Turm, 1st-edition German rules (HiG 2006)",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2023/07/Spielanleitung_Carcassonne_Der_Turm.pdf",
+      "used_for": "Edition differences, original wording: capture 'einen Gefolgsmann eines Mitspielers' (opponents only); buy back 'einen gefangenen Gefolgsmann von einem Mitspieler' (one per turn)."
+    },
+    {
+      "title": "The Princess & the Dragon – 3rd-edition English rulebook (HiG (c) 2005, 2016 / F2Z 2016; C&Co cc-2-1-3-exp-en.pdf)",
+      "url": "https://cundco.de/media/37/c7/21/1715104337/cc-2-1-3-exp-en.pdf",
+      "used_for": "Dragon menu: eats 'Meeple on a tower', does not eat 'Tower piece'. 'The fairy does not protect a meeple from capture by a tower.' Builder/pig return when the last knight/farmer is eaten or removed. Fairy and princess use up the figure action."
+    },
+    {
+      "title": "Traders & Builders – 3rd-edition English rulebook (Z-Man (c) 2015; C&Co cc-2-1-2-exp-en.pdf)",
+      "url": "https://cundco.de/media/83/0d/e3/1715104336/cc-2-1-2-exp-en.pdf",
+      "used_for": "'Your builder is always returned to your supply if you no longer have meeples on that feature ... some expansions introduce other ways in which this can happen'; a double turn has two figure steps."
+    },
+    {
+      "title": "Carcassonne 3rd-edition base game rules incl. The River and The Abbot (C&Co base-game-2-1-rules.pdf)",
+      "url": "https://cundco.de/media/06/fa/39/1715104334/base-game-2-1-rules.pdf",
+      "used_for": "Abbot placement only on the monastery or garden of the tile just placed; taking the abbot back is done 'if you decide not to place a meeple'; gardens score like monasteries."
+    },
+    {
+      "title": "JCloisterZone-Client tile data expansions/tower.xml (tile-sets tower:1 = without gardens, tower:2 = 3rd edition with gardens), commit 0f66860",
+      "url": "https://github.com/farin/JCloisterZone-Client/blob/master/src/extraResources/expansions/tower.xml",
+      "used_for": "Tile ids, counts, cities/roads/fields with half-edges, which 2 tiles carry gardens."
+    },
+    {
+      "title": "JCloisterZone engine (TowerCapability, TowerCapturePhase, ActionPhase, CaptureMeeple, PayRansom, PrisonersExchage, AbstractUndeploy, Follower), commit 29a1561",
+      "url": "https://github.com/farin/JCloisterZone/tree/master/src/main/java/com/jcloisterzone",
+      "used_for": "Reference implementation, matches the 3rd-edition rules: floors 10/9/7/6/5 (4 for 7, 3 for 8+ players); capture is optional, same row/column, Manhattan distance <= height; any Follower incl. own (own goes to supply) and tower tops; exchange happens at capture time (capturer picks if several types); ransom once per whole turn, needs >= 3 points; tower open = no meeple on it; lonely builder/pig returned."
+    },
+    {
+      "title": "JCloisterZone 'classic' artwork package classic-6-5.9.0.jca (tiles.json, features.json, images/TO/*.jpg – 1st-edition art)",
+      "url": "https://jcloisterzone.com/packages/classic/classic-6-5.9.0.jca",
+      "used_for": "Foundation boxes (x/y in 1/1000 tile) and meeple points for every tower tile; garden overlay position for TO/FG and TO/RRG. Tile images inspected visually."
+    },
+    {
+      "title": "BoardGameGeek photos of the new-art Tower tiles (images 3016718 and 4531883) and 2016+ box backs (3600707, 6931286)",
+      "url": "https://boardgamegeek.com/image/3016718",
+      "used_for": "Checked that the new artwork keeps the same layouts and foundation positions as the 1st-edition art (TO/C, CFR, RCr, F, RrC, CcR!, CccC+, L, RR, CRcr, CRCr.2, CC.2 identified). These photos show a pre-garden print."
+    },
+    {
+      "title": "John Sweeney's Carcassonne FAQ (2006-2007, pre-Big-Box rulings)",
+      "url": "https://modernjive.com/carcassonne/carcassonnefaq.htm",
+      "used_for": "Old rulings for edition differences (no own capture; builders/pigs could lock towers; no tower block after a volcano) and still-valid ones (removing a tower's locker unlocks it; fairy can stand by a locker; princess can't touch a locker; capture before the dragon moves; one figure action per turn)."
+    },
+    {
+      "title": "Towers & Thieves (2025 revised edition, HiG) – English rules",
+      "url": "https://www.hans-im-glueck.de/wp-content/uploads/2025/11/CC_ERW_4_2025_rules_EN.pdf",
+      "used_for": "Edition differences only: the 2025 redesign is a different game (watchmen, thief symbols, no capturing). Not implemented."
+    }
+  ],
+  "components": [
+    {
+      "name": "Land tiles with a tower foundation",
+      "count": 18,
+      "notes": "17 different layouts (TO/C twice). Each is marked with a small tower-silhouette expansion symbol (decoration only). In the 3rd edition two of them also show an abbot garden: TO/FG and TO/RRG, which replace the 1st-edition TO/F and TO/RR one for one, so the count stays 18. Tower foundation look (all 18 tiles): a square ring of beige stone blocks seen from above (about 0.29 x 0.25 of the tile), grey-brown earth inside, one corner of the ring broken open, a few loose blocks lying next to it. It is decoration plus the 'tower' tag: it is not a feature and does not split anything except where stated."
+    },
+    {
+      "name": "Tower floor (tower piece)",
+      "per_player": {
+        "2": 10,
+        "3": 9,
+        "4": 7,
+        "5": 6,
+        "6": 5
+      },
+      "total": 30,
+      "notes": "Neutral wooden blocks, all one colour. Each player takes the number for the player count into their supply; the rest go back in the box. Once placed, a floor belongs to nobody and never leaves the board. A player who has used all theirs can't place more. JCZ also has 7 players: 4 and 8+: 3 (not official)."
+    },
+    {
+      "name": "Tile Tower (tile dispenser)",
+      "count": 1,
+      "notes": "Cardboard tile holder with no rules effect. The app just uses its normal deck."
+    }
+  ],
+  "tiles": [
+    {
+      "id": "TO/C",
+      "count": 2,
+      "name": "City cap with tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.5,
+            0.16
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.25,
+            0.5
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.57,
+          0.53,
+          0.86,
+          0.78
+        ],
+        "anchor": [
+          0.71,
+          0.66
+        ],
+        "on": "field"
+      },
+      "art": "Same layout as base tile E plus a foundation. A city cap fills the top of the tile: its wall arcs from the NW corner to the NE corner, dipping to about y 0.30 in the middle, with a small gatehouse and towers at the bottom of the cap (3rd-edition houses have red and blue roofs). The rest is one meadow. The tower foundation stands in the meadow south-east of the centre: box x 0.57-0.86, y 0.53-0.78. Keep the farmer spot on the west side (0.25, 0.50) and the knight in the cap (0.50, 0.16)."
+    },
+    {
+      "id": "TO/FG",
+      "count": 1,
+      "name": "Meadow with tower foundation and garden",
+      "first_edition_id": "TO/F",
+      "features": [
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": [],
+          "anchor": [
+            0.2,
+            0.8
+          ]
+        },
+        {
+          "type": "garden",
+          "anchor": [
+            0.78,
+            0.17
+          ],
+          "art_box": [
+            0.62,
+            0.04,
+            0.95,
+            0.3
+          ],
+          "position_note": "Garden position on the printed 3rd-edition tile NOT verified (no scan found); this box is JCloisterZone's overlay position (north-east corner, clear of the foundation and the farmer spot)."
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.4,
+          0.33,
+          0.69,
+          0.58
+        ],
+        "anchor": [
+          0.54,
+          0.45
+        ],
+        "on": "field"
+      },
+      "art": "Plain meadow, no road or city. The foundation stands just north-east of the centre: box x 0.40-0.69, y 0.33-0.58. 3rd edition: an abbot garden (small hedged plot of flowers or vegetables) lies in the open meadow; draw it in the north-east corner, box about x 0.62-0.95, y 0.04-0.30 (JCloisterZone's position; the printed position is unverified). Farmer spot in the south-west (0.20, 0.80). The 1st-edition / 2014 tile TO/F is identical without the garden."
+    },
+    {
+      "id": "TO/L",
+      "count": 1,
+      "name": "Monastery with tower foundation",
+      "features": [
+        {
+          "type": "monastery",
+          "anchor": [
+            0.3,
+            0.7
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL",
+            "SR",
+            "WL",
+            "WR"
+          ],
+          "cities": [],
+          "anchor": [
+            0.25,
+            0.25
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.6,
+          0.12,
+          0.89,
+          0.37
+        ],
+        "anchor": [
+          0.74,
+          0.24
+        ],
+        "on": "field"
+      },
+      "art": "Meadow with a monastery but no road. The church (red roof, bell tower, seen at an angle) fills the lower-left half, box about x 0.14-0.60, y 0.34-0.91; monk spot (0.30, 0.70). The foundation stands in the north-east: box x 0.60-0.89, y 0.12-0.37. Farmer spot in the north-west (0.25, 0.25)."
+    },
+    {
+      "id": "TO/RRG",
+      "count": 1,
+      "name": "Two roads ending at the tower, with garden",
+      "first_edition_id": "TO/RR",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ],
+          "anchor": [
+            0.18,
+            0.5
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ],
+          "anchor": [
+            0.5,
+            0.82
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL",
+            "NR",
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.8,
+            0.8
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SR"
+          ],
+          "cities": [],
+          "anchor": [
+            0.2,
+            0.8
+          ]
+        },
+        {
+          "type": "garden",
+          "anchor": [
+            0.78,
+            0.17
+          ],
+          "art_box": [
+            0.62,
+            0.04,
+            0.95,
+            0.3
+          ],
+          "position_note": "Garden position on the printed 3rd-edition tile NOT verified (no scan found); this box is JCloisterZone's overlay position (north-east corner, clear of the foundation and the farmer spot)."
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.4,
+          0.33,
+          0.69,
+          0.58
+        ],
+        "anchor": [
+          0.54,
+          0.45
+        ],
+        "on": "field"
+      },
+      "art": "Two short roads, one from the middle of the W edge and one from the middle of the S edge. Both END at the foundation, which stands just north-east of the centre (box x 0.40-0.69, y 0.33-0.58). It is NOT a bend: there are 2 separate roads. The W road meets the foundation's west wall and the S road its south wall. So the two roads and the foundation together close off the small south-west corner meadow (WL, SR). The big meadow wraps round the N and E sides and the SE corner. 3rd edition: an abbot garden lies in the big meadow. Draw it in the north-east corner, box about x 0.62-0.95, y 0.04-0.30 (JCloisterZone's position; the printed position is unverified). Spots: W road (0.18, 0.50), S road (0.50, 0.82), SW field (0.20, 0.80), big field (0.80, 0.80). The 1st-edition / 2014 tile TO/RR is identical without the garden."
+    },
+    {
+      "id": "TO/RRR",
+      "count": 1,
+      "name": "Three roads ending at the tower",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ],
+          "anchor": [
+            0.2,
+            0.5
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "N"
+          ],
+          "anchor": [
+            0.5,
+            0.2
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ],
+          "anchor": [
+            0.8,
+            0.5
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NR",
+            "EL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.8,
+            0.2
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL",
+            "SR",
+            "WL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.7,
+            0.8
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.37,
+          0.37,
+          0.66,
+          0.62
+        ],
+        "anchor": [
+          0.52,
+          0.49
+        ],
+        "on": "field"
+      },
+      "art": "Three short roads from the middles of the W, N and E edges. Each ends at the foundation in the middle of the tile (box x 0.37-0.66, y 0.37-0.62). It is not a junction: there are 3 separate roads. Fields: the NW corner (between the W and N roads), the NE corner (between the N and E roads) and the whole south half. Spots: roads W (0.20, 0.50), N (0.50, 0.20), E (0.80, 0.50); fields NW (0.20, 0.20), NE (0.80, 0.20), S (0.70, 0.80)."
+    },
+    {
+      "id": "TO/RrRr.2",
+      "count": 1,
+      "name": "Two road curves with tower foundation",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "anchor": [
+            0.28,
+            0.28
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S",
+            "E"
+          ],
+          "anchor": [
+            0.72,
+            0.72
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL",
+            "WR"
+          ],
+          "cities": [],
+          "anchor": [
+            0.14,
+            0.14
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "ER"
+          ],
+          "cities": [],
+          "anchor": [
+            0.86,
+            0.86
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NR",
+            "EL",
+            "SR",
+            "WL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.2,
+            0.8
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.6,
+          0.1,
+          0.89,
+          0.35
+        ],
+        "anchor": [
+          0.74,
+          0.22
+        ],
+        "on": "field"
+      },
+      "art": "Two separate curved roads. One runs from the middle of the N edge and bends to the middle of the W edge, cutting off the NW corner meadow. The other runs from the middle of the E edge and bends to the middle of the S edge, cutting off the SE corner meadow. Between them a broad meadow band runs diagonally from the NE corner to the SW corner. The foundation stands in that band near the NE corner: box x 0.60-0.89, y 0.10-0.35. Spots: NW road (0.28, 0.28), SE road (0.72, 0.72), NW field (0.14, 0.14), SE field (0.86, 0.86), middle band (0.20, 0.80)."
+    },
+    {
+      "id": "TO/RRRR.1",
+      "count": 1,
+      "name": "Four roads ending at the tower",
+      "features": [
+        {
+          "type": "road",
+          "sides": [
+            "N"
+          ],
+          "anchor": [
+            0.5,
+            0.18
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ],
+          "anchor": [
+            0.82,
+            0.5
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ],
+          "anchor": [
+            0.5,
+            0.82
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W"
+          ],
+          "anchor": [
+            0.18,
+            0.5
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "NL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NR",
+            "EL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.8,
+            0.2
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "SL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.8,
+            0.8
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR",
+            "WL"
+          ],
+          "cities": [],
+          "anchor": [
+            0.2,
+            0.8
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.39,
+          0.36,
+          0.68,
+          0.61
+        ],
+        "anchor": [
+          0.54,
+          0.48
+        ],
+        "on": "field"
+      },
+      "art": "Four short roads from the middles of all four edges. Each ends at the foundation in the centre (box x 0.39-0.68, y 0.36-0.61). That gives 4 separate roads (not a crossroads) and 4 corner meadows. Spots: roads N (0.50, 0.18), E (0.82, 0.50), S (0.50, 0.82), W (0.18, 0.50); fields at the four corners (0.20 or 0.80, 0.20 or 0.80)."
+    },
+    {
+      "id": "TO/CRcr",
+      "count": 1,
+      "name": "City band with road bridge (special case)",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "W",
+            "E"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.84,
+            0.45
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "N",
+            "S"
+          ],
+          "anchor": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.3,
+            0.06
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "NR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.72,
+            0.08
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.72,
+            0.9
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.28,
+            0.9
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.11,
+          0.13,
+          0.4,
+          0.38
+        ],
+        "anchor": [
+          0.26,
+          0.26
+        ],
+        "on": "city"
+      },
+      "art": "This is the rulebook's 'special case' tile. One city band crosses the tile from the W edge to the E edge, so both whole sides are city. Its walls run in from the four corners, pinching the band at the top and bottom. One road runs from the middle of the N edge to the middle of the S edge and crosses the city on a bridge. The road is continuous and does NOT split the city. Road and city together make 4 separate corner meadows (NL and NR at the top, SR and SL at the bottom); each borders the city. NL and NR are thin strips along the N edge. The foundation stands inside the city, north-west of the centre and left of the bridge: box x 0.11-0.40, y 0.13-0.38. Spots: city (0.84, 0.45, east of the bridge), road on the bridge (0.50, 0.50), fields NL (0.30, 0.06), NR (0.72, 0.08), SL (0.72, 0.90), SR (0.28, 0.90)."
+    },
+    {
+      "id": "TO/CFR",
+      "count": 1,
+      "name": "City cap with road ending at the tower",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.5,
+            0.15
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ],
+          "anchor": [
+            0.53,
+            0.84
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "WR",
+            "SR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.22,
+            0.8
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.78,
+            0.72
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.27,
+          0.29,
+          0.56,
+          0.54
+        ],
+        "anchor": [
+          0.42,
+          0.42
+        ],
+        "on": "field"
+      },
+      "art": "City cap on the N edge (wall arcs from the NW corner to the NE corner). The foundation stands directly under the city wall, a little west of the centre (box x 0.27-0.56, y 0.29-0.54); its top side touches the wall. A short road comes up from the middle of the S edge and ends at the foundation's south side. Wall, foundation and road divide the meadow into a west field (WL, WR, SR) and an east field (EL, ER, SL); both border the city. Spots: city (0.50, 0.15), road (0.53, 0.84), west field (0.22, 0.80), east field (0.78, 0.72)."
+    },
+    {
+      "id": "TO/RrC",
+      "count": 1,
+      "name": "City cap with road curve and tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.45,
+            0.12
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S",
+            "W"
+          ],
+          "anchor": [
+            0.37,
+            0.63
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "EL",
+            "ER",
+            "SL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.16,
+            0.28
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SR"
+          ],
+          "cities": [],
+          "anchor": [
+            0.18,
+            0.82
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.6,
+          0.4,
+          0.89,
+          0.65
+        ],
+        "anchor": [
+          0.74,
+          0.53
+        ],
+        "on": "field"
+      },
+      "art": "City cap on the N edge. A road enters at the middle of the W edge and curves down to the middle of the S edge, cutting off the small SW corner meadow (WL, SR). The big meadow (WR, EL, ER, SL) borders the city. The foundation stands in the big meadow on the east side: box x 0.60-0.89, y 0.40-0.65. Spots: city (0.45, 0.12), road (0.37, 0.63), SW field (0.18, 0.82), big field (0.16, 0.28)."
+    },
+    {
+      "id": "TO/RCr",
+      "count": 1,
+      "name": "City cap with straight road and tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.5,
+            0.15
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W",
+            "E"
+          ],
+          "anchor": [
+            0.85,
+            0.5
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.12,
+            0.3
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.88,
+            0.28
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WL",
+            "SL",
+            "SR",
+            "ER"
+          ],
+          "cities": [],
+          "anchor": [
+            0.82,
+            0.78
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.34,
+          0.61,
+          0.63,
+          0.86
+        ],
+        "anchor": [
+          0.48,
+          0.73
+        ],
+        "on": "field"
+      },
+      "art": "City cap on the N edge whose gatehouse wall reaches down to TOUCH the road in the middle of the tile. A straight road runs from the middle of the W edge to the middle of the E edge, bowed slightly upward to meet the city wall. North of the road this leaves two small separate triangles, NW (WR) and NE (EL), both bordering the city. This differs from base tile D, whose strip is one field. South of the road is one big meadow (WL, SL, SR, ER). The foundation stands in the south meadow just below the centre: box x 0.34-0.63, y 0.61-0.86. Spots: city (0.50, 0.15), road (0.85, 0.50), NW field (0.12, 0.30), NE field (0.88, 0.28), south field (0.82, 0.78)."
+    },
+    {
+      "id": "TO/Cc",
+      "count": 1,
+      "name": "City corner with tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.32,
+            0.22
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER",
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.72,
+            0.42
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.6,
+          0.6,
+          0.89,
+          0.85
+        ],
+        "anchor": [
+          0.74,
+          0.72
+        ],
+        "on": "field"
+      },
+      "art": "City corner covering the whole N and W edges. Its wall runs roughly diagonally from the NE corner to the SW corner, bulging a little into the tile. The SE half is one meadow (EL, ER, SL, SR). The foundation stands in the meadow, south-east: box x 0.60-0.89, y 0.60-0.85. Spots: city (0.32, 0.22), field (0.72, 0.42). Same layout as base tile N."
+    },
+    {
+      "id": "TO/CcR!",
+      "count": 1,
+      "name": "Pointed city with east gate road and tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.55,
+            0.55
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "E"
+          ],
+          "anchor": [
+            0.86,
+            0.43
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.9,
+            0.18
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.9,
+            0.7
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.5,
+            0.88
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.14,
+          0.1,
+          0.43,
+          0.35
+        ],
+        "anchor": [
+          0.29,
+          0.22
+        ],
+        "on": "city"
+      },
+      "art": "Large pointed corner city. It covers the whole N and W edges and most of the tile; its walls reach the NE corner and the SW corner and run down to the SE corner. A short road from the middle of the E edge ends at a gate in the city's east wall. There are three small meadows, all bordering the city: a strip north of the road along the E edge (EL); a strip south of the road (ER), cut off from the south meadow by the wall running to the SE corner; and a strip along the whole S edge (SL, SR). The foundation stands inside the city in the north-west: box x 0.14-0.43, y 0.10-0.35. Spots: city (0.55, 0.55), road (0.86, 0.43), EL (0.90, 0.18), ER (0.90, 0.70), south field (0.50, 0.88). Same layout as T&B's TB/CcR!.w without the goods."
+    },
+    {
+      "id": "TO/CC.2",
+      "count": 1,
+      "name": "Two adjacent city caps with tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.5,
+            0.14
+          ]
+        },
+        {
+          "type": "city",
+          "sides": [
+            "W"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.12,
+            0.55
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "EL",
+            "ER",
+            "SL",
+            "SR"
+          ],
+          "cities": [
+            0,
+            1
+          ],
+          "anchor": [
+            0.35,
+            0.72
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.57,
+          0.53,
+          0.86,
+          0.78
+        ],
+        "anchor": [
+          0.71,
+          0.66
+        ],
+        "on": "field"
+      },
+      "art": "Two separate city caps, one on the N edge and one on the W edge. Each wall arcs from corner to corner; the walls only meet at the NW corner and the cities are NOT connected. The rest is one meadow (EL, ER, SL, SR) bordering both cities. The foundation stands in the meadow, south-east: box x 0.57-0.86, y 0.53-0.78. Spots: north city (0.50, 0.14), west city (0.12, 0.55), field (0.35, 0.72). Same layout as base tile I, turned."
+    },
+    {
+      "id": "TO/CRCr.2",
+      "count": 1,
+      "name": "Two opposite city caps with road and tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.4,
+            0.15
+          ]
+        },
+        {
+          "type": "city",
+          "sides": [
+            "S"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.5,
+            0.86
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "W",
+            "E"
+          ],
+          "anchor": [
+            0.5,
+            0.5
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "WR",
+            "EL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.15,
+            0.3
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "ER",
+            "WL"
+          ],
+          "cities": [
+            1
+          ],
+          "anchor": [
+            0.15,
+            0.7
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.65,
+          0.08,
+          0.94,
+          0.33
+        ],
+        "anchor": [
+          0.79,
+          0.21
+        ],
+        "on": "city"
+      },
+      "art": "Two separate city caps on the N and S edges, with a straight road from the middle of the W edge to the middle of the E edge between them. There are two meadow strips: north of the road (WR, EL), bordering the N city, and south of the road (WL, ER), bordering the S city. The foundation sits at the east end of the north city, straddling its wall: box x 0.65-0.94, y 0.08-0.33. Spots: north city (0.40, 0.15), south city (0.50, 0.86), road (0.50, 0.50), north field (0.15, 0.30), south field (0.15, 0.70)."
+    },
+    {
+      "id": "TO/CccR",
+      "count": 1,
+      "name": "Three-sided city with gate road and tower foundation",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W",
+            "E"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.25,
+            0.3
+          ]
+        },
+        {
+          "type": "road",
+          "sides": [
+            "S"
+          ],
+          "anchor": [
+            0.5,
+            0.82
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SL"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.72,
+            0.88
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [
+            "SR"
+          ],
+          "cities": [
+            0
+          ],
+          "anchor": [
+            0.28,
+            0.88
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.6,
+          0.1,
+          0.89,
+          0.35
+        ],
+        "anchor": [
+          0.74,
+          0.22
+        ],
+        "on": "city"
+      },
+      "art": "Three-sided city covering the N, W and E edges. Its south wall runs from the SW corner and from the SE corner up to a central gatehouse. A short road from the middle of the S edge ends at that gate. Two small meadows lie either side of the road (SR west, SL east), both bordering the city. The foundation stands inside the city in the north-east: box x 0.60-0.89, y 0.10-0.35. Spots: city (0.25, 0.30), road (0.50, 0.82), SR field (0.28, 0.88), SL field (0.72, 0.88). Same layout as base tile T without a pennant."
+    },
+    {
+      "id": "TO/CccC+",
+      "count": 1,
+      "name": "Three-sided city with pennant and opposite city cap",
+      "features": [
+        {
+          "type": "city",
+          "sides": [
+            "N",
+            "W",
+            "E"
+          ],
+          "pennants": 1,
+          "anchor": [
+            0.62,
+            0.4
+          ]
+        },
+        {
+          "type": "city",
+          "sides": [
+            "S"
+          ],
+          "pennants": 0,
+          "anchor": [
+            0.45,
+            0.9
+          ]
+        },
+        {
+          "type": "field",
+          "halves": [],
+          "inner": true,
+          "cities": [
+            0,
+            1
+          ],
+          "anchor": [
+            0.75,
+            0.75
+          ]
+        }
+      ],
+      "tags": [
+        "tower"
+      ],
+      "tower_foundation": {
+        "art_box": [
+          0.14,
+          0.1,
+          0.43,
+          0.35
+        ],
+        "anchor": [
+          0.29,
+          0.22
+        ],
+        "on": "city"
+      },
+      "art": "Three-sided city covering the N, W and E edges, with a blue-and-white coat of arms (pennant) in its north-east corner (box about x 0.74-0.89, y 0.05-0.25). Its south wall runs from near the SW corner across the lower middle of the tile (round tower on the left, houses behind) to near the SE corner. A separate shallow city cap lies along the S edge, with a small gatehouse in its wall from the SW corner to the SE corner. Between the two walls lies a thin crescent of meadow that touches no edge (its tips only reach the SW and SE corners). That makes it an inner field bordering both cities. The two cities are NOT connected. The foundation stands inside the big city in the north-west: box x 0.14-0.43, y 0.10-0.35. Spots: big city (0.62, 0.40), south city (0.45, 0.90), inner field (0.75, 0.75)."
+    }
+  ],
+  "rules": {
+    "setup": [
+      "Shuffle the 18 tower tiles into the land tiles. With The River, lay the river first as usual; no river tile has a foundation.",
+      "Give each player tower floors by player count: 2 players 10 each, 3 players 9, 4 players 7, 5 players 6, 6 players 5. Unused floors go back in the box (30 in total). 6 players need Inns & Cathedrals for the 6th colour. (3rd-ed rulebook p.1)",
+      "The floors go into each player's personal supply next to their meeples. They are not a shared pool: when you have used yours you can't build any more.",
+      "Each player gets a 'prisoner area' in front of them for meeples they capture. It starts empty.",
+      "The cardboard Tile Tower (dispenser) has no rules effect."
+    ],
+    "turn_sequence": [
+      "ANY TIME DURING YOUR OWN TURN (normally before step 2, so you can use him): you may buy back ONE of your captured meeples by paying 3 points to the player who holds it. Only if your score is at least 3. At most once per turn; a builder double turn counts as one turn. This is not your figure action, so it can be combined with anything.",
+      "1. Place a tile. Tower tiles follow the normal rules; nothing happens when a foundation is laid. (Resolve other expansions' tile symbols as they say: volcano, dragon, princess, portal.)",
+      "2. Figure action: do EXACTLY ONE of: (a) place a meeple on the tile just placed by the normal rules, or another expansion's alternative (abbot on its monastery/garden, builder, pig, take the abbot back, move the fairy, magic portal); (b) put one of your tower floors on ANY empty foundation on the board, including the one on the tile you just placed; (c) put one of your floors on ANY open tower (at least 1 floor, no meeple on top); (d) put one of your meeples (normal or large) on top of ANY open tower, which closes it. (3rd-ed rulebook p.2; German: 'genau eine')",
+      "2b. Right after (b) or (c): you MAY capture one meeple in range of that tower at its new height (see followers). An opponent's meeple becomes your prisoner; your own meeple goes back to your supply. Then do the automatic prisoner exchange if it applies, and send home any builder or pig left without its owner's meeple.",
+      "3. Score completed features as usual. Captures happen in step 2, i.e. BEFORE this scoring.",
+      "Builder double turn (T&B): steps 1-3 are done for each of the two tiles, so you may take a tower action (and capture) with each tile. Buy back is still once per turn; exchanges happen whenever they are triggered (S-CAR p.39).",
+      "Dragon tile (P&D): the tower action and its capture come before the dragon moves (S-CAR fn 138/193; Sweeney FAQ)."
+    ],
+    "placement": [
+      "Tower tiles are placed by the normal rules. The foundation does not affect edge matching, and it splits features only where the tile art shows (roads ending at it on TO/RRG, TO/RRR, TO/RRRR.1 and TO/CFR).",
+      "The first floor goes onto an empty foundation (height 0 -> 1). Further floors go on top of an open tower. There is no height limit and no limit on floors per tower.",
+      "Floors may be placed on ANY foundation or open tower anywhere on the board; nothing needs to be adjacent to the tile you placed. Anyone may build on any tower: floors are neutral once placed and never leave the board.",
+      "A meeple may only be put on a tower that already has at least 1 floor. You can't block an empty foundation with a meeple (S-CAR fn 190; Sweeney FAQ).",
+      "A tower with a meeple on top is closed: no more floors and no second meeple. If that meeple leaves (captured by another tower or eaten by the dragon), the tower is OPEN again and can be built higher or closed by someone else (S-CAR fn 200, official clarification 11/2013; Sweeney FAQ; JCZ).",
+      "Each tower tile has exactly one foundation, so there is at most one tower per tile.",
+      "With Princess & Dragon: no meeple may be put on top of a tower on the dragon's current tile (followers may never share the dragon's tile). Adding a floor there is fine."
+    ],
+    "followers": [
+      "May stand on a tower top: a normal meeple or the large meeple (I&C). May NOT: the abbot, the builder or the pig (3rd-ed rulebook p.4 figure table; builder/pig are special figures, not meeples).",
+      "A meeple on a tower is not part of any feature. It never scores and never counts for any majority on that tile. It stays until the end of the game unless captured or eaten by the dragon. You may not take it back voluntarily, but you may capture it yourself with another tower to get it back (3rd-ed rulebook p.3).",
+      "Capture range: h = the tower's height after the floor you just placed. Reachable tiles: the tower's own tile, plus up to h tiles straight N, E, S and W, i.e. (x, y+-d) and (x+-d, y) for d = 0..h. No diagonals. Empty board positions count towards the distance and do not block. Other towers of any height and the river do not block either. Height 1 reaches 5 tiles, height 2 reaches 9, and each floor adds 4.",
+      "Capturable (in scope): normal meeples, the large meeple and the abbot. They can be on any feature (road, city, monastery, garden, field/farmer) or on top of ANY other tower, and belong to any player, including yourself (3rd-ed rulebook pp.2-4; S-CAR figure table 'even if the followers are on top of another tower').",
+      "NOT capturable: builder, pig, fairy, dragon, tower floors, foundations.",
+      "Capturing is optional, and you capture at most 1 figure per floor placed. If several meeples stand on one tile you choose one.",
+      "Your own captured meeple goes straight back to your supply. You can't use it this step because the figure action is spent; in a builder double turn you can use it with the second tile.",
+      "An opponent's captured meeple goes in front of you as a prisoner. It is out of play: not on the board and not in its owner's supply.",
+      "Prisoner exchange: whenever two players each hold at least one meeple of the other, they swap immediately and automatically, without negotiating, so each gets one back. If one of them holds several of the other's meeples, the OWNER of those meeples picks which one comes back (3rd-ed rulebook p.3; S-CAR p.70). The exchange is 1-for-1 regardless of type (a large meeple can come back for a normal one). Because swaps are immediate, you only need to check right after a capture.",
+      "Buy back (ransom): during your own turn, at most once per turn, pay 3 points to the player holding one of your prisoners to get it back. It costs 3 whatever the figure (large meeple and abbot included). You need at least 3 points, since your score may not go below 0. The meeple can be used in the same turn (3rd-ed rulebook p.3; S-CAR fn 208/209).",
+      "If any removal (capture, dragon, princess, scoring) leaves a player with no meeple in the road or city where their builder stands, or no farmer in the field where their pig stands, the builder/pig goes back to its owner's supply (T&B 3rd ed p.3; S-CAR p.70; JCZ AbstractUndeploy)."
+    ],
+    "scoring_during_game": [
+      "The Tower itself scores nothing: no points for floors, height, towers or captures.",
+      "Ransom: the payer loses 3 points and the holder gains 3, immediately.",
+      "A captured meeple no longer counts in its feature. Step 2 comes before step 3, so you can capture an opponent's meeple from a feature that your tile has just completed, before it is scored. The feature is then scored with the meeples that remain.",
+      "Prisoner exchanges and capturing your own meeple give no points."
+    ],
+    "scoring_end": [
+      "No tower scoring at game end: towers, floors and foundations are worth 0.",
+      "Meeples on tower tops stay where they are and score nothing.",
+      "Prisoners stay with their captor. They score nothing for anyone and do not go back to their owner for final scoring.",
+      "Unused tower floors are worth nothing.",
+      "Everything else (incomplete roads, cities, monasteries, gardens, fields) is scored normally with the meeples still on the board."
+    ],
+    "edge_cases": [
+      "Exactly one figure action: a floor, OR a meeple on a tower, OR a meeple on the new tile, OR another expansion's alternative. Never two (3rd-ed rulebook p.2; German 'genau eine'; Sweeney FAQ 'only one action of this nature').",
+      "You may put the first floor on the foundation of the tile you have just placed and capture right away (3rd-ed rulebook: 'on any placed tile').",
+      "You may not stand a meeple on an empty foundation to stop a tower being built (S-CAR fn 190).",
+      "Range uses the height AFTER placing (the level of the floor you placed). A height-1 tower reaches its own tile plus the 4 neighbours (3rd-ed rulebook p.2).",
+      "A shorter tower may capture the meeple on top of a taller tower: height only sets range (S-CAR fn 197).",
+      "Range is not blocked by gaps in the layout, by other towers or by the river (3rd-ed rulebook EN p.3; DE p.3 adds the river).",
+      "You may capture your own meeple: it goes back to your supply. Use this to rescue a meeple stuck in a hopeless feature or on a tower top (3rd-ed rulebook pp.2-3).",
+      "A meeple on a tower can be captured, even your own, but only by placing a floor on ANOTHER tower in range, because a closed tower can't take floors. When it leaves, its tower reopens (3rd-ed rulebook p.3; S-CAR fn 200, 11/2013).",
+      "The dragon eats a meeple on a tower (and every other meeple on that tile). It never eats floors. The tower then reopens (3rd-ed Tower & P&D rulebooks; S-CAR fn 200).",
+      "Exchange is automatic and immediate with no negotiation. With several prisoners the owner chooses which one returns. In 3+ player games a cycle (A holds B's, B holds C's, C holds A's) triggers nothing (3rd-ed rulebook p.3; S-CAR p.70).",
+      "Buying back a large meeple or an abbot still costs 3 points (3rd-ed rulebook p.4; S-CAR fn 48/208).",
+      "Buy back: only during your own turn, only once per turn even in a builder double turn, and only with at least 3 points (3rd-ed rulebook p.3; S-CAR p.39 table and fn 209).",
+      "Paying ransom is not the figure action. You may pay and then place that very meeple, or pay and take your abbot back in the same turn.",
+      "Snatch before scoring: your tile completes a city where an opponent has the majority. Instead of placing a meeple you raise a tower in range and capture their knight, then the city is scored without it (turn order step 2 before step 3).",
+      "Dragon tile + tower floor in the same turn: capture first, then the dragon moves (S-CAR fn 138/193).",
+      "Volcano tile: you may not place a meeple on the volcano tile, but you may still place a floor or put a meeple on a tower elsewhere (S-CAR fn 134 and p.212 table; JCZ). The 2006-07 Sweeney FAQ said no tower block after a volcano (old ruling).",
+      "Dragon's tile: no meeple may be put on top of a tower on the tile where the dragon stands ('at no point may followers occupy the same tile as the dragon', S-CAR p.54). A floor may still be added there (floors aren't followers and the dragon never eats them). JCZ allows the meeple too; we follow the rule text.",
+      "Princess: a tower-top meeple is not in the city, so the princess can't remove it (S-CAR fn 165/204; Sweeney FAQ). Using the princess spends your figure action, so no tower action that turn (S-CAR princess rule 'may not deploy or move any other figure'; JCZ).",
+      "Fairy: no protection against capture (3rd-ed Tower and P&D rulebooks). It may be moved next to your meeple on a tower (S-CAR fn 124/201; Sweeney FAQ). There it protects the tile from the dragon and earns the 1-point start-of-turn bonus. The 3-point scoring bonus never fires because a tower is never scored. If that meeple is captured, the fairy stays on the tile assigned to nobody (JCZ).",
+      "Two meeples on one tile are normal with towers: a tower-top meeple plus a meeple on one of the tile's features.",
+      "A player with no floors left can still put a meeple on a tower. A player with no meeples can still place floors.",
+      "Special-case tile TO/CRcr: the road crosses the city on a bridge. It is one road and one city, and the meadows form 4 separate fields (3rd-ed rulebook p.1).",
+      "Farmers are meeples on the board and can be captured like any other meeple."
+    ],
+    "interactions": {
+      "base": [
+        "Highwaymen, knights, monks and farmers can all be captured. A captured meeple stops counting for its feature's majority immediately.",
+        "Capture happens in step 2, before step 3 scoring, so a meeple can be removed from a feature your tile just completed.",
+        "TO/L's monastery is a normal monastery. A meeple on top of a tower on a monastery tile is not a monk and doesn't block the monastery.",
+        "Prisoners are out of their owner's supply, which can leave that player short of meeples. Meeples on towers are also out of play for good unless captured.",
+        "If farmers are switched off in the app, there are no farmers to capture. Everything else is unchanged."
+      ],
+      "river": [
+        "River tiles have no foundations. Tower tiles are in the normal deck, laid after the river.",
+        "Capture range runs across river tiles, and the river does not block it (German 3rd-ed rulebook p.3). Meeples on a river tile's roads, cities or fields can be captured.",
+        "An abbot in the 3rd-edition river garden can be captured like any abbot."
+      ],
+      "abbot": [
+        "The abbot may NOT be placed on top of a tower (3rd-ed rulebook p.4).",
+        "The abbot can be captured from a monastery or garden. As a prisoner it is exchanged or bought back for 3 points like any meeple.",
+        "Capturing your own abbot returns it to your supply WITHOUT scoring. The scoring 'take the abbot back' action is a separate figure action.",
+        "Taking the abbot back is the figure action, so no tower floor or tower meeple that turn. Paying ransom is not, so it can be combined with taking the abbot back.",
+        "TO/FG and TO/RRG carry both a foundation and a garden. When you place one, you may put your abbot on its garden instead of placing a meeple; you still get only one figure action."
+      ],
+      "inns-cathedrals": [
+        "The large meeple may be placed on top of a tower. It closes the tower like any meeple, has no extra effect there, and is stuck until captured (3rd-ed rulebook p.4).",
+        "The large meeple can be captured. Buying it back costs 3 points, not doubled. In an exchange it counts as one meeple, and the owner chooses if several are held (S-CAR fn 48/208).",
+        "Inns & Cathedrals adds the 6th player: 5 floors each.",
+        "Late in the game, an incomplete inn road or cathedral city scores 0. Capturing your own meeple out of one gets the meeple back for something better."
+      ],
+      "traders-builders": [
+        "The builder and the pig can't be captured and can't be placed on a tower (3rd-ed rulebook p.4).",
+        "If a capture removes a player's last meeple from the road or city with their builder (or the last farmer from the field with their pig), that builder/pig returns to its owner's supply (T&B 3rd ed p.3; S-CAR p.70; JCZ).",
+        "Placing the builder or pig is the figure action, so no tower action with the same tile.",
+        "Builder double turn: each tile has its own figure step, so you can place a floor with the first tile and close a tower with the second, or build twice (Sweeney FAQ). Buy back is still once per turn (S-CAR p.39).",
+        "Goods are unaffected: the trader is whoever completes the city, whatever meeples are there."
+      ],
+      "princess-dragon": [
+        "The dragon eats a meeple on a tower, together with everything else on that tile, but never tower floors (P&D 3rd-ed dragon menu; Tower rulebook p.4). The tower then reopens.",
+        "The fairy does not protect against capture (both 3rd-ed rulebooks). It may be placed next to a tower-top meeple: dragon protection plus 1 point per turn, never the 3-point bonus.",
+        "Moving the fairy is the figure action, so it can't be combined with a tower action (S-CAR fn 119; Sweeney FAQ; JCZ).",
+        "Princess: she can't remove a tower-top meeple, which is not in the city. Using her spends the figure action, so no tower action that turn.",
+        "Volcano: no meeple on the volcano tile, but a floor or a tower-top meeple elsewhere is allowed (S-CAR fn 134; JCZ).",
+        "Dragon tile: the tower action and capture happen before the dragon moves (S-CAR fn 138).",
+        "Magic portal: not needed for towers, which can be reached anywhere anyway, and not used for them (JCZ). Placing through the portal is the figure action, so it can't be combined with a tower action.",
+        "Dragon's current tile: you may add a floor to a tower there, because floors are not followers. You may NOT put a meeple on top of that tower: 'At no point may followers occupy the same tile as the dragon' (HiG Big Box rule text, S-CAR p.54; same reading as princess-dragon.json). JCZ does allow the meeple; we don't.",
+        "A captured meeple sits in front of its captor, off the board, so it is safe from the dragon."
+      ],
+      "tower": [
+        "Other towers never block range, whatever their height.",
+        "Raising one tower can capture the meeple on top of another tower in range, which reopens that other tower.",
+        "Height only sets range. A low tower can capture from a high one (S-CAR fn 197)."
+      ]
+    },
+    "edition_differences": [
+      "1st edition (HiG 2006, RGG 2006, Z-Man 2012 English): the same 18 tile layouts, without gardens (TO/F and TO/RR instead of TO/FG and TO/RRG). Only OPPONENTS' followers could be captured. The RGG 2006 and Z-Man 2012 English rules say a follower on a tower cannot be captured; the German original was silent and an FAQ said it could (S-CAR fn 203). Builders and pigs counted as followers, so they could be captured or used to lock towers, and they stayed when their follower was removed. An old FAQ allowed no tower block after a volcano. 6 players required Inns & Cathedrals. The 2006 German text doesn't mention the 3-point minimum; Z-Man 2012 does.",
+      "HiG Big Box era (about 2010-2014, per S-CAR): own capture allowed; tower-top meeples capturable; builder and pig are no longer followers; a tower reopens when its locker is removed (11/2013); exchanges are explicitly automatic, and the owner picks when several prisoners are held.",
+      "2014-2015 new-art prints (e.g. HiG German 2014): new artwork with red roofs and the same 18 layouts, still without gardens. This is JCZ tile-set tower:1, and what the BGG photos show.",
+      "3rd edition with gardens (HiG 2016; Z-Man/F2Z English 2017; red and blue roofs). TO/FG and TO/RRG replace TO/F and TO/RR (same geometry plus an abbot garden) = JCZ tile-set tower:2. The rulebook states: capture any meeple including your own (own goes to supply); tower-top meeples can be captured; the owner chooses which prisoner comes back; buy back max one per turn and never below 0 points; the river doesn't block range (German); a combination table and the fairy/dragon/bridge notes. THIS is what we implement.",
+      "2025 'Towers & Thieves' (C3.1 revision, HiG 2025) is a different expansion: 13 land tiles plus 5 tower tiles, a river tile with a foundation, and 20 neutral floors added automatically. Watchmen are placed on towers within range of the tile you placed and score on thief symbols (5 points each at the end, 2 points when displaced). There is no capturing, no prisoners and no ransom. Not implemented."
+    ],
+    "ai_hints": [
+      "Threat map, recomputed each turn: an open tower or empty foundation at height h (a foundation counts as 0) can next turn be raised to h+1 by anyone who still has floors. Every meeple on the same row or column within distance h+1, including on the tower's own tile and on other tower tops, is then capturable. Weight the threat by the opponents' remaining floors and their incentive. Over several turns towers grow by up to one floor per player per round.",
+      "Capture value is roughly: the points the victim would get from that meeple (current or likely feature value times their chance of keeping the majority), plus the points you gain if the majority flips to you, plus the tempo of them losing a meeple, plus about 1-2 for the chance they pay 3 ransom. Best targets: farmers in big fields late in the game, knights in big cities, monks with 6-7 neighbours, and anything in a feature your tile completes this turn (capture comes before scoring).",
+      "Don't help opponents: raising a tower to height h lets the next player raise it to h+1. Before adding a floor, check which of YOUR meeples would be within h+1 of it.",
+      "Defend by closing: put a meeple on top of an open tower that threatens one of your valuable meeples, or one an opponent is about to use. It costs that meeple for the rest of the game (unless you later capture it yourself), and another tower in range can still capture it. Prefer closing tall towers near your big features.",
+      "Own-capture is a recall: spend a floor to get back a meeple stuck in a feature that can't be finished (blocked city, a road an opponent controls, a doomed cathedral or inn) or on a tower top you no longer need.",
+      "Floors are limited (5-10 each) and worthless at the end. Spend them before the deck runs out, ideally on captures. Holding 1-2 back mid-game is a deterrent.",
+      "Prisoners: in a 2-player game every prisoner is a real swing, and if the opponent pays you get +3 and they get -3. Expect auto-exchange: if you hold one of theirs and they capture one of yours, the swap returns both, so capturing a player who already holds your meeple is a cheap way to get yours back.",
+      "Ransom: pay only if you will place that meeple this turn or soon, for clearly more than the cost. In 2-player games the real cost is 6 relative points; in multiplayer it is 3 plus a 3-point gift to one rival, so avoid paying the leader. Never pay in the last couple of turns unless the placement is worth it. When short of meeples, do it at the start of your turn.",
+      "Avoid putting high-value meeples in rows or columns near tall open towers unless you can close the tower or opponents are out of floors.",
+      "Difficulty levels: Easy captures the single highest-value target when one is in range and ignores threats. Medium also avoids exposing its own meeples and closes towers that threaten big features. Hard adds lookahead on tower growth, auto-exchange and ransom economics."
+    ],
+    "kid_rules_text": "THE TOWER: 18 new tiles show a square stone tower foundation, and everyone gets wooden tower floors (2 players: 10 each, 3: 9, 4: 7, 5: 6, 6: 5). Place your tile as usual. Then choose ONE: put a meeple on your new tile like normal, OR stack one of your floors on ANY foundation or unfinished tower on the map, OR put one of your meeples on top of ANY tower to finish it (nobody can build it higher while he stands there, and he stays up there for the rest of the game, scoring nothing). Every time you add a floor you may capture ONE meeple. Count the tower's floors now, say 2: you can grab a meeple on the tower's own tile or up to 2 tiles straight up, down, left or right. No diagonals, and empty gaps still count. You may even take a meeple standing on another tower, or one of your own to get it back home. A captured meeple from another player sits in front of you as your prisoner. If you and another player hold each other's meeples, swap them back straight away. Once on your turn you may buy one of your meeples back: give the player holding it 3 of your points (only if you have at least 3). Builders, pigs, the fairy and the dragon can't be captured. Towers and prisoners score no points at the end, but grabbing a meeple just before its city is scored can win you the game!",
+    "figures": [
+      "A tower tile showing the empty foundation, then the same tile with 1, 2 and 3 floors stacked on it, then a closed tower: 3 floors with a red meeple on top.",
+      "Capture range diagram: a grid with the tower in the middle and the reachable tiles highlighted as a plus sign, shown for height 1 (5 tiles), 2 (9 tiles) and 3 (13 tiles). A gap in the grid is still counted, and a diagonal tile is crossed out.",
+      "The rulebook example: you place the first floor and capture the blue meeple on the tile above; the meeple moves into your prisoner area.",
+      "Own capture: you place the second floor and may take back your own meeple, which hops back into your supply.",
+      "Prisoner exchange: blue and red meeples with a two-way arrow, labelled 'automatic swap'.",
+      "Buy back: the score track with your marker moving back 3 and the captor's moving forward 3, and your meeple returning to you.",
+      "The step-2 choice: four icons in a row (meeple on the new tile / floor on a foundation / floor on a tower / meeple on top) with 'pick ONE'.",
+      "Snatch before scoring: your tile completes a city with a blue knight; you raise a tower in range, capture the knight, and the city is scored without him.",
+      "Special-case tile: the road crosses the city on a bridge, with the 4 fields coloured differently, one city and one road.",
+      "Dragon flying onto a tower tile and eating the meeple on top; the tower floors stay."
+    ]
+  },
+  "implementation_notes": [
+    "State: towers = { 'x,y': { height: 0, top: null | { player, kind: 'meeple'|'large' } } }, created when a tile with tag 'tower' is placed. players[i].floors starts at FLOORS[playerCount] = {2:10, 3:9, 4:7, 5:6, 6:5}. players[i].prisoners = [{ owner, kind }] lists meeples held BY player i. turn.ransomPaid resets at the start of each player's turn, not between builder sub-turns.",
+    "Step-2 options: 'floor' on every tower with top === null (any height) if floors > 0. 'towerTop' on every tower with height >= 1 && top === null that is NOT on the dragon's current tile, for each kind available in supply ('meeple', 'large'; never 'abbot', 'builder', 'pig'). These are alternatives to the normal follower options. Choosing any option ends the figure step. None of them is offered after a princess removal.",
+    "After a floor: height += 1; h = height. Capture targets are every deployed meeple/large/abbot (on a feature or on a tower top, any owner incl. the current player) at (fx, fy) with (fx === tx && |fy-ty| <= h) || (fy === ty && |fx-tx| <= h). Offer them plus 'no capture'.",
+    "Resolve a capture: remove the figure from the board. If it stood on a tower top, set towers[k].top = null (the tower reopens). If owner === current, the figure goes to the supply; else push { owner, kind } to current.prisoners. Exchange: if players[owner].prisoners contains any entry with owner === current, the current player chooses one of their own (auto if all the same kind). Move it back to current's supply and the just-captured figure back to its owner's supply. Then run the 'lonely builder/pig' check for the feature the figure left.",
+    "Dragon eating a tower-top meeple sets top = null. The dragon never removes floors.",
+    "payRansom(prisonerIdx): allowed when it is your turn, !turn.ransomPaid, score >= 3, and some player holds one of your figures. Do score -= 3 and holder.score += 3, return the figure to your supply, and set turn.ransomPaid = true. Allow it before and after the tile placement until the end of the turn; the UI should suggest it before step 2.",
+    "Final scoring: nothing extra. Ignore tower tops and prisoners. Count ransom in a score-breakdown bucket ('tower': +3 received / -3 paid) so the results screen adds up.",
+    "Art: draw the foundation in tower_foundation.art_box. Draw the floor stack (neutral wood colour, height badge) and any top meeple at tower_foundation.anchor. Feature anchors are the meeple spots and are already outside the foundation box."
+  ]
+}

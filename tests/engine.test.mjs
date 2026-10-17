@@ -16,7 +16,7 @@ function put(s, t, x, y, r, meeple = null) {
 
 test('deck has 71 tiles + start tile = 72', () => {
   assert.equal(buildDeck().deck.length, 71);
-  assert.equal(Object.values(TILE_TYPES).reduce((a, t) => a + t.count, 0), 72);
+  assert.equal(Object.values(TILE_TYPES).filter((t) => t.exp === 'base' && !t.replaces).reduce((a, t) => a + t.count, 0), 72);
 });
 
 test('field count per tile type', () => {

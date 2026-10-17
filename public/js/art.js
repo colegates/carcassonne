@@ -2,6 +2,7 @@
 // Every tile type is painted once into an offscreen canvas (in its unrotated
 // orientation) and then blitted/rotated by the board renderer.
 import { TILE_TYPES } from './tiles.js';
+import { layoutOf, bezierPoint, rotUnit } from './layout.js';
 
 export const ART_SIZE = 576; // px per tile in the cached artwork
 const HIT = 96; // resolution of the feature hit-map
@@ -27,69 +28,7 @@ function canvas(w, h = w) {
 }
 
 // Rotate a unit-square point clockwise by k quarter turns about the centre.
-export function rotUnit(x, y, k) {
-  for (let i = 0; i < ((k % 4) + 4) % 4; i++) [x, y] = [1 - y, x];
-  return [x, y];
-}
-
-function bezierPoint(seg, t) {
-  const [p0, p1, p2, p3] = seg;
-  const u = 1 - t;
-  return [
-    u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0],
-    u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1],
-  ];
-}
-
-// ---------- canonical geometry ----------
-// Each city configuration is described in a canonical orientation and
-// rotated into place. Outline = closed list of segments (lines or cubic
-// beziers); walls = the bezier segments that face fields.
-const CITY_SHAPES = {
-  cap: { // canonical: north edge
-    outline: [['M', 0, 0], ['L', 1, 0], ['C', 0.79, 0.31, 0.21, 0.31, 0, 0]],
-    walls: [[[1, 0], [0.79, 0.31], [0.21, 0.31], [0, 0]]],
-  },
-  corner: { // canonical: north + west
-    outline: [['M', 0, 0], ['L', 1, 0], ['C', 0.68, 0.38, 0.38, 0.68, 0, 1], ['Z']],
-    walls: [[[1, 0], [0.68, 0.38], [0.38, 0.68], [0, 1]]],
-  },
-  band: { // canonical: west + east
-    outline: [['M', 0, 0], ['C', 0.3, 0.28, 0.7, 0.28, 1, 0], ['L', 1, 1], ['C', 0.7, 0.72, 0.3, 0.72, 0, 1], ['Z']],
-    walls: [[[0, 0], [0.3, 0.28], [0.7, 0.28], [1, 0]], [[1, 1], [0.7, 0.72], [0.3, 0.72], [0, 1]]],
-  },
-  three: { // canonical: north + east + west (open south)
-    outline: [['M', 0, 0], ['L', 1, 0], ['L', 1, 1], ['C', 0.72, 0.6, 0.28, 0.6, 0, 1], ['Z']],
-    walls: [[[1, 1], [0.72, 0.6], [0.28, 0.6], [0, 1]]],
-  },
-  full: { outline: [['M', 0, 0], ['L', 1, 0], ['L', 1, 1], ['L', 0, 1], ['Z']], walls: [] },
-};
-
-function cityConfig(sides) {
-  const set = new Set(sides);
-  if (sides.length === 4) return { shape: 'full', rot: 0 };
-  if (sides.length === 1) return { shape: 'cap', rot: sides[0] };
-  if (sides.length === 3) {
-    const open = [0, 1, 2, 3].find((s) => !set.has(s));
-    return { shape: 'three', rot: (open - 2 + 4) % 4 };
-  }
-  const [a, b] = sides;
-  if ((a + 2) % 4 === b || (b + 2) % 4 === a) return { shape: 'band', rot: set.has(0) ? 1 : 0 };
-  for (let k = 0; k < 4; k++) if (set.has(k % 4) && set.has((k + 3) % 4)) return { shape: 'corner', rot: k };
-  throw new Error('bad city');
-}
-
-function rotateShape(shape, k) {
-  const R = (x, y) => rotUnit(x, y, k);
-  const outline = shape.outline.map((cmd) => {
-    if (cmd[0] === 'Z') return cmd;
-    const out = [cmd[0]];
-    for (let i = 1; i < cmd.length; i += 2) out.push(...R(cmd[i], cmd[i + 1]));
-    return out;
-  });
-  const walls = shape.walls.map((seg) => seg.map(([x, y]) => R(x, y)));
-  return { outline, walls };
-}
+export { rotUnit } from './layout.js';
 
 function outlinePath(outline, S, ctx = new Path2D()) {
   for (const c of outline) {
@@ -101,81 +40,67 @@ function outlinePath(outline, S, ctx = new Path2D()) {
   return ctx;
 }
 
-const MID = [[0.5, 0], [1, 0.5], [0.5, 1], [0, 0.5]];
-const INWARD = [[0, 1], [-1, 0], [0, -1], [1, 0]];
-
-function roadSegment(sides) {
-  if (sides.length === 1) {
-    const [x, y] = MID[sides[0]];
-    const [ix, iy] = INWARD[sides[0]];
-    return [[x, y], [x + ix * 0.2, y + iy * 0.2], [0.5 - ix * 0.15, 0.5 - iy * 0.15], [0.5, 0.5]];
-  }
-  const [a, b] = sides;
-  const [ax, ay] = MID[a], [bx, by] = MID[b];
-  if ((a + 2) % 4 === b) {
-    return [[ax, ay], [lerp(ax, bx, 0.33), lerp(ay, by, 0.33)], [lerp(ax, bx, 0.66), lerp(ay, by, 0.66)], [bx, by]];
-  }
-  const [aix, aiy] = INWARD[a], [bix, biy] = INWARD[b];
-  return [[ax, ay], [ax + aix * 0.3, ay + aiy * 0.3], [bx + bix * 0.3, by + biy * 0.3], [bx, by]];
-}
-
 function segPath(seg, S, p = new Path2D()) {
   p.moveTo(seg[0][0] * S, seg[0][1] * S);
   p.bezierCurveTo(seg[1][0] * S, seg[1][1] * S, seg[2][0] * S, seg[2][1] * S, seg[3][0] * S, seg[3][1] * S);
   return p;
 }
 
-function geometry(id) {
-  const t = TILE_TYPES[id];
-  const cities = [], roads = [];
-  let monastery = -1;
-  t.features.forEach((f, fi) => {
-    if (f.type === 'city') {
-      const cfg = cityConfig(f.sides);
-      cities.push({ fi, cfg, ...rotateShape(CITY_SHAPES[cfg.shape], cfg.rot), pennant: f.pennant });
-    } else if (f.type === 'road') {
-      roads.push({ fi, sides: f.sides, seg: roadSegment(f.sides) });
-    } else if (f.type === 'monastery') monastery = fi;
-  });
-  const deadEnds = roads.filter((r) => r.sides.length === 1).length;
-  const junction = monastery < 0 && deadEnds >= 3;
-  // gate where a lone road runs into a city (tiles S/T)
-  let gate = null;
-  if (deadEnds === 1 && monastery < 0 && cities.length) {
-    const r = roads.find((rr) => rr.sides.length === 1);
-    const c = cities.find((cc) => cc.cfg.shape === 'three');
-    if (c) { const w = c.walls[0]; gate = { at: bezierPoint(w, 0.5), side: r.sides[0] }; }
-  }
-  return { cities, roads, monastery, junction, gate };
-}
-
 // ---------- hit map: which pixel belongs to which feature ----------
 const ROAD_W = 0.11;
-function buildHitMap(id, geo) {
+const RIVER_W = 0.13;
+const MONASTERY_BOX = (m) => [m.x - 0.2 * m.s, m.y - 0.22 * m.s, 0.4 * m.s, 0.44 * m.s];
+const GARDEN_BOX = (g) => [g.x - 0.1, g.y - 0.08, 0.2, 0.16];
+
+function buildHitMap(id, lay) {
   const t = TILE_TYPES[id];
   const c = canvas(HIT);
   const ctx = c.getContext('2d', { willReadFrequently: true });
   const label = new Int16Array(HIT * HIT).fill(-1); // -1 = grass, -2 = blocker
-  const stamp = (draw, val) => {
+  const stamp = (draw, val, clip = null) => {
     ctx.clearRect(0, 0, HIT, HIT);
+    ctx.save();
+    if (clip) ctx.clip(clip);
     ctx.fillStyle = '#000'; ctx.strokeStyle = '#000';
     draw(ctx);
+    ctx.restore();
     const d = ctx.getImageData(0, 0, HIT, HIT).data;
     for (let i = 0; i < label.length; i++) if (d[i * 4 + 3] > 110) label[i] = val;
   };
-  for (const r of geo.roads) stamp((g) => { g.lineWidth = ROAD_W * HIT; g.lineCap = 'butt'; g.stroke(segPath(r.seg, HIT)); }, r.fi);
-  for (const cty of geo.cities) stamp((g) => g.fill(outlinePath(cty.outline, HIT)), cty.fi);
-  if (geo.monastery >= 0) stamp((g) => g.fillRect(0.3 * HIT, 0.28 * HIT, 0.4 * HIT, 0.44 * HIT), geo.monastery);
-  if (geo.junction) stamp((g) => { g.beginPath(); g.arc(HIT / 2, HIT / 2, 0.1 * HIT, 0, 7); g.fill(); }, -2);
+  const H = HIT;
+  for (const r of lay.rivers) stamp((g) => { g.lineWidth = RIVER_W * H; g.lineCap = r.dead ? 'round' : 'butt'; g.stroke(segPath(r.seg, H)); }, r.fi);
+  if (lay.lake) {
+    const [x, y, rx, ry] = lay.lake;
+    const fi = lay.rivers[0]?.fi ?? -2;
+    stamp((g) => { g.beginPath(); g.ellipse(x * H, y * H, rx * H, ry * H, 0, 0, 7); g.fill(); }, fi);
+  }
+  // a road through a tunnel is drawn up to the city wall and hidden beneath the city
+  const plain = lay.roads.filter((r) => r.bridge !== 'over'), over = lay.roads.filter((r) => r.bridge === 'over');
+  for (const r of [...plain, ...over]) stamp((g) => { g.lineWidth = ROAD_W * H; g.lineCap = 'butt'; g.stroke(segPath(r.seg, H)); }, r.fi);
+  for (const cty of lay.cities) stamp((g) => g.fill(outlinePath(cty.outline, H)), cty.fi);
+  // a road on a bridge over a city stays on top of it
+  for (const r of over) if (lay.cities.some((cc) => cc.bridgedBy === r.fi)) stamp((g) => { g.lineWidth = ROAD_W * H; g.lineCap = 'butt'; g.stroke(segPath(r.seg, H)); }, r.fi);
+  for (const [x1, y1, x2, y2] of lay.stubs) stamp((g) => { g.lineWidth = ROAD_W * 0.9 * H; g.beginPath(); g.moveTo(x1 * H, y1 * H); g.lineTo(x2 * H, y2 * H); g.stroke(); }, -2);
+  if (lay.village) stamp((g) => { g.beginPath(); g.arc(lay.village.x * H, lay.village.y * H, lay.village.r * H, 0, 7); g.fill(); }, -2);
+  if (lay.trees) stamp((g) => { g.beginPath(); g.arc(lay.trees.x * H, lay.trees.y * H, 0.085 * H, 0, 7); g.fill(); }, -2);
+  if (lay.house) stamp((g) => g.fillRect((lay.house[0] - 0.07) * H, (lay.house[1] - 0.06) * H, 0.14 * H, 0.12 * H), -2);
+  if (lay.volcano) stamp((g) => { g.beginPath(); g.ellipse(lay.volcano[0] * H, lay.volcano[1] * H, 0.15 * H, 0.12 * H, 0, 0, 7); g.fill(); }, -2);
+  if (lay.foundation) stamp((g) => { g.beginPath(); g.arc(lay.foundation[0] * H, lay.foundation[1] * H, 0.125 * H, 0, 7); g.fill(); }, -2);
+  if (lay.monastery) { const [x, y, w, h] = MONASTERY_BOX(lay.monastery); stamp((g) => g.fillRect(x * H, y * H, w * H, h * H), lay.monastery.fi); }
+  if (lay.garden && !lay.garden.auto) { const [x, y, w, h] = GARDEN_BOX(lay.garden); stamp((g) => g.fillRect(x * H, y * H, w * H, h * H), lay.garden.fi); }
+  const problems = [];
+  if (lay.garden?.auto) problems.push(`${id}: garden has no position hint`);
 
   // grass components
   const comp = new Int16Array(HIT * HIT).fill(-1);
+  const sizes = [];
   let nComp = 0;
   for (let i = 0; i < label.length; i++) {
     if (label[i] !== -1 || comp[i] !== -1) continue;
-    const st = [i]; comp[i] = nComp;
+    const st = [i]; comp[i] = nComp; let n = 0;
     while (st.length) {
-      const j = st.pop(); const x = j % HIT, y = (j / HIT) | 0;
+      const j = st.pop(); n++;
+      const x = j % HIT, y = (j / HIT) | 0;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = x + dx, ny = y + dy;
         if (nx < 0 || ny < 0 || nx >= HIT || ny >= HIT) continue;
@@ -183,6 +108,7 @@ function buildHitMap(id, geo) {
         if (label[nj] === -1 && comp[nj] === -1) { comp[nj] = nComp; st.push(nj); }
       }
     }
+    sizes.push(n);
     nComp++;
   }
   // map components to field features using edge port sample points
@@ -192,9 +118,9 @@ function buildHitMap(id, geo) {
     return [[u, v], [1 - v, u], [1 - u, 1 - v], [v, 1 - u]][s];
   };
   const compToField = new Map();
-  const problems = [];
   t.features.forEach((f, fi) => {
-    if (f.type !== 'field') return;
+    if (f.type !== 'field' || !f.ports.length) return;
+    const mine = new Set();
     for (const p of f.ports) {
       const [u, v] = portPt(p);
       const j = Math.min(HIT - 1, (v * HIT) | 0) * HIT + Math.min(HIT - 1, (u * HIT) | 0);
@@ -202,7 +128,17 @@ function buildHitMap(id, geo) {
       if (cc < 0) { problems.push(`${id}: field ${fi} port ${p} not grass`); continue; }
       if (compToField.has(cc) && compToField.get(cc) !== fi) problems.push(`${id}: component shared by fields ${compToField.get(cc)} & ${fi}`);
       compToField.set(cc, fi);
+      mine.add(cc);
     }
+    if (mine.size > 1 && !lay.splitFields) problems.push(`${id}: field ${fi} drawn in ${mine.size} pieces`);
+  });
+  // fields that touch no edge take the biggest leftover meadow
+  t.features.forEach((f, fi) => {
+    if (f.type !== 'field' || f.ports.length) return;
+    let best = -1;
+    for (let cc = 0; cc < nComp; cc++) if (!compToField.has(cc) && (best < 0 || sizes[cc] > sizes[best])) best = cc;
+    if (best < 0 || sizes[best] < 20) { problems.push(`${id}: no meadow for inner field ${fi}`); return; }
+    compToField.set(best, fi);
   });
   for (let i = 0; i < label.length; i++) {
     if (label[i] === -1) label[i] = compToField.has(comp[i]) ? compToField.get(comp[i]) : -2;
@@ -229,16 +165,19 @@ function distanceMap(label, want) {
   return d;
 }
 
-function computeAnchors(id, geo, label) {
+function computeAnchors(id, lay, label) {
   const t = TILE_TYPES[id];
+  const through = lay.roads.filter((r) => !r.dead);
   return t.features.map((f, fi) => {
-    if (f.type === 'monastery') return [0.5, 0.56];
+    if (f.type === 'monastery' && lay.monastery) return [lay.monastery.x, lay.monastery.y + 0.07 * lay.monastery.s];
+    if (f.type === 'garden' && lay.garden) return [lay.garden.x ?? 0.5, lay.garden.y ?? 0.5];
+    if (f.type === 'river') return [0.5, 0.5];
     if (f.type === 'road') {
-      const r = geo.roads.find((rr) => rr.fi === fi);
-      if (r.sides.length === 1) {
-        const [x, y] = MID[r.sides[0]]; const [ix, iy] = INWARD[r.sides[0]];
-        return [x + ix * 0.22, y + iy * 0.22];
-      }
+      const r = lay.roads.find((rr) => rr.fi === fi);
+      if (r.dead) return bezierPoint(r.seg, 0.36);
+      // two roads crossing on one tile: keep the figures apart
+      if (through.length > 1) return bezierPoint(r.seg, r.bridge === 'over' ? 0.74 : 0.26);
+      if (r.tunnel) return bezierPoint(r.seg, 0.11); // the visible stretch before the tunnel
       return bezierPoint(r.seg, 0.5);
     }
     const d = distanceMap(label, fi);
@@ -250,7 +189,7 @@ function computeAnchors(id, geo, label) {
       const score = Math.min(d[i], f.type === 'field' ? 14 : 20) - Math.hypot(x - 0.5, y - 0.5) * 6;
       if (score > best) { best = score; bx = x; by = y; }
     }
-    const lo = f.type === 'city' ? 0.13 : 0.15;
+    const lo = f.type === 'city' ? 0.1 : 0.12;
     return [Math.max(lo, Math.min(1 - lo, bx)), Math.max(lo, Math.min(1 - lo, by))];
   });
 }
@@ -365,43 +304,133 @@ function paintFarmPatches(ctx, S, rnd, label, id) {
   }
 }
 
-function paintRoads(ctx, S, rnd, geo) {
-  if (!geo.roads.length) return;
+function paintRivers(ctx, S, rnd, lay) {
+  if (!lay.rivers.length && !lay.lake) return;
+  const k = S / 384;
+  const W = RIVER_W * S;
+  const paths = lay.rivers.map((r) => segPath(r.seg, S));
+  // muddy, reedy banks
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.filter = `blur(${3.5 * k}px)`;
+  for (const p of paths) { ctx.strokeStyle = 'rgba(70,80,40,0.55)'; ctx.lineWidth = W * 1.55; ctx.stroke(p); }
+  if (lay.lake) {
+    const [x, y, rx, ry] = lay.lake;
+    ctx.fillStyle = 'rgba(70,80,40,0.55)';
+    ctx.beginPath(); ctx.ellipse(x * S, y * S, (rx + 0.04) * S, (ry + 0.04) * S, 0, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  const layer = canvas(S); const l = layer.getContext('2d');
+  l.lineCap = 'round';
+  for (const p of paths) { l.strokeStyle = '#4f7a9a'; l.lineWidth = W; l.stroke(p); }
+  if (lay.lake) {
+    const [x, y, rx, ry] = lay.lake;
+    l.fillStyle = '#4f7a9a';
+    l.beginPath(); l.ellipse(x * S, y * S, rx * S, ry * S, 0, 0, 7); l.fill();
+  }
+  for (const r of lay.rivers) if (r.spring) {
+    const [x, y] = r.seg[3];
+    l.fillStyle = '#3f6d8f'; l.beginPath(); l.ellipse(x * S, y * S, 0.07 * S, 0.1 * S, 0, 0, 7); l.fill();
+  }
+  l.globalCompositeOperation = 'source-atop';
+  // lighter middle of the stream and ripples
+  for (const p of paths) { l.strokeStyle = 'rgba(140,185,210,0.45)'; l.lineWidth = W * 0.45; l.stroke(p); }
+  drawSmooth(l, noiseCanvas(9, rnd, '#2f5a7a'), S, 0.35, 'source-atop');
+  l.strokeStyle = 'rgba(230,245,255,0.35)'; l.lineWidth = 1.1 * k; l.lineCap = 'round';
+  for (let i = 0; i < 160; i++) {
+    const x = rnd() * S, y = rnd() * S;
+    l.beginPath(); l.moveTo(x, y); l.quadraticCurveTo(x + 3 * k, y - 1.5 * k, x + 6 * k, y); l.stroke();
+  }
+  ctx.drawImage(layer, 0, 0);
+  // reeds along the banks
+  ctx.lineCap = 'round';
+  for (const r of lay.rivers) {
+    for (let i = 0; i < 26; i++) {
+      const t = rnd(); const [x, y] = bezierPoint(r.seg, t);
+      const [x2, y2] = bezierPoint(r.seg, Math.min(1, t + 0.01));
+      const dx = x2 - x, dy = y2 - y, len = Math.hypot(dx, dy) || 1;
+      const sgn = rnd() < 0.5 ? -1 : 1;
+      const px = (x - (dy / len) * sgn * RIVER_W * 0.55) * S, py = (y + (dx / len) * sgn * RIVER_W * 0.55) * S;
+      ctx.strokeStyle = rnd() < 0.5 ? '#5d6e33' : '#7c8a45'; ctx.lineWidth = 1.2 * k;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + (rnd() - 0.5) * 3 * k, py - (3 + rnd() * 4) * k); ctx.stroke();
+    }
+  }
+  if (lay.lake) {
+    // wooded island and a little boat
+    const [x, y, rx, ry] = lay.lake;
+    bushCluster(ctx, (x + rx * 0.35) * S, (y + ry * 0.4) * S, 9 * k, rnd, k);
+    ctx.fillStyle = '#8a3b22'; ctx.beginPath(); ctx.ellipse((x - rx * 0.3) * S, (y - ry * 0.6) * S, 7 * k, 2.6 * k, -0.3, 0, 7); ctx.fill();
+  }
+  if (lay.rock) {
+    const [x, y] = lay.rock;
+    ctx.fillStyle = 'rgba(30,30,20,0.35)'; ctx.beginPath(); ctx.ellipse((x + 0.02) * S, (y + 0.03) * S, 0.1 * S, 0.17 * S, 0, 0, 7); ctx.fill();
+    const g = ctx.createLinearGradient((x - 0.1) * S, 0, (x + 0.1) * S, 0);
+    g.addColorStop(0, '#9b958a'); g.addColorStop(1, '#6b665d');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x * S, y * S, 0.09 * S, 0.16 * S, 0, 0, 7); ctx.fill();
+    bushCluster(ctx, x * S, (y - 0.08) * S, 7 * k, rnd, k);
+    bushCluster(ctx, (x - 0.02) * S, (y + 0.09) * S, 6 * k, rnd, k);
+  }
+}
+
+function bushCluster(ctx, x, y, r, rnd, k) {
+  for (let i = 0; i < 3; i++) bush(ctx, x + (rnd() - 0.5) * r, y + (rnd() - 0.5) * r * 0.6, r * 0.7, rnd, k);
+}
+
+function strokeRoadBed(ctx, S, rnd, segs) {
   const k = S / 384;
   const W = ROAD_W * S;
   ctx.save();
   ctx.lineCap = 'butt';
-  // trodden, darker verge blending into the meadow
   ctx.filter = `blur(${4 * k}px)`;
-  for (const r of geo.roads) { ctx.strokeStyle = 'rgba(70,72,35,0.45)'; ctx.lineWidth = W * 1.65; ctx.stroke(segPath(r.seg, S)); }
+  for (const s of segs) { ctx.strokeStyle = 'rgba(70,72,35,0.45)'; ctx.lineWidth = W * 1.65; ctx.stroke(segPath(s, S)); }
   ctx.filter = `blur(${1.2 * k}px)`;
-  for (const r of geo.roads) { ctx.strokeStyle = 'rgba(168,150,112,0.8)'; ctx.lineWidth = W * 1.08; ctx.stroke(segPath(r.seg, S)); }
+  for (const s of segs) { ctx.strokeStyle = 'rgba(168,150,112,0.8)'; ctx.lineWidth = W * 1.08; ctx.stroke(segPath(s, S)); }
   ctx.restore();
   const layer = canvas(S); const l = layer.getContext('2d');
   l.lineCap = 'butt';
   l.filter = `blur(${0.6 * k}px)`;
-  for (const r of geo.roads) { l.strokeStyle = '#d9c9a0'; l.lineWidth = W * 0.9; l.stroke(segPath(r.seg, S)); }
+  for (const s of segs) { l.strokeStyle = '#d9c9a0'; l.lineWidth = W * 0.9; l.stroke(segPath(s, S)); }
   l.filter = 'none';
   l.globalCompositeOperation = 'source-atop';
   drawSmooth(l, noiseCanvas(10, rnd, '#b9a986'), S, 0.5, 'source-atop');
   drawSmooth(l, noiseCanvas(40, rnd), S, 0.18, 'overlay');
-  // faint cart tracks
-  for (const r of geo.roads) {
-    l.strokeStyle = 'rgba(140,120,85,0.22)'; l.lineWidth = W * 0.55; l.stroke(segPath(r.seg, S));
-    l.strokeStyle = 'rgba(217,201,160,0.9)'; l.lineWidth = W * 0.4; l.stroke(segPath(r.seg, S));
+  for (const s of segs) {
+    l.strokeStyle = 'rgba(140,120,85,0.22)'; l.lineWidth = W * 0.55; l.stroke(segPath(s, S));
+    l.strokeStyle = 'rgba(217,201,160,0.9)'; l.lineWidth = W * 0.4; l.stroke(segPath(s, S));
   }
   for (let i = 0; i < 700; i++) {
     l.fillStyle = rnd() < 0.6 ? 'rgba(120,100,70,0.22)' : 'rgba(250,245,230,0.3)';
     l.beginPath(); l.arc(rnd() * S, rnd() * S, (0.5 + rnd()) * k, 0, 7); l.fill();
   }
-  // keep the texture strictly inside the road
   l.globalCompositeOperation = 'destination-in';
   l.filter = `blur(${0.6 * k}px)`;
   const all = new Path2D();
-  for (const r of geo.roads) segPath(r.seg, S, all);
+  for (const s of segs) segPath(s, S, all);
   l.strokeStyle = '#000'; l.lineWidth = W * 0.9; l.stroke(all);
   l.filter = 'none';
   ctx.drawImage(layer, 0, 0);
+}
+
+function paintRoads(ctx, S, rnd, lay, which) {
+  const list = lay.roads.filter((r) => (which === 'over' ? r.bridge === 'over' : r.bridge !== 'over'));
+  if (!list.length) return;
+  if (which === 'over') {
+    // a stone bridge: parapets and a shadow on whatever is underneath
+    const k = S / 384;
+    for (const r of list) {
+      ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.strokeStyle = 'rgba(20,25,10,0.5)'; ctx.lineWidth = ROAD_W * S * 1.5; ctx.lineCap = 'butt';
+      ctx.translate(3 * k, 4 * k); ctx.stroke(segPath(bridgePart(r), S)); ctx.restore();
+      ctx.strokeStyle = '#7a7060'; ctx.lineWidth = ROAD_W * S * 1.35; ctx.lineCap = 'butt'; ctx.stroke(segPath(bridgePart(r), S));
+      ctx.strokeStyle = '#b3a88f'; ctx.lineWidth = ROAD_W * S * 1.18; ctx.stroke(segPath(bridgePart(r), S));
+    }
+  }
+  strokeRoadBed(ctx, S, rnd, list.map((r) => r.seg));
+}
+
+// the middle part of a road that crosses on a bridge
+function bridgePart(r) {
+  const a = bezierPoint(r.seg, r.span[0]), b = bezierPoint(r.seg, r.span[1]);
+  return [a, [lerp(a[0], b[0], 1 / 3), lerp(a[1], b[1], 1 / 3)], [lerp(a[0], b[0], 2 / 3), lerp(a[1], b[1], 2 / 3)], b];
 }
 
 const ROOFS = [['#b8664a', '#7d3a28'], ['#ad5a3f', '#7b3826'], ['#bf6f50', '#86442e'], ['#a65539', '#713424'], ['#b26b4d', '#80432e'], ['#c07a55', '#8a4c33']];
@@ -447,9 +476,9 @@ function tower(ctx, x, y, r, k) {
   for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * r * 0.74, y + Math.sin(a) * r * 0.74); ctx.stroke(); }
 }
 
-function paintCities(ctx, S, rnd, geo, label) {
+function paintCities(ctx, S, rnd, lay, label) {
   const k = S / 384;
-  for (const c of geo.cities) {
+  for (const c of lay.cities) {
     const path = outlinePath(c.outline, S);
     ctx.save();
     ctx.shadowColor = 'rgba(25,30,10,0.55)'; ctx.shadowBlur = 16 * k; ctx.shadowOffsetX = 3 * k; ctx.shadowOffsetY = 5 * k;
@@ -465,8 +494,9 @@ function paintCities(ctx, S, rnd, geo, label) {
       return label[Math.floor(v * HIT) * HIT + Math.floor(u * HIT)] === c.fi;
     };
     const roomy = (x, y, m) => [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m], [m, m], [-m, -m], [m, -m], [-m, m]].every(([a, b]) => inCity(x + a, y + b));
-    const big = c.cfg.shape === 'three' || c.cfg.shape === 'full';
-    const keep = big ? (c.cfg.shape === 'full' ? [0.5, 0.5] : rotUnit(0.5, 0.3, c.cfg.rot)) : null;
+    const big = (c.shape === 'three' || c.shape === 'full') && !c.cathedral && !lay.monastery;
+    const keep = c.cathedral ? (lay.cathedral || [0.5, 0.5]) : big ? (c.shape === 'full' ? [0.5, 0.5] : rotUnit(0.5, 0.3, c.rot)) : null;
+    const keepR = c.cathedral ? 0.3 : 0.17;
     // quarters: clusters of houses around seeds, lanes between them
     const seeds = [];
     for (let i = 0; i < 400 && seeds.length < 40; i++) {
@@ -482,7 +512,9 @@ function paintCities(ctx, S, rnd, geo, label) {
         const a = rnd() * 6.283, d = rnd() * 0.085;
         const x = sx + Math.cos(a) * d, y = sy + Math.sin(a) * d;
         if (!roomy(x, y, 0.055)) continue;
-        if (keep && Math.hypot(x - keep[0], y - keep[1]) < 0.17) continue;
+        if (keep && Math.hypot(x - keep[0], y - keep[1]) < keepR) continue;
+        if (lay.monastery && Math.hypot(x - lay.monastery.x, y - lay.monastery.y) < 0.22 * lay.monastery.s) continue;
+        if (lay.foundation && Math.hypot(x - lay.foundation[0], y - lay.foundation[1]) < 0.15) continue;
         if (houses.some((h) => Math.hypot(h.x - x, h.y - y) < 0.052)) continue;
         houses.push({ x, y, seed: sx, ang: ang + (rnd() - 0.5) * 0.85 });
       }
@@ -495,10 +527,82 @@ function paintCities(ctx, S, rnd, geo, label) {
       house(ctx, -w / 2, -h / 2, w, h, rnd, k, pick(rnd, ROOFS));
       ctx.restore();
     }
-    if (keep) churchArt(ctx, keep[0] * S, keep[1] * S, S, k);
-    // inner shadow along the walls
+    if (c.cathedral) cathedralArt(ctx, keep[0] * S, keep[1] * S, S, k, rnd);
+    else if (keep) churchArt(ctx, keep[0] * S, keep[1] * S, S, k);
     ctx.restore();
     for (const w of c.walls) wallArt(ctx, w, S, rnd, k, label, c.fi, path);
+  }
+  // gates where roads meet city walls (and tunnel mouths)
+  for (const r of lay.roads) {
+    if (r.bridge === 'over' && lay.cities.some((cc) => cc.bridgedBy === r.fi)) continue;
+    let prev = null;
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60;
+      const [x, y] = bezierPoint(r.seg, t);
+      const l = label[Math.min(HIT - 1, Math.floor(y * HIT)) * HIT + Math.min(HIT - 1, Math.floor(x * HIT))];
+      const inCity = l >= 0 && TILE_TYPES[lay.id].features[l]?.type === 'city';
+      if (prev !== null && inCity !== prev) {
+        const [x2, y2] = bezierPoint(r.seg, Math.min(1, t + 0.02));
+        const [x0, y0] = bezierPoint(r.seg, Math.max(0, t - 0.02));
+        gateArt(ctx, [x, y], Math.atan2(y2 - y0, x2 - x0) + (inCity ? 0 : Math.PI), S, k);
+      }
+      prev = inCity;
+    }
+  }
+}
+
+function cathedralArt(ctx, cx, cy, S, k, rnd) {
+  // a cruciform cathedral seen at an angle, with twin towers and a crossing spire
+  const w = 0.5 * S, h = 0.34 * S;
+  ctx.save(); ctx.filter = `blur(${4 * k}px)`;
+  ctx.fillStyle = 'rgba(40,30,15,0.45)'; ctx.fillRect(cx - w / 2 + 6 * k, cy - h / 2 + 8 * k, w, h);
+  ctx.restore();
+  const stone = (x, y, ww, hh, light) => {
+    const g = ctx.createLinearGradient(x, y, x, y + hh);
+    g.addColorStop(0, light ? '#efe6d2' : '#d9ccb0'); g.addColorStop(1, light ? '#d8cbae' : '#c2b395');
+    ctx.fillStyle = g; ctx.fillRect(x, y, ww, hh);
+  };
+  const roof = (x, y, ww, hh) => {
+    const g = ctx.createLinearGradient(0, y, 0, y + hh);
+    g.addColorStop(0, '#b8694c'); g.addColorStop(0.5, '#a85a3e'); g.addColorStop(0.52, '#7e3f2a'); g.addColorStop(1, '#723826');
+    ctx.fillStyle = g; ctx.fillRect(x, y, ww, hh);
+    ctx.strokeStyle = 'rgba(60,25,15,0.25)'; ctx.lineWidth = 0.7 * k;
+    for (let i = 1; i < 10; i++) { ctx.beginPath(); ctx.moveTo(x + (ww * i) / 10, y); ctx.lineTo(x + (ww * i) / 10, y + hh); ctx.stroke(); }
+  };
+  // nave
+  stone(cx - w * 0.42, cy - h * 0.05, w * 0.84, h * 0.3, true);
+  for (let i = 0; i < 7; i++) {
+    const x = cx - w * 0.36 + i * w * 0.11;
+    ctx.fillStyle = '#4a5a74'; ctx.beginPath(); ctx.moveTo(x, cy + h * 0.2); ctx.lineTo(x, cy + h * 0.06); ctx.arc(x + 2.2 * k, cy + h * 0.06, 2.2 * k, Math.PI, 0); ctx.lineTo(x + 4.4 * k, cy + h * 0.2); ctx.fill();
+  }
+  roof(cx - w * 0.44, cy - h * 0.32, w * 0.88, h * 0.28);
+  // transept
+  stone(cx - w * 0.1, cy - h * 0.5, w * 0.2, h * 0.75, false);
+  roof(cx - w * 0.11, cy - h * 0.52, w * 0.22, h * 0.5);
+  // west front with twin towers
+  for (const dx of [-0.46, -0.3]) {
+    const tx = cx + dx * w;
+    stone(tx - 0.035 * S, cy - h * 0.55, 0.07 * S, h * 0.8, true);
+    ctx.fillStyle = '#5f5853';
+    ctx.beginPath(); ctx.moveTo(tx - 0.04 * S, cy - h * 0.55); ctx.lineTo(tx, cy - h * 0.92); ctx.lineTo(tx + 0.04 * S, cy - h * 0.55); ctx.fill();
+    ctx.fillStyle = 'rgba(40,40,50,0.6)'; ctx.fillRect(tx - 1.6 * k, cy - h * 0.38, 3.2 * k, 6 * k);
+  }
+  // rose window and portal
+  ctx.fillStyle = '#3d5a8a'; ctx.beginPath(); ctx.arc(cx - w * 0.38, cy + h * 0.02, 4 * k, 0, 7); ctx.fill();
+  ctx.fillStyle = '#4a3220'; ctx.fillRect(cx - w * 0.395, cy + h * 0.11, 6 * k, h * 0.14);
+  // crossing spire
+  ctx.fillStyle = '#6a625d';
+  ctx.beginPath(); ctx.moveTo(cx - 0.03 * S, cy - h * 0.3); ctx.lineTo(cx, cy - h * 0.82); ctx.lineTo(cx + 0.03 * S, cy - h * 0.3); ctx.fill();
+  ctx.strokeStyle = '#d9b860'; ctx.lineWidth = 1.4 * k;
+  ctx.beginPath(); ctx.moveTo(cx, cy - h * 0.82); ctx.lineTo(cx, cy - h * 0.95); ctx.moveTo(cx - 2.5 * k, cy - h * 0.9); ctx.lineTo(cx + 2.5 * k, cy - h * 0.9); ctx.stroke();
+  // market stalls around it
+  for (let i = 0; i < 5; i++) {
+    const a = rnd() * 6.28, d = 0.3 + rnd() * 0.08;
+    const x = cx + Math.cos(a) * d * S * 0.8, y = cy + Math.sin(a) * d * S * 0.7;
+    if (x < 0.06 * S || y < 0.06 * S || x > 0.94 * S || y > 0.94 * S) continue;
+    ctx.fillStyle = 'rgba(40,30,15,0.3)'; ctx.fillRect(x + 1.5 * k, y + 2 * k, 10 * k, 6 * k);
+    ctx.fillStyle = pick(rnd, ['#b8452e', '#3c6a9a', '#d8b03a', '#5d8a3a']); ctx.fillRect(x, y, 10 * k, 4 * k);
+    ctx.fillStyle = '#e9dcc0'; ctx.fillRect(x, y + 4 * k, 10 * k, 2 * k);
   }
 }
 
@@ -580,17 +684,16 @@ function wallArt(ctx, seg, S, rnd, k, label, cityFi, cityClip) {
   tower(ctx, tx * S, ty * S, 0.05 * S, k);
 }
 
-function gateArt(ctx, gate, S, k) {
-  const [x, y] = gate.at;
-  const ang = [Math.PI, -Math.PI / 2, 0, Math.PI / 2][gate.side];
-  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(ang + Math.PI);
+function gateArt(ctx, at, ang, S, k) {
+  const [x, y] = at;
+  ctx.save(); ctx.translate(x * S, y * S); ctx.rotate(ang - Math.PI / 2);
   ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)'; ctx.fillRect(-0.06 * S + 3 * k, -0.04 * S + 4 * k, 0.12 * S, 0.08 * S); ctx.restore();
   const g = ctx.createLinearGradient(0, -0.04 * S, 0, 0.04 * S);
   g.addColorStop(0, '#aaa08b'); g.addColorStop(1, '#7c7262');
   ctx.fillStyle = g; ctx.fillRect(-0.06 * S, -0.04 * S, 0.12 * S, 0.08 * S);
   ctx.fillStyle = '#3a2e22';
-  ctx.beginPath(); ctx.moveTo(-0.022 * S, 0.04 * S); ctx.lineTo(-0.022 * S, 0.005 * S); ctx.arc(0, 0.005 * S, 0.022 * S, Math.PI, 0); ctx.lineTo(0.022 * S, 0.04 * S); ctx.fill();
-  ctx.fillStyle = '#9a5a40'; ctx.fillRect(-0.065 * S, -0.055 * S, 0.13 * S, 0.02 * S);
+  ctx.beginPath(); ctx.moveTo(-0.022 * S, -0.04 * S); ctx.lineTo(-0.022 * S, -0.005 * S); ctx.arc(0, -0.005 * S, 0.022 * S, Math.PI, 0, true); ctx.lineTo(0.022 * S, -0.04 * S); ctx.fill();
+  ctx.fillStyle = '#9a5a40'; ctx.fillRect(-0.065 * S, 0.035 * S, 0.13 * S, 0.02 * S);
   ctx.restore();
 }
 
@@ -618,8 +721,8 @@ export function drawShield(ctx, x, y, s) {
   ctx.restore();
 }
 
-function monasteryArt(ctx, S, rnd, k) {
-  const cx = 0.5 * S, cy = 0.5 * S;
+function monasteryArt(ctx, S, rnd, k, at = [0.5, 0.5]) {
+  const cx = at[0] * S, cy = at[1] * S;
   // cloister garth: low wall around a small green court
   ctx.save(); ctx.filter = `blur(${4 * k}px)`;
   ctx.fillStyle = 'rgba(30,35,10,0.4)'; ctx.fillRect(cx - 0.15 * S + 4 * k, cy - 0.1 * S + 6 * k, 0.3 * S, 0.29 * S);
@@ -674,8 +777,7 @@ function drawSmoothRect(ctx, rnd, x, y, w, h) {
   ctx.restore();
 }
 
-function junctionArt(ctx, S, k) {
-  const cx = S / 2, cy = S / 2;
+function junctionArt(ctx, S, k, cx = S / 2, cy = S / 2) {
   const r = mulberry(5);
   ctx.save(); ctx.filter = `blur(${3 * k}px)`;
   ctx.fillStyle = 'rgba(30,25,10,0.4)'; ctx.beginPath(); ctx.ellipse(cx + 5 * k, cy + 6 * k, 0.12 * S, 0.1 * S, 0, 0, 7); ctx.fill();
@@ -785,47 +887,315 @@ function finishTile(ctx, S, rnd) {
   void k;
 }
 
+// ---------- buildings & symbols for the expansions ----------
+function innArt(ctx, x, y, lx, ly, S, k, rnd) {
+  // the inn's little lake first, then a half-timbered inn with smoke
+  ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(60,70,35,0.5)';
+  ctx.beginPath(); ctx.ellipse(lx * S, ly * S, 0.085 * S, 0.055 * S, 0.2, 0, 7); ctx.fill(); ctx.restore();
+  const g = ctx.createRadialGradient(lx * S - 4 * k, ly * S - 3 * k, 1, lx * S, ly * S, 0.08 * S);
+  g.addColorStop(0, '#86b3cf'); g.addColorStop(1, '#3f6d8f');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(lx * S, ly * S, 0.075 * S, 0.047 * S, 0.2, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1 * k;
+  ctx.beginPath(); ctx.moveTo(lx * S - 8 * k, ly * S); ctx.quadraticCurveTo(lx * S - 4 * k, ly * S - 2 * k, lx * S, ly * S); ctx.stroke();
+  const w = 0.13 * S, h = 0.1 * S, bx = x * S - w / 2, by = y * S - h / 2;
+  ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)'; ctx.fillRect(bx + 4 * k, by + 5 * k, w, h); ctx.restore();
+  // walls with timber frame
+  ctx.fillStyle = '#efe5cc'; ctx.fillRect(bx, by + h * 0.55, w, h * 0.45);
+  ctx.strokeStyle = '#6b4a2c'; ctx.lineWidth = 1.2 * k;
+  for (let i = 0; i <= 4; i++) { ctx.beginPath(); ctx.moveTo(bx + (w * i) / 4, by + h * 0.55); ctx.lineTo(bx + (w * i) / 4, by + h); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(bx, by + h * 0.55); ctx.lineTo(bx + w / 4, by + h); ctx.moveTo(bx + w / 2, by + h * 0.55); ctx.lineTo(bx + w * 0.75, by + h); ctx.stroke();
+  ctx.fillStyle = '#3b2b1d'; ctx.fillRect(bx + w * 0.42, by + h * 0.72, w * 0.14, h * 0.28);
+  const rg = ctx.createLinearGradient(0, by, 0, by + h * 0.55);
+  rg.addColorStop(0, '#c26a48'); rg.addColorStop(0.5, '#b05a3c'); rg.addColorStop(0.52, '#83402a'); rg.addColorStop(1, '#783a26');
+  ctx.fillStyle = rg; ctx.fillRect(bx - 1.5 * k, by, w + 3 * k, h * 0.56);
+  // hanging sign with a tankard
+  ctx.fillStyle = '#6b4a2c'; ctx.fillRect(bx + w + 1 * k, by + h * 0.58, 6 * k, 1.2 * k);
+  ctx.fillStyle = '#e0b34a'; ctx.fillRect(bx + w + 2.5 * k, by + h * 0.62, 4 * k, 5 * k);
+  // chimney smoke
+  ctx.fillStyle = '#8b7d6b'; ctx.fillRect(bx + w * 0.75, by - 3 * k, 4 * k, 6 * k);
+  ctx.fillStyle = 'rgba(235,235,235,0.55)';
+  for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(bx + w * 0.77 + i * 2.5 * k, by - 6 * k - i * 4.5 * k, (2.5 + i * 0.9) * k, 0, 7); ctx.fill(); }
+  void rnd;
+}
+
+function gardenArt(ctx, x, y, S, k, rnd) {
+  const w = 0.2 * S, h = 0.14 * S;
+  ctx.save();
+  ctx.translate(x * S, y * S);
+  ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(30,40,10,0.4)';
+  ctx.beginPath(); ctx.moveTo(-w / 2 + 3 * k, 3 * k); ctx.lineTo(3 * k, -h / 2 + 3 * k); ctx.lineTo(w / 2 + 3 * k, 3 * k); ctx.lineTo(3 * k, h / 2 + 3 * k); ctx.closePath(); ctx.fill(); ctx.restore();
+  const bed = new Path2D();
+  bed.moveTo(-w / 2, 0); bed.lineTo(0, -h / 2); bed.lineTo(w / 2, 0); bed.lineTo(0, h / 2); bed.closePath();
+  ctx.fillStyle = '#7a5a3a'; ctx.fill(bed);
+  ctx.save(); ctx.clip(bed);
+  const cols = ['#d84a3a', '#f0c63a', '#e889b4', '#5f7fd0', '#a35ad0', '#ffffff'];
+  for (let row = -6; row <= 6; row++) {
+    const c = cols[(row + 12) % cols.length];
+    for (let i = -8; i <= 8; i++) {
+      const px = i * 3.4 * k + row * 1.8 * k, py = row * 2.6 * k;
+      ctx.fillStyle = '#4f7a2e'; ctx.beginPath(); ctx.arc(px, py + 1 * k, 1.6 * k, 0, 7); ctx.fill();
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(px, py, 1.3 * k, 0, 7); ctx.fill();
+    }
+  }
+  ctx.restore();
+  ctx.strokeStyle = '#5a3f22'; ctx.lineWidth = 2 * k; ctx.stroke(bed);
+  ctx.strokeStyle = 'rgba(240,225,190,0.6)'; ctx.lineWidth = 0.8 * k; ctx.stroke(bed);
+  ctx.restore();
+  void rnd;
+}
+
+function cottageArt(ctx, x, y, S, k) {
+  const w = 0.12 * S, h = 0.1 * S;
+  ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)'; ctx.fillRect(x * S - w / 2 + 3 * k, y * S - h / 2 + 4 * k, w, h); ctx.restore();
+  house(ctx, x * S - w / 2, y * S - h / 2, w, h, mulberry(17), k, ['#b97a4a', '#8a5532']);
+}
+
+function villageArt(ctx, v, S, k, rnd) {
+  const cx = v.x * S, cy = v.y * S;
+  if (v.house) { junctionArt(ctx, S, k, cx, cy); return; }
+  ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)';
+  ctx.beginPath(); ctx.arc(cx + 3 * k, cy + 4 * k, v.r * S, 0, 7); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#c4ad84'; ctx.beginPath(); ctx.arc(cx, cy, v.r * S, 0, 7); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, v.r * S * 0.92, 0, 7); ctx.clip();
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * 6.283 + rnd(), d = rnd() * v.r * 0.55;
+    const w = (0.05 + rnd() * 0.02) * S, h = 0.045 * S;
+    ctx.save(); ctx.translate(cx + Math.cos(a) * d * S, cy + Math.sin(a) * d * S); ctx.rotate((rnd() - 0.5) * 0.8);
+    house(ctx, -w / 2, -h / 2, w, h, rnd, k, pick(rnd, ROOFS));
+    ctx.restore();
+  }
+  ctx.restore();
+  ctx.strokeStyle = '#7a705e'; ctx.lineWidth = 3.5 * k; ctx.beginPath(); ctx.arc(cx, cy, v.r * S, 0, 7); ctx.stroke();
+  ctx.strokeStyle = '#b3a88f'; ctx.lineWidth = 1.5 * k; ctx.stroke();
+}
+
+function treeClumpArt(ctx, t, S, k, rnd) {
+  for (let i = 0; i < 4; i++) tree(ctx, (t.x + (rnd() - 0.5) * 0.08) * S, (t.y + (rnd() - 0.5) * 0.07) * S, (9 + rnd() * 4) * k, rnd, k);
+}
+
+function volcanoArt(ctx, x, y, S, k, rnd) {
+  const cx = x * S, cy = y * S, w = 0.17 * S, h = 0.16 * S;
+  ctx.save(); ctx.filter = `blur(${4 * k}px)`; ctx.fillStyle = 'rgba(30,20,10,0.5)';
+  ctx.beginPath(); ctx.ellipse(cx + 5 * k, cy + h * 0.55, w * 1.15, h * 0.4, 0, 0, 7); ctx.fill(); ctx.restore();
+  // cone
+  const cone = new Path2D();
+  cone.moveTo(cx - w, cy + h * 0.55); cone.quadraticCurveTo(cx - w * 0.45, cy - h * 0.1, cx - w * 0.28, cy - h * 0.55);
+  cone.lineTo(cx + w * 0.28, cy - h * 0.55); cone.quadraticCurveTo(cx + w * 0.45, cy - h * 0.1, cx + w, cy + h * 0.55); cone.closePath();
+  const g = ctx.createLinearGradient(cx - w, 0, cx + w, 0);
+  g.addColorStop(0, '#7a6a58'); g.addColorStop(0.45, '#5e5144'); g.addColorStop(1, '#3d342c');
+  ctx.fillStyle = g; ctx.fill(cone);
+  ctx.save(); ctx.clip(cone);
+  // lava streams
+  ctx.strokeStyle = '#e8562a'; ctx.lineWidth = 2.4 * k; ctx.lineCap = 'round';
+  for (const dx of [-0.12, 0.05, 0.16]) {
+    ctx.beginPath(); ctx.moveTo(cx + dx * w * 0.8, cy - h * 0.5);
+    ctx.quadraticCurveTo(cx + dx * w * 2.5, cy, cx + dx * w * 3.4, cy + h * 0.55); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,200,80,0.8)'; ctx.lineWidth = 1 * k;
+  for (const dx of [-0.12, 0.05, 0.16]) {
+    ctx.beginPath(); ctx.moveTo(cx + dx * w * 0.8, cy - h * 0.5);
+    ctx.quadraticCurveTo(cx + dx * w * 2.5, cy, cx + dx * w * 3.4, cy + h * 0.55); ctx.stroke();
+  }
+  ctx.restore();
+  // glowing crater and smoke
+  const cg = ctx.createRadialGradient(cx, cy - h * 0.55, 1, cx, cy - h * 0.55, w * 0.32);
+  cg.addColorStop(0, '#ffe08a'); cg.addColorStop(0.5, '#f0752e'); cg.addColorStop(1, '#8a2a12');
+  ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(cx, cy - h * 0.55, w * 0.3, h * 0.12, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(90,85,80,0.55)';
+  for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(cx + (rnd() - 0.3) * 6 * k + i * 3 * k, cy - h * 0.75 - i * 6 * k, (4 + i * 1.6) * k, 0, 7); ctx.fill(); }
+}
+
+function dragonSymbolArt(ctx, x, y, S, k) {
+  // small red dragon emblem in a round cartouche
+  const r = 0.07 * S;
+  ctx.save(); ctx.translate(x * S, y * S);
+  ctx.save(); ctx.shadowColor = 'rgba(20,10,0,0.45)'; ctx.shadowBlur = 4 * k; ctx.shadowOffsetY = 2 * k;
+  ctx.fillStyle = '#efe4c8'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = '#8a2a1a'; ctx.lineWidth = 1.6 * k; ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, 7); ctx.stroke();
+  ctx.scale(r / 10, r / 10);
+  ctx.fillStyle = '#b3261c';
+  // body, wings, tail
+  ctx.beginPath(); ctx.ellipse(0, 1.5, 4.2, 2.2, -0.2, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-1, 0); ctx.lineTo(-6, -6); ctx.lineTo(-3.5, -2.5); ctx.lineTo(-2.2, -6.5); ctx.lineTo(0.5, -1); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(4, -6.5); ctx.lineTo(4.4, -2.6); ctx.lineTo(7, -4.5); ctx.lineTo(3, 0.5); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(3.5, 1); ctx.quadraticCurveTo(6.5, -0.5, 7.2, -2.8); ctx.lineTo(6.2, -2.9); ctx.quadraticCurveTo(5.6, -1.4, 3.2, 2.4); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-3.8, 2); ctx.quadraticCurveTo(-7, 3.5, -6.5, 6.5); ctx.lineTo(-5.8, 5.8); ctx.quadraticCurveTo(-5.6, 4, -3, 3.2); ctx.fill();
+  ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.arc(6.6, -3.1, 0.5, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+function portalArt(ctx, x, y, S, k) {
+  const cx = x * S, cy = y * S, w = 0.11 * S, h = 0.15 * S;
+  ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)';
+  ctx.beginPath(); ctx.ellipse(cx + 3 * k, cy + h * 0.5, w * 0.9, h * 0.18, 0, 0, 7); ctx.fill(); ctx.restore();
+  // glowing magic doorway inside a stone arch
+  const glow = ctx.createRadialGradient(cx, cy, 1, cx, cy, w);
+  glow.addColorStop(0, 'rgba(230,250,255,0.95)'); glow.addColorStop(0.5, 'rgba(120,190,255,0.85)'); glow.addColorStop(1, 'rgba(90,60,200,0.2)');
+  const arch = new Path2D();
+  arch.moveTo(cx - w * 0.38, cy + h * 0.45); arch.lineTo(cx - w * 0.38, cy - h * 0.05);
+  arch.arc(cx, cy - h * 0.05, w * 0.38, Math.PI, 0); arch.lineTo(cx + w * 0.38, cy + h * 0.45); arch.closePath();
+  ctx.fillStyle = glow; ctx.fill(arch);
+  ctx.strokeStyle = '#8c8574'; ctx.lineWidth = 5 * k; ctx.stroke(arch);
+  ctx.strokeStyle = '#c9c1aa'; ctx.lineWidth = 2 * k; ctx.stroke(arch);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  for (let i = 0; i < 6; i++) { const a = i * 1.1; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * w * 0.55, cy - h * 0.1 + Math.sin(a) * h * 0.45, 1.2 * k, 0, 7); ctx.fill(); }
+}
+
+function princessArt(ctx, x, y, S, k) {
+  // a small framed portrait of the princess
+  const w = 0.1 * S, h = 0.13 * S;
+  ctx.save(); ctx.translate(x * S, y * S);
+  ctx.save(); ctx.shadowColor = 'rgba(20,10,0,0.45)'; ctx.shadowBlur = 4 * k; ctx.shadowOffsetY = 2 * k;
+  ctx.fillStyle = '#d9b860'; ctx.beginPath(); ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, 7); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#f4ecd8'; ctx.beginPath(); ctx.ellipse(0, 0, w / 2 - 2 * k, h / 2 - 2 * k, 0, 0, 7); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, w / 2 - 2 * k, h / 2 - 2 * k, 0, 0, 7); ctx.clip();
+  ctx.fillStyle = '#d65c8e'; ctx.beginPath(); ctx.moveTo(-w * 0.45, h * 0.5); ctx.quadraticCurveTo(0, h * 0.02, w * 0.45, h * 0.5); ctx.fill(); // dress
+  ctx.fillStyle = '#f2cfae'; ctx.beginPath(); ctx.arc(0, -h * 0.08, w * 0.17, 0, 7); ctx.fill();          // face
+  ctx.fillStyle = '#a56a2a'; ctx.beginPath(); ctx.arc(0, -h * 0.13, w * 0.19, Math.PI, 0); ctx.fill();    // hair
+  ctx.fillRect(-w * 0.19, -h * 0.13, w * 0.07, h * 0.2); ctx.fillRect(w * 0.12, -h * 0.13, w * 0.07, h * 0.2);
+  ctx.fillStyle = '#f2c94c';                                                                         // crown
+  ctx.beginPath(); ctx.moveTo(-w * 0.14, -h * 0.24); ctx.lineTo(-w * 0.14, -h * 0.33); ctx.lineTo(-w * 0.07, -h * 0.27); ctx.lineTo(0, -h * 0.36); ctx.lineTo(w * 0.07, -h * 0.27); ctx.lineTo(w * 0.14, -h * 0.33); ctx.lineTo(w * 0.14, -h * 0.24); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+function goodsArt(ctx, kind, x, y, S, k) {
+  // white house-shaped plaque with the trade good on it
+  const w = 0.1 * S, h = 0.11 * S;
+  ctx.save(); ctx.translate(x * S, y * S);
+  const plaque = new Path2D();
+  plaque.moveTo(-w / 2, -h * 0.15); plaque.lineTo(0, -h / 2); plaque.lineTo(w / 2, -h * 0.15); plaque.lineTo(w / 2, h / 2); plaque.lineTo(-w / 2, h / 2); plaque.closePath();
+  ctx.save(); ctx.shadowColor = 'rgba(20,10,0,0.45)'; ctx.shadowBlur = 4 * k; ctx.shadowOffsetY = 2 * k;
+  ctx.fillStyle = '#f6f1e4'; ctx.fill(plaque); ctx.restore();
+  ctx.strokeStyle = 'rgba(80,60,40,0.55)'; ctx.lineWidth = 1 * k; ctx.stroke(plaque);
+  ctx.translate(0, h * 0.1);
+  if (kind === 'wine') {
+    ctx.fillStyle = '#8a5a2e'; ctx.beginPath(); ctx.ellipse(0, 0, w * 0.26, h * 0.27, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#4a3018'; ctx.lineWidth = 1.4 * k;
+    for (const dy of [-0.13, 0.13]) { ctx.beginPath(); ctx.moveTo(-w * 0.25, dy * h); ctx.lineTo(w * 0.25, dy * h); ctx.stroke(); }
+    ctx.fillStyle = '#6a1e2a'; ctx.beginPath(); ctx.arc(0, 0, 1.6 * k, 0, 7); ctx.fill();
+  } else if (kind === 'grain') {
+    ctx.strokeStyle = '#c99a2e'; ctx.lineWidth = 1.4 * k; ctx.lineCap = 'round';
+    for (const a of [-0.35, -0.12, 0.12, 0.35]) { ctx.beginPath(); ctx.moveTo(0, h * 0.3); ctx.lineTo(Math.sin(a) * h * 0.4, -h * 0.25); ctx.stroke(); }
+    ctx.fillStyle = '#e8b93a';
+    for (const a of [-0.35, -0.12, 0.12, 0.35]) { ctx.beginPath(); ctx.ellipse(Math.sin(a) * h * 0.4, -h * 0.25, 2 * k, 4 * k, a, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#9a6a1e'; ctx.fillRect(-w * 0.18, h * 0.05, w * 0.36, h * 0.07);
+  } else {
+    ctx.fillStyle = '#b5332a'; ctx.fillRect(-w * 0.3, -h * 0.18, w * 0.6, h * 0.36);
+    ctx.fillStyle = '#d9574a'; ctx.fillRect(-w * 0.3, -h * 0.18, w * 0.6, h * 0.1);
+    ctx.fillStyle = '#7d1f18'; ctx.beginPath(); ctx.ellipse(w * 0.3, 0, w * 0.06, h * 0.18, 0, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function foundationArt(ctx, x, y, S, k) {
+  const cx = x * S, cy = y * S, r = 0.125 * S;
+  ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)';
+  ctx.beginPath(); ctx.ellipse(cx + 3 * k, cy + 5 * k, r, r * 0.8, 0, 0, 7); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#6e6658'; ctx.beginPath(); ctx.ellipse(cx, cy + 3 * k, r, r * 0.8, 0, 0, 7); ctx.fill();
+  const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 1, cx, cy, r);
+  g.addColorStop(0, '#c9c0aa'); g.addColorStop(1, '#8c8371');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(60,50,40,0.45)'; ctx.lineWidth = 1 * k;
+  for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.283; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r * 0.55, cy + Math.sin(a) * r * 0.44); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8); ctx.stroke(); }
+  ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.55, r * 0.44, 0, 0, 7); ctx.stroke();
+  ctx.fillStyle = 'rgba(90,80,65,0.5)'; ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.5, r * 0.4, 0, 0, 7); ctx.fill();
+}
+
+// Find a spot inside feature fi for a symbol, preferring a target point and
+// keeping clear of the meeple spot and other symbols.
+function symbolSpot(label, fi, prefer, avoid, margin = 0.1) {
+  let best = null, bestScore = -1e9;
+  for (let i = 0; i < label.length; i += 1) {
+    if (label[i] !== fi) continue;
+    const x = (i % HIT + 0.5) / HIT, y = (((i / HIT) | 0) + 0.5) / HIT;
+    if (x < margin || y < margin || x > 1 - margin || y > 1 - margin) continue;
+    let clear = 1;
+    for (const [ax, ay, r] of avoid) if (Math.hypot(x - ax, y - ay) < r) clear = 0;
+    const score = (clear ? 0 : -10) - Math.hypot(x - prefer[0], y - prefer[1]);
+    if (score > bestScore) { bestScore = score; best = [x, y]; }
+  }
+  return best;
+}
+
 // ---------- public API ----------
 const cache = new Map();
 
 export function getTileArt(id) {
   if (cache.has(id)) return cache.get(id);
-  const S = ART_SIZE;
-  const geo = geometry(id);
-  const { label, problems } = buildHitMap(id, geo);
-  const anchors = computeAnchors(id, geo, label);
+  const S = ART_SIZE, k = S / 384;
+  const lay = layoutOf(id);
+  const { label, problems } = buildHitMap(id, lay);
+  const anchors = computeAnchors(id, lay, label);
   const c = canvas(S);
   const ctx = c.getContext('2d');
   const rnd = mulberry(hashStr('carc' + id));
+  // spots that trees and symbols keep clear of
+  const busy = [...anchors];
+  for (const p of [lay.portal, lay.dragon, lay.house, lay.volcano, lay.foundation]) if (p) busy.push(p);
+  for (const [x, y, lx, ly] of lay.inns) busy.push([x, y], [lx, ly]);
   paintGrass(ctx, S, rnd);
   paintFarmPatches(ctx, S, rnd, label, id);
-  paintFieldDecor(ctx, S, rnd, label, anchors, id);
-  paintRoads(ctx, S, rnd, geo);
-  if (geo.monastery >= 0) {
-    ctx.save(); ctx.translate(S / 2, S / 2); ctx.scale(1.55, 1.55); ctx.translate(-S / 2, -S / 2);
-    monasteryArt(ctx, S, rnd, S / 384);
+  paintFieldDecor(ctx, S, rnd, label, busy, id);
+  paintRivers(ctx, S, rnd, lay);
+  paintRoads(ctx, S, rnd, lay, 'under');
+  if (lay.volcano) volcanoArt(ctx, lay.volcano[0], lay.volcano[1], S, k, rnd);
+  if (lay.village) villageArt(ctx, lay.village, S, k, rnd);
+  if (lay.trees) treeClumpArt(ctx, lay.trees, S, k, rnd);
+  if (lay.house) cottageArt(ctx, lay.house[0], lay.house[1], S, k);
+  for (const [x, y, lx, ly] of lay.inns) innArt(ctx, x, y, lx, ly, S, k, rnd);
+  paintCities(ctx, S, rnd, lay, label);
+  paintRoads(ctx, S, rnd, lay, 'over');
+  if (lay.gate) gateArt(ctx, [lay.gate[0], lay.gate[1]], lay.gate[2], S, k);
+  if (lay.monastery) {
+    const m = lay.monastery;
+    ctx.save(); ctx.translate(m.x * S, m.y * S); ctx.scale(1.55 * m.s, 1.55 * m.s); ctx.translate(-S / 2, -S / 2);
+    monasteryArt(ctx, S, rnd, k);
     ctx.restore();
   }
-  if (geo.junction) junctionArt(ctx, S, S / 384);
-  paintCities(ctx, S, rnd, geo, label);
-  if (geo.gate) gateArt(ctx, geo.gate, S, S / 384);
-  // pennants
-  for (const cty of geo.cities) {
-    if (!cty.pennant) continue;
-    const [ax, ay] = anchors[cty.fi];
-    // put the shield away from where meeples stand
-    let best = null, bestD = -1;
-    for (let i = 0; i < label.length; i++) {
-      if (label[i] !== cty.fi) continue;
-      const x = (i % HIT + 0.5) / HIT, y = (((i / HIT) | 0) + 0.5) / HIT;
-      if (x < 0.12 || y < 0.12 || x > 0.88 || y > 0.88) continue;
-      const d = Math.min(Math.hypot(x - ax, y - ay), 0.22) - Math.hypot(x - 0.5, y - 0.5) * 0.3;
-      if (d > bestD) { bestD = d; best = [x, y]; }
+  if (lay.garden && !lay.garden.auto) gardenArt(ctx, lay.garden.x, lay.garden.y, S, k, rnd);
+  if (lay.foundation) foundationArt(ctx, lay.foundation[0], lay.foundation[1], S, k);
+  // symbols: keep them off the meeple spots and off each other
+  const avoid = anchors.map(([x, y]) => [x, y, 0.13]);
+  const place = (fi, prefer, r = 0.14) => {
+    const at = fi >= 0 ? symbolSpot(label, fi, prefer, avoid) : prefer;
+    if (at) avoid.push([at[0], at[1], r]);
+    return at;
+  };
+  for (const cty of lay.cities) {
+    if (cty.pennants) {
+      let at = null;
+      if (lay.pennant) at = place(cty.fi, lay.pennant);
+      else {
+        // away from where meeples stand, a little towards the middle of the tile
+        const [ax, ay] = anchors[cty.fi];
+        let bestD = -1;
+        for (let i = 0; i < label.length; i++) {
+          if (label[i] !== cty.fi) continue;
+          const x = (i % HIT + 0.5) / HIT, y = (((i / HIT) | 0) + 0.5) / HIT;
+          if (x < 0.12 || y < 0.12 || x > 0.88 || y > 0.88) continue;
+          if (avoid.slice(anchors.length).some(([px, py, r]) => Math.hypot(px - x, py - y) < r)) continue;
+          const d = Math.min(Math.hypot(x - ax, y - ay), 0.22) - Math.hypot(x - 0.5, y - 0.5) * 0.3;
+          if (d > bestD) { bestD = d; at = [x, y]; }
+        }
+        if (at) avoid.push([at[0], at[1], 0.14]);
+      }
+      if (at) drawShield(ctx, at[0] * S, at[1] * S, 0.125 * S);
     }
-    if (best) drawShield(ctx, best[0] * S, best[1] * S, 0.125 * S);
+    if (cty.goods) {
+      const at = place(cty.fi, [0.3, 0.2]);
+      if (at) goodsArt(ctx, cty.goods, at[0], at[1], S, k);
+    }
+    if (cty.princess) {
+      const at = place(cty.fi, lay.princess || [0.22, 0.2]);
+      if (at) princessArt(ctx, at[0], at[1], S, k);
+    }
   }
+  const featAt = ([x, y]) => label[Math.min(HIT - 1, Math.floor(y * HIT)) * HIT + Math.min(HIT - 1, Math.floor(x * HIT))];
+  if (lay.portal) { const at = place(featAt(lay.portal), lay.portal); portalArt(ctx, at[0], at[1], S, k); }
+  if (lay.dragon) { const at = place(featAt(lay.dragon), lay.dragon); dragonSymbolArt(ctx, at[0], at[1], S, k); }
   finishTile(ctx, S, rnd);
-  const art = { canvas: c, anchors, label, problems, geo };
+  const art = { canvas: c, anchors, label, problems, lay };
   cache.set(id, art);
   return art;
 }

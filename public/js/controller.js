@@ -782,7 +782,7 @@ function confetti() {
   const c = $('fx'); const dpr = Math.min(2, window.devicePixelRatio || 1);
   c.width = innerWidth * dpr; c.height = innerHeight * dpr;
   const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
-  const cols = ['#ffd84a', '#d8322b', '#2a62d6', '#2f9e3a', '#fff', '#8c8c88'];
+  const cols = ['#ffd84a', '#d8322b', '#2a62d6', '#2f9e3a', '#fff', '#e0559f'];
   const parts = Array.from({ length: 160 }, () => ({
     x: Math.random() * innerWidth, y: -20 - Math.random() * innerHeight * 0.6, vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 3,
     r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, w: 6 + Math.random() * 6, h: 3 + Math.random() * 4, c: cols[Math.floor(Math.random() * cols.length)],

@@ -11,6 +11,13 @@
 // carries a road when there is one. A feature lists the ports it touches.
 // Field features also list the indices of the city features they border.
 
+import RIVER from './data/river.js';
+import GARDENS from './data/abbot.js';
+import INNS from './data/inns.js';
+import TRADERS from './data/traders.js';
+import DRAGON from './data/dragon.js';
+import TOWER from './data/tower.js';
+
 export const N = 0, E = 1, S = 2, W = 3;
 const side = (s) => [3 * s, 3 * s + 1, 3 * s + 2];
 
@@ -75,19 +82,41 @@ function finalizeTile(id, t) {
   t.edges = [0, 1, 2, 3].map((s) => t.features[t.portFeature[3 * s + 1]].type);
 }
 for (const [id, t] of Object.entries(TILE_TYPES)) finalizeTile(id, t);
+// expansion tile sets (generated from docs/expansions/*.json)
+for (const set of [GARDENS, RIVER, INNS, TRADERS, DRAGON, TOWER]) registerTiles(set);
+
+export const RIVER_SPRING = 'RI/s';
+export const RIVER_LAKE = 'RI.1/I.e';
+export const hasTag = (t, tag) => TILE_TYPES[t].tags.includes(tag);
+export const isRiverTile = (t) => TILE_TYPES[t].features.some((f) => f.type === 'river');
 
 // Build the shuffled draw pile for the chosen expansions.
 // Returns { start, deck } where deck is drawn from the END (pop).
 export function buildDeck(expansions = {}, rnd = Math.random) {
-  const pile = [];
+  const counts = {};
+  // 3rd-edition base set: 8 tiles carry a garden (they replace one plain copy each)
   for (const [id, t] of Object.entries(TILE_TYPES)) {
     if (t.exp !== 'base') continue;
-    const n = id === START_TILE ? t.count - 1 : t.count;
-    for (let i = 0; i < n; i++) pile.push(id);
+    counts[id] = (counts[id] || 0) + t.count;
+    if (t.replaces) counts[t.replaces] -= t.count;
   }
-  shuffleInPlace(pile, rnd);
-  void expansions;
-  return { start: START_TILE, deck: pile };
+  counts[START_TILE] -= 1; // the start tile is placed separately (or returned to the box with the River)
+  const EXP_OF = { inns: 'inns', traders: 'traders', dragon: 'dragon', tower: 'tower' };
+  for (const [id, t] of Object.entries(TILE_TYPES)) {
+    if (EXP_OF[t.exp] && expansions[EXP_OF[t.exp]]) counts[id] = (counts[id] || 0) + t.count;
+  }
+  const land = [];
+  for (const [id, n] of Object.entries(counts)) for (let i = 0; i < n; i++) land.push(id);
+  shuffleInPlace(land, rnd);
+  if (!expansions.river) return { start: START_TILE, deck: land };
+  // The River: spring is the start tile, river tiles are drawn first, the lake last.
+  const river = [];
+  for (const [id, t] of Object.entries(TILE_TYPES)) {
+    if (t.exp !== 'river' || id === RIVER_SPRING || id === RIVER_LAKE) continue;
+    for (let i = 0; i < t.count; i++) river.push(id);
+  }
+  shuffleInPlace(river, rnd);
+  return { start: RIVER_SPRING, deck: [...land, RIVER_LAKE, ...river] };
 }
 
 function shuffleInPlace(arr, rnd) {

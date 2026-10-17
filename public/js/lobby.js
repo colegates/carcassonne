@@ -6,7 +6,7 @@ import * as C from './controller.js';
 import { sfx } from './sound.js';
 import { $, store, escapeHtml, show, pieceIcon, toast, ask } from './ui.js';
 
-const COLOR_ORDER = ['red', 'blue', 'green', 'yellow', 'black', 'grey'];
+const COLOR_ORDER = ['red', 'blue', 'green', 'yellow', 'black', 'pink'];
 const LEVEL_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 const BOT_NAMES = ['Sir Lancelot', 'Lady Brienne', 'Brother Tuck', 'Baron Bruno', 'Dame Matilda', 'Count Roland'];
 
@@ -20,7 +20,7 @@ setup = {
   farmers: true, hints: true, expansions: {}, myName: '', myColor: 'red',
   ...setup,
 };
-setup.players.forEach((p) => { if (p.color === 'pink') p.color = 'grey'; });
+setup.players.forEach((p) => { if (!COLOR_ORDER.includes(p.color)) p.color = 'pink'; });
 const saveSetup = () => store.set('carc-setup', setup);
 
 let session = null; // online session { online, code, net, room }
