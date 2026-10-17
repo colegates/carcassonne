@@ -4,7 +4,7 @@ const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: +w, height: +h } });
 p.on('console', m => console.log('console:', m.text()));
 p.on('pageerror', e => console.log('pageerror:', e.message));
-await p.goto(url); await p.waitForTimeout(+wait);
+await p.goto(url, { timeout: 180000 }); await p.waitForTimeout(+wait);
 console.log(await p.title());
 await p.screenshot({ path: out });
 await b.close();

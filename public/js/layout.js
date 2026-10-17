@@ -186,7 +186,7 @@ const H = {
   'TB/RRrr': { roads: { 1: { bridge: 'over' } } },
   // ---- The Princess & the Dragon ----
   'DG/F.v': { volcano: [0.44, 0.52], house: [0.8, 0.2] },
-  'DG/R.v': { volcano: [0.5, 0.38], roads: { 0: { end: [0.5, 0.6] } } },
+  'DG/R.v': { volcano: [0.5, 0.36], roads: { 0: { end: [0.5, 0.47] } } },
   'DG/C.v': { volcano: [0.5, 0.66] },
   'DG/Rr.v': { volcano: [0.6, 0.36] },
   'DG/RFr.v': { volcano: [0.5, 0.26], roads: { 0: { c1: [0.35, 0.62], c2: [0.65, 0.52] } } },

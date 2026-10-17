@@ -1,6 +1,6 @@
 // Game controller: turn flow, animations, online sync, end of game.
 // Works for pass-and-play (one phone) and online play (one phone each).
-import { TILE_TYPES } from './tiles.js';
+import { TILE_TYPES, isRiverTile } from './tiles.js';
 import * as G from './game.js';
 import { chooseMove, suggestMove, chooseDragonMove, chooseRansom } from './ai.js';
 import { BoardView } from './board.js';
@@ -96,28 +96,39 @@ export function renderPlayers() {
     });
   }
   const online = session.online ? session.room?.clients || {} : null;
+  // 5 or 6 players: two rows of smaller cards, with the meeple count on the small line
+  const compact = state.players.length >= 5;
+  box.dataset.n = state.players.length;
   [...box.children].forEach((chip, i) => {
     const p = state.players[i];
     chip.querySelector('.pname').textContent = p.name;
     chip.querySelector('.pscore').textContent = ui.shown[i];
-    chip.querySelector('.pmeeples').textContent = supplyText(p);
-    chip.querySelector('.pextra').textContent = extraText(p, i);
-    chip.classList.toggle('active', state.phase !== 'over' && i === state.current);
+    chip.querySelector('.pmeeples').textContent = compact ? '' : supplyText(p);
+    chip.querySelector('.pextra').textContent = compact ? `${supplyText(p)} ${extraText(p, i)}`.trim() : extraText(p, i);
+    chip.classList.toggle('active', state.phase !== 'over' && i === (state.phase === 'dragon' ? G.dragonMover(state) : state.current));
     chip.classList.toggle('me', session.online && controlOf(i) === 'local');
     const off = online && p.kind !== 'ai' && p.owner && !online[p.owner]?.online;
     chip.classList.toggle('offline', !!off);
   });
+  // keep the player whose turn it is in view when the cards don't all fit
+  const active = box.children[state.phase === 'dragon' ? G.dragonMover(state) : state.current];
+  if (active && box.scrollWidth > box.clientWidth + 2) {
+    const r = active.getBoundingClientRect(), br = box.getBoundingClientRect();
+    if (r.left < br.left || r.right > br.right) active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }
   $('deck-count').textContent = state.deck.length + (state.drawn ? 1 : 0) + (state.setAside?.length || 0);
 }
 
 function supplyText(p) {
-  return `♟${p.supply.meeple}${p.supply.large ? '+' : ''}`;
+  return `♟${p.supply.meeple}`;
 }
 
 // Expansion counters under the score: goods, tower floors, prisoners, the fairy.
 function extraText(p, i) {
   const ex = state.options.expansions || {};
   const parts = [];
+  if (p.supply.large) parts.push('+big');
+  if (ex.abbot && p.supply.abbot) parts.push('+abbot');
   if (ex.traders && p.goods) {
     const g = [['🍷', p.goods.wine], ['🌾', p.goods.grain], ['🧵', p.goods.cloth]].filter(([, n]) => n > 0);
     if (g.length) parts.push(g.map(([icon, n]) => `${icon}${n}`).join(''));
@@ -164,6 +175,7 @@ function setDock({ instruction, rotate = false, confirm = false, undo = false, p
   $('btn-hint').hidden = !helper() || !isLocal() || state.phase === 'over' || state.phase === 'dragon';
   $('btn-ransom').hidden = !(isLocal() && !ui.busy && G.ransomOptions(state).length);
   renderPicker(picker);
+  renderBonusToggle();
   requestAnimationFrame(() => { $('side-tools').style.bottom = `${$('dock').offsetHeight + 14}px`; });
 }
 
@@ -218,6 +230,8 @@ export async function startTurn() {
     if (session.online) {
       banner(`<span style="color:${colorOf(p).dark}">●</span> Your turn${humansHere > 1 ? `, ${escapeHtml(p.name)}` : ''}!`, 1800);
       try { navigator.vibrate?.(120); } catch { /* not supported */ }
+    } else if (state.part === 2) {
+      banner(`🔨 ${escapeHtml(p.name)}'s builder: play a bonus tile!`, 1800);
     } else if (state.players.filter((q) => q.kind === 'human').length > 1 || state.turn <= 2) {
       banner(`<span style="color:${colorOf(p).dark}">●</span> ${escapeHtml(p.name)}'s turn`);
     }
@@ -239,9 +253,11 @@ async function dragonPhase() {
   [...$('players').children].forEach((c, i) => c.classList.toggle('thinking', i === mover && control !== 'local'));
   const [dx, dy] = G.parseKey(state.dragon);
   view.ensureVisible(dx, dy);
-  if (step === 1) { banner('🐉 The dragon takes flight!', 1500); sfx.dragon(); }
+  renderPlayers();
+  const who = `<span style="color:${colorOf(p).dark}">●</span> ${escapeHtml(p.name)}`;
+  if (step === 1) { banner(`🐉 The dragon takes flight! ${who} moves it first`, 1900); sfx.dragon(); }
   if (control === 'local') {
-    if (session.online || state.players.filter((q) => q.kind === 'human').length > 1) banner(`<span style="color:${colorOf(p).dark}">●</span> ${escapeHtml(p.name)}: move the dragon`, 1400);
+    if (step > 1 && (session.online || state.players.filter((q) => q.kind === 'human').length > 1)) banner(`${who}: move the dragon`, 1400);
     setDock({ instruction: `🐉 Move the dragon, step <b>${step} of ${G.DRAGON_STEPS}</b>: tap a <b style="color:#c62b1d">red</b> tile. It eats every figure there!`, seat: mover });
   } else if (control === 'bot') {
     setDock({ instruction: `🐉 ${escapeHtml(p.name)} is moving the dragon (${step}/${G.DRAGON_STEPS})…`, seat: mover });
@@ -263,13 +279,13 @@ async function playDragonMove(k, token) {
   const placer = state.current;
   const path = [...state.flight.visited, k];
   view.setVM({ dragonMoves: null, dragonPath: path });
+  const from = state.dragon;
   const events = G.moveDragon(state, k);
   state.seq = (state.seq || 0) + 1;
   record({ t: 'dragon', key: k });
-  view.setVM({ dragonHop: performance.now() });
-  sfx.place();
-  await sleep(ui.fast ? 0 : 430);
-  view.setVM({ dragonHop: null });
+  view.setVM({ dragonFly: { from, start: performance.now(), dur: ui.fast ? 1 : 520 } });
+  sfx.dragon();
+  await sleep(ui.fast ? 0 : 560);
   if (token !== turnToken) return;
   const eaten = events.find((e) => e.kind === 'dragon')?.meeples || [];
   if (eaten.length) {
@@ -329,7 +345,29 @@ function remoteWaiting() {
 
 function humanPlacePhase() {
   refreshCandidates();
-  setDock({ instruction: 'Tap a square to place your tile — <b>gold</b> ones fit the way it is turned', rotate: true });
+  frameCandidates();
+  const riverTile = state.drawn && isRiverTile(state.drawn);
+  const instruction = riverTile ? '🌊 Make the river longer: its water must join the end of the river (no U-turns)'
+    : state.part === 2 ? '🔨 <b>Bonus tile</b> from your builder: place this one too — gold squares fit as it is turned'
+      : 'Tap a square to place your tile — <b>gold</b> ones fit the way it is turned';
+  setDock({ instruction, rotate: true });
+}
+
+// Make sure the squares you can play on are on screen (only a few: show them all).
+function frameCandidates() {
+  const list = ui.placements || [];
+  if (!list.length) return;
+  const vp = view.viewport();
+  const z = view.cam.z;
+  const onScreen = (p) => {
+    const [sx, sy] = view.toScreen(p.x, p.y);
+    return sx - z / 2 >= 0 && sx + z / 2 <= view.w && sy - z / 2 >= vp.top && sy + z / 2 <= vp.top + vp.vh;
+  };
+  if (list.length <= 3 || !list.some(onScreen)) {
+    const pts = list.map((p) => [p.x, p.y]);
+    if (state.last) pts.push(G.parseKey(state.last));
+    view.frameTiles(pts, 120);
+  }
 }
 
 function refreshCandidates() {
@@ -363,10 +401,13 @@ function setTentative(x, y, r, animate = true) {
 function previewPoints(x, y, r) {
   const k = G.key(x, y);
   state.board[k] = { t: state.drawn, r, pieces: [], n: 0 };
-  let ev = [];
-  try { ev = G.scoreAfterPlacement(state, k, false).filter((e) => e.winners.length); } finally { delete state.board[k]; }
-  if (!ev.length) return '';
+  let all = [];
+  try { all = G.scoreAfterPlacement(state, k, false); } finally { delete state.board[k]; }
+  const ev = all.filter((e) => e.winners.length);
+  const goods = all.filter((e) => e.kind === 'goods').reduce((a, e) => a + Object.values(e.goods).reduce((x, y) => x + y, 0), 0);
+  if (!ev.length && !goods) return '';
   const parts = ev.map((e) => `${e.winners.map((w) => state.players[w].name).join(' & ')} +${e.points}`);
+  if (goods) parts.push(`you take ${goods} goods`);
   return `<br>Completes: <b>${escapeHtml(parts.join(', '))}</b>`;
 }
 
@@ -405,23 +446,30 @@ view.onTap = (wx, wy, sx, sy) => {
     sfx.tap();
     setTentative(x, y, pl.rots.includes(ui.previewRot) ? ui.previewRot : pl.rots[0], false);
   } else if (state.phase === 'action' && ui.ghosts?.length) {
-    let best = null, bd = Math.max(26, view.cam.z * 0.22);
-    // capture targets first (they sit on top of everything else)
-    for (const g of [...ui.ghosts].sort((a, b) => (b.type === 'capture') - (a.type === 'capture'))) {
-      const [gx, gy] = view.ghostScreenPos(g);
-      const d = Math.hypot(gx - sx, gy - sy);
-      if (d < bd) { bd = d; best = g; }
-    }
+    const radius = Math.max(26, view.cam.z * 0.22);
+    const nearest = (list) => {
+      let best = null, bd = radius;
+      for (const g of list) {
+        const [gx, gy] = view.ghostScreenPos(g);
+        const d = Math.hypot(gx - sx, gy - sy);
+        if (d < bd) { bd = d; best = g; }
+      }
+      return best;
+    };
+    // capture targets and other figure rings first (they sit on top of everything else)
+    let best = nearest(ui.ghosts.filter((g) => g.type !== 'follower'));
     if (!best) {
-      // tapping elsewhere on a tile selects the feature under the finger
+      // then the feature under the finger, so a tap in a meadow picks that meadow
       const tile = state.board[G.key(x, y)];
       if (tile) {
         const [ux, uy] = rotUnit(wx - x + 0.5, wy - y + 0.5, -tile.r);
         const fi = featureUnder(tile.t, ux, uy);
-        best = ui.ghosts.find((g) => g.key === G.key(x, y) && g.fi === fi) || null;
+        const here = ui.ghosts.filter((g) => g.type === 'follower' && g.key === G.key(x, y) && g.fi === fi);
+        best = here.find((g) => sameOpt(g.act, ui.selected)) || here[0] || null;
       }
-      if (!best) { if (ui.selected && !ui.capturing) selectOption(null); return; }
     }
+    if (!best) best = nearest(ui.ghosts.filter((g) => g.type === 'follower'));
+    if (!best) { if (ui.selected && !ui.capturing) selectOption(null); return; }
     if (best.type === 'capture') {
       ui.capture = ui.capture && sameCapture(ui.capture, best.act) ? null : best.act;
       sfx.capture();
@@ -454,7 +502,9 @@ async function onConfirm() {
   if (state.phase === 'place' && ui.tentative) {
     const { x, y, r } = ui.tentative;
     ui.snapshot = { state: G.cloneState(state), tentative: { ...ui.tentative } };
+    const aside = state.setAside?.length || 0;
     G.placeTile(state, x, y, r);
+    if (aside && !state.setAside.length) toast(`🌋 The dragon has arrived! The ${aside} dragon tile${aside > 1 ? 's' : ''} put aside go${aside > 1 ? '' : 'es'} back into the pile`);
     ui.placedAt = { x, y, r };
     ui.tentative = null;
     ui.noBonus = false; ui.bonusTold = false;
@@ -476,17 +526,19 @@ const groupKind = (g) => (g.includes(':') ? g.split(':')[1] : ({ recall: 'abbot'
 const GROUP_ORDER = ['meeple', 'large', 'abbot', 'builder', 'pig', 'portal:meeple', 'portal:large', 'portal:abbot', 'princess', 'fairy', 'recall', 'floor', 'towerTop:meeple', 'towerTop:large'];
 
 // Traders & Builders: the builder's bonus tile may be declined
-function bonusToggle() {
-  if (!state.bonus || state.part !== 1) return '';
-  return ` <button class="bonus-toggle${ui.noBonus ? ' off' : ''}" id="bonus-toggle">🔨 Bonus tile: <b>${ui.noBonus ? 'skip' : 'yes'}</b></button>`;
+function bonusToggle() { return ''; }
+function renderBonusToggle() {
+  const box = $('dock-extra');
+  const show = state && state.phase === 'action' && state.bonus && state.part === 1 && state.deck.length > 0 && isLocal() && !ui.busy;
+  box.hidden = !show;
+  if (!show) { box.innerHTML = ''; return; }
+  box.innerHTML = `<button class="bonus-toggle${ui.noBonus ? ' off' : ''}" id="bonus-toggle">🔨 Builder's bonus tile after this one: <b>${ui.noBonus ? 'skip it' : 'yes'}</b></button>`;
 }
-$('instruction').addEventListener('click', (e) => {
+$('dock-extra').addEventListener('click', (e) => {
   if (e.target.closest('#bonus-toggle') && state?.phase === 'action' && isLocal()) {
     ui.noBonus = !ui.noBonus;
     sfx.tap();
-    const b = $('bonus-toggle');
-    b.classList.toggle('off', ui.noBonus);
-    b.innerHTML = `🔨 Bonus tile: <b>${ui.noBonus ? 'skip' : 'yes'}</b>`;
+    renderBonusToggle();
   }
 });
 
@@ -494,7 +546,7 @@ function beginActionPhase() {
   const opts = G.followerOptions(state);
   ui.options = opts;
   ui.selected = null; ui.capture = null; ui.capturing = false;
-  if (state.bonus && state.part === 1 && !ui.bonusTold) { ui.bonusTold = true; toast('🔨 Your builder earns you a bonus tile after this one!'); }
+  if (state.bonus && state.part === 1 && state.deck.length && !ui.bonusTold) { ui.bonusTold = true; toast('🔨 Your builder earns you a bonus tile after this one!'); }
   const groups = [...new Set(opts.map(optGroup))];
   ui.group = groups.includes('meeple') ? 'meeple' : groups.sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b))[0] || null;
   if (!opts.length) {
@@ -507,15 +559,30 @@ function beginActionPhase() {
     return;
   }
   const [x, y] = G.parseKey(state.last);
-  view.animateCam({ x, y, z: Math.max(Math.min(view.cam.z, view.viewport().vh / 1.25), Math.min(170, view.w / 2.4, view.viewport().vh / 1.25)) });
-  if (state.dragon === state.last) toast('🌋 The dragon lands on the volcano: no figure may go on this tile');
   showGhosts();
+  if (ui.ghosts.some((g) => g.key !== state.last)) frameGhosts();
+  else view.animateCam({ x, y, z: Math.max(Math.min(view.cam.z, view.viewport().vh / 1.25), Math.min(170, view.w / 2.4, view.viewport().vh / 1.25)) });
+  if (state.dragon === state.last) toast('🌋 The dragon lands on the volcano: no figure may go on this tile');
+  else gardenTip(opts);
   if (ui.hint && ui.hint.act && opts.some((o) => sameOpt(o, ui.hint.act))) {
     toast('💡 Hint: try this one');
     const best = opts.find((o) => sameOpt(o, ui.hint.act));
     ui.group = optGroup(best);
     selectOption(best);
     if (ui.hint.act.capture) { ui.capture = ui.hint.act.capture; showGhosts(); }
+  }
+}
+
+// The Abbot: gardens are easy to miss
+function gardenTip(opts) {
+  if (!state.options.expansions?.abbot) return;
+  const tile = state.board[state.last];
+  const gi = TILE_TYPES[tile.t].features.findIndex((f) => f.type === 'garden');
+  if (gi < 0) return;
+  if (opts.some((o) => o.kind === 'follower' && o.k === 'abbot' && o.key === state.last && o.fi === gi)) {
+    if (ui.group !== 'abbot') toast('🌷 This tile has a garden: tap "Abbot" to put your abbot on it');
+  } else if (!cur().supply.abbot && G.findPiece(state, state.current, 'abbot')) {
+    toast('🌷 A garden! Your abbot is busy elsewhere: call him home first to use gardens');
   }
 }
 
@@ -530,7 +597,9 @@ function ghostLabel(o) {
   if (o.kind === 'towerTop') return '🏰 Close this tower';
   const tile = state.board[o.key];
   const f = TILE_TYPES[tile.t].features[o.fi];
-  let label = (o.portal ? '🌀 ' : '') + (o.k === 'builder' ? 'Builder' : o.k === 'pig' ? 'Pig' : TYPE_LABEL[f.type] || f.type);
+  if (o.k === 'builder') return '🔨 Builder here';
+  if (o.k === 'pig') return '🐖 Pig here';
+  let label = (o.portal ? '🌀 ' : '') + (TYPE_LABEL[f.type] || f.type);
   if (!helper()) return label;
   if (f.type === 'monastery' || f.type === 'garden') {
     const [x, y] = G.parseKey(o.key);
@@ -538,7 +607,8 @@ function ghostLabel(o) {
   } else if (f.type === 'road' || f.type === 'city') {
     const g = G.describeGroup(state, o.key, o.fi);
     const mult = f.type === 'city' ? (g.cathedral ? 3 : 2) : (g.inn ? 2 : 1);
-    label += g.complete ? ` · ${g.points} pts!` : f.type === 'city' ? ` · ${g.points} now · ${(g.tiles.size + g.pennants) * mult} if finished` : ` · worth ${g.points}+`;
+    label += g.complete ? ` · ${g.points} pts!` : f.type === 'city' ? ` · ${g.points} now · ${(g.tiles.size + g.pennants) * mult} if finished`
+      : g.inn ? ` · ${g.points} now · ${g.tiles.size * 2} if finished` : ` · worth ${g.points}+`;
   }
   return label;
 }
@@ -560,7 +630,7 @@ function showGhosts() {
   if (ui.selected?.kind === 'floor' && ui.group === 'floor') {
     const targets = G.captureTargets(state, ui.selected.key, state.towers[ui.selected.key].h + 1);
     if (targets.length) {
-      if (!wasCapturing) view.frame([G.parseKey(ui.selected.key), ...targets.map((c) => G.parseKey(c.key))]);
+      if (!wasCapturing) view.frameTiles([G.parseKey(ui.selected.key), ...targets.map((c) => G.parseKey(c.key))]);
       ui.capturing = true;
       for (const c of targets) {
         ui.ghosts.push({ key: c.key, fi: c.fi, k: c.k, p: c.p, type: 'capture', act: c, selected: !!ui.capture && sameCapture(ui.capture, c),
@@ -576,19 +646,30 @@ function showGhosts() {
 function frameGhosts() {
   const pts = (ui.ghosts || []).map((g) => G.parseKey(g.key));
   if (state.last) pts.push(G.parseKey(state.last));
-  if (pts.length) view.frame(pts);
+  if (pts.length) view.frameTiles(pts);
+}
+
+function recallLabel() {
+  const o = ui.options.find((q) => q.kind === 'recall');
+  if (!o) return PIECE_LABEL.recall;
+  const [x, y] = G.parseKey(o.key);
+  return `Abbot home +${1 + G.monasteryNeighbours(state.board, x, y)}`;
 }
 
 function pickerFor() {
   const groups = [...new Set(ui.options.map(optGroup))].sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
   return {
     active: ui.group,
-    items: groups.map((g) => ({ id: g, kind: groupKind(g), icon: GROUP_ICON[g] || (g.startsWith('portal') ? '🌀' : g.startsWith('towerTop') ? '🏰' : ''), label: PIECE_LABEL[g] || g })),
+    items: groups.map((g) => ({ id: g, kind: groupKind(g), icon: GROUP_ICON[g] || (g.startsWith('portal') ? '🌀' : g.startsWith('towerTop') ? '🏰' : ''), label: g === 'recall' ? recallLabel() : PIECE_LABEL[g] || g })),
     onPick: (g) => { ui.group = g; ui.selected = null; ui.capture = null; view.setVM({ highlight: null }); showGhosts(); frameGhosts(); },
   };
 }
 
 const GROUP_HELP = {
+  abbot: '⛪ Abbot: only on a monastery or a garden. Later you can call him home early for points. Tap a ghost',
+  large: '🍺 Big meeple: it counts as two meeples when deciding who wins. Tap a ghost',
+  builder: '🔨 Builder: on a road or city where you have a meeple. Extend it later to play two tiles in one turn. Tap a ghost',
+  pig: '🐖 Pig: in a field where you have a farmer. Each finished city there is worth 4 to you at the end. Tap a ghost',
   fairy: '🧚 Tap a fairy to move her next to one of your figures: <b>+1</b> each turn, <b>+3</b> when it scores, and the dragon can\'t come near',
   princess: '👸 Tap a knight to send it home (you place nothing else this turn)',
   recall: '⤴️ Tap your abbot to bring him home and score his monastery or garden now',
@@ -598,8 +679,10 @@ const GROUP_HELP = {
 };
 
 function updateActionDock(info = '') {
-  const left = `<small>(♟${cur().supply.meeple} left)</small>`;
+  const sup = cur().supply;
+  const left = `<small>(♟${sup.meeple} left${sup.large ? ' + big meeple' : ''})</small>`;
   let instruction;
+  const volcano = state.dragon === state.last ? '🌋 No figures on the volcano tile this turn. ' : '';
   if (ui.capturing) {
     const c = ui.capture;
     instruction = c ? `${c.p === state.current ? `Your ${KIND_NAME[c.k]} goes home` : `Capture ${escapeHtml(state.players[c.p].name)}'s ${KIND_NAME[c.k]}`}. Press ✓` : '🏰 Tap a <b style="color:#c62b1d">red</b> ring to capture that figure, or ✓ to build without capturing';
@@ -607,7 +690,7 @@ function updateActionDock(info = '') {
   else if (GROUP_HELP[ui.group]) instruction = `${GROUP_HELP[ui.group]}, or ✓ to skip`;
   else if (ui.group?.startsWith('portal')) instruction = '🌀 Magic portal: tap a ghost <b>anywhere on the map</b> to place there, or ✓ to skip';
   else instruction = `Tap a <b>ghost</b> to claim it, or ✓ to skip ${left}`;
-  setDock({ instruction: instruction + bonusToggle(), confirm: true, undo: !!ui.snapshot, pulse: !!ui.selected, picker: pickerFor() });
+  setDock({ instruction: volcano + instruction + bonusToggle(), confirm: true, undo: !!ui.snapshot, pulse: !!ui.selected, picker: pickerFor() });
 }
 
 function selectOption(opt) {
@@ -628,7 +711,7 @@ function selectOption(opt) {
       const g = G.getGroup(state.board, opt.key, opt.fi);
       highlight = { nodes: g.nodes, color: feat.type === 'field' ? '#b6ff6a' : '#ffe680' };
       if (opt.k === 'builder') info = '🔨 Builder: extend this again on a later turn to play a second tile';
-      else if (opt.k === 'pig') info = '🐖 Pig: +1 per finished city for your farmers here at the end';
+      else if (opt.k === 'pig') info = '🐖 Pig: if you win this field at the end, each finished city gives you 4 instead of 3';
       else if (feat.type === 'field') {
         const done = G.fieldCities(state.board, g).filter((c) => c.complete).length;
         info = `${TYPE_ICON.field} Farmer (stays all game): ${done * 3} pts so far`;
@@ -717,6 +800,7 @@ async function completeTurn(act, placedAt) {
 async function afterTurnAnimation(events, act, k, placer, token) {
   view.setVM({ ghosts: null, highlight: null });
   ui.ghosts = null;
+  setDock({ instruction: '…', seat: placer });
   const returning = events.flatMap((e) => e.meeples || []);
   view.setVM({ extraMeeples: returning.map((m) => ({ ...m })) });
   if (act && act.kind === 'follower') {
@@ -749,7 +833,9 @@ async function playTurnAction(a, token) {
   await sleep(ui.fast ? 0 : 550);
   if (token !== turnToken) return;
   const placer = state.current;
+  const aside = state.setAside?.length || 0;
   G.placeTile(state, a.x, a.y, a.r);
+  if (aside && !state.setAside.length) toast(`🌋 The dragon has arrived! The ${aside} dragon tile${aside > 1 ? 's' : ''} put aside go${aside > 1 ? '' : 'es'} back into the pile`);
   view.setVM({ tentative: null, lastKey: state.last, lastColor: colorOf(p).light });
   view.addEffect({ type: 'drop', key: state.last, dur: 380 });
   sfx.place();
@@ -874,10 +960,11 @@ export function onNetMessage(msg) {
 // Bring this phone in line with the server's list of actions.
 export function resyncFrom(init, actions) {
   const keys = actions.map((a) => JSON.stringify(a));
-  const prefix = !forceRebuild && state && state.gameId === init.gameId && applied.length <= keys.length && applied.every((a, i) => a === keys[i]);
+  let agree = !forceRebuild && !!state && state.gameId === init.gameId;
   forceRebuild = false;
-  if (prefix) {
-    // our copy is behind but on track: queue whatever we have not applied yet
+  for (let i = 0; agree && i < Math.min(applied.length, keys.length); i++) if (applied[i] !== keys[i]) agree = false;
+  if (agree && keys.length >= applied.length) {
+    // the room is ahead of us (or level): play the moves we haven't seen yet
     pending.length = 0;
     for (let i = applied.length; i < actions.length; i++) pending.push(actions[i]);
     cursor = actions.length;
@@ -885,10 +972,27 @@ export function resyncFrom(init, actions) {
     if (!ui.busy) pump();
     return;
   }
+  if (agree) {
+    // we are ahead: our latest moves have not reached the room yet, so send them (again);
+    // a copy that arrives twice is simply refused by the room
+    pending.length = 0;
+    for (let i = keys.length; i < applied.length; i++) {
+      sent.add(i);
+      session.net.send({ type: 'action', seq: i, action: JSON.parse(applied[i]), over: i === applied.length - 1 && state.phase === 'over' });
+    }
+    cursor = Math.max(cursor, applied.length);
+    return;
+  }
   // our copy went its own way (a move the room never accepted): rebuild from the room's list
   session.net?.dropActions?.();
   const s = G.cloneState(init);
-  for (const a of actions) G.applyAction(s, a);
+  try {
+    for (const a of actions) G.applyAction(s, a);
+  } catch (e) {
+    console.error('The room\'s list of moves does not replay', e);
+    toast('This online game got out of step. Please start a new game.');
+    return;
+  }
   startGame(s, session, actions);
 }
 
@@ -914,6 +1018,17 @@ async function animateEvents(events, placer, final = false, token = turnToken) {
     const tiles = [...new Set(nodes.map(([k]) => k))].map(G.parseKey);
     const cx = tiles.reduce((a, [x]) => a + x, 0) / tiles.length;
     const cy = tiles.reduce((a, [, y]) => a + y, 0) / tiles.length;
+    if (final && !e.points && e.winners.length && (e.inn || e.cathedral) && (e.kind === 'road' || e.kind === 'city')) {
+      // Inns & Cathedrals: an unfinished inn road or cathedral city is worth nothing
+      view.ensureVisible(cx, cy);
+      view.addEffect({ type: 'glow', nodes, dur: 1600, color: '#ff8a7a' });
+      view.addEffect({ type: 'float', x: cx, y: cy, text: '0', sub: e.inn ? '🍺 Inn road not finished!' : '⛪ Cathedral city not finished!', color: '#ffb0a0', dur: 1900 });
+      if (!ui.fast) sfx.error();
+      await wait(1200);
+      for (const m of e.meeples || []) flyHome(m);
+      await wait(450);
+      continue;
+    }
     if (!e.winners.length || (final && !e.points)) {
       if (!final) view.addEffect({ type: 'glow', nodes, dur: 900, color: '#ffffff' });
       for (const m of e.meeples || []) flyHome(m);
@@ -923,7 +1038,7 @@ async function animateEvents(events, placer, final = false, token = turnToken) {
     const winnerColor = colorOf(state.players[e.winners[0]]);
     const what = { road: 'Road', city: 'City', monastery: 'Monastery', field: 'Farm', garden: 'Garden' }[e.kind] || e.kind;
     const sub = e.label || (final ? (e.kind === 'field' ? `${e.cityCount ?? e.points / 3} finished cit${(e.cityCount ?? e.points / 3) === 1 ? 'y' : 'ies'}` : `Unfinished ${what.toLowerCase()}`)
-      : `${what} complete!`);
+      : e.kind === 'road' && e.inn ? 'Road with an inn: ×2!' : e.kind === 'city' && e.cathedral ? 'Cathedral city: ×3!' : `${what} complete!`);
     if (e.kind === 'field' && e.cities) {
       for (const cn of e.cities) view.addEffect({ type: 'glow', nodes: cn, dur: 1700, color: '#ffd84a' });
       view.addEffect({ type: 'glow', nodes, dur: 1700, color: '#9dff5a' });
@@ -936,7 +1051,10 @@ async function animateEvents(events, placer, final = false, token = turnToken) {
     const ms = e.meeples || [];
     if (!final && ms.length && new Set(ms.filter((m) => (m.w ?? 1) > 0).map((m) => m.p)).size > 1) {
       const losers = [...new Set(ms.map((m) => m.p))].filter((p) => !e.winners.includes(p));
-      banner(losers.length ? `⚔️ ${escapeHtml(state.players[e.winners[0]].name)} wins the ${what.toLowerCase()} from ${losers.map((p) => escapeHtml(state.players[p].name)).join(' & ')}!` : `🤝 Shared ${what.toLowerCase()}! +${e.points} each`, 2200);
+      const big = ms.some((m) => m.k === 'large') ? ' (the big meeple counts 2)' : '';
+      banner(losers.length ? `⚔️ ${escapeHtml(state.players[e.winners[0]].name)} wins the ${what.toLowerCase()} from ${losers.map((p) => escapeHtml(state.players[p].name)).join(' & ')}!${big}` : `🤝 Shared ${what.toLowerCase()}! +${e.points} each`, 2200);
+    } else if (!final && e.kind === 'recall') {
+      banner(`⤴️ ${escapeHtml(state.players[e.winners[0]].name)}'s abbot comes home: +${e.points}!`, 1800);
     } else if (!final && e.points >= 8) {
       banner(`🎉 ${escapeHtml(state.players[e.winners[0]].name)} +${e.points}! Great ${what.toLowerCase()}!`, 2000);
     }
@@ -1036,6 +1154,14 @@ async function animateSpecial(e, wait) {
       return true;
     case 'ransom':
       return true;
+    case 'dragonStuck':
+      banner('🐉 The dragon is boxed in and can\'t fly this time', 1800);
+      await wait(900);
+      return true;
+    case 'dragonLands':
+      banner(`🐉 Nowhere left to fly: the dragon lands after ${e.steps} step${e.steps === 1 ? '' : 's'}`, 1800);
+      await wait(900);
+      return true;
     case 'goods': {
       const ICON = { wine: '🍷', grain: '🌾', cloth: '🧵' };
       if (e.player !== undefined) {
@@ -1075,9 +1201,11 @@ async function endGame() {
     view.fit(true);
     await sleep(700);
     let lastKind = null;
+    const SECTION = { garden: 'monastery', pig: 'field' };
     for (const e of events) {
-      if (e.kind !== lastKind && !ui.fast) {
-        lastKind = e.kind;
+      const sec = SECTION[e.kind] || e.kind;
+      if (sec !== lastKind && e.kind !== 'fairy' && !ui.fast) {
+        lastKind = sec;
         const title = e.section || { road: '🛣️ Unfinished roads', city: '🏯 Unfinished cities', monastery: '⛪ Monasteries & gardens', field: '🌾 Farms', goods: '📦 Trade goods' }[e.kind];
         if (title) banner(title, 1500);
         await sleep(600);

@@ -74,7 +74,8 @@ export function newGame(players, options = {}, rnd = Math.random) {
       prisoners: [], // figures of other players held by this player (The Tower)
       breakdown: { road: 0, city: 0, monastery: 0, field: 0, goods: 0, fairy: 0, tower: 0 },
     })),
-    board: { [key(0, 0)]: { t: start, r: 0, pieces: [], n: 0 } },
+    // the River's spring is turned so the river flows down the (portrait) screen
+    board: { [key(0, 0)]: { t: start, r: start === RIVER_SPRING ? 1 : 0, pieces: [], n: 0 } },
     deck,
     current: 0,
     drawn: null,
@@ -96,7 +97,7 @@ export function newGame(players, options = {}, rnd = Math.random) {
     ransomPaid: false,
   };
   if (start === RIVER_SPRING) {
-    const rs = riverSidesWorld(start, 0);
+    const rs = riverSidesWorld(start, 1);
     state.river = { open: { x: 0, y: 0, side: rs[0] }, lastIn: null, run: { dir: 0, n: 0 } };
   }
   drawTile(state);
@@ -399,6 +400,7 @@ export function followerOptions(state) {
   const farmers = state.options.farmers !== false;
   const sizes = ['meeple', 'large'].filter((s) => pl.supply[s] > 0);
   // no figure may share a tile with the dragon (a volcano tile has just called it)
+  const offered = new Set(); // a feature already offered through another part of this tile
   if (state.dragon !== k) {
     feats.forEach((f, fi) => {
       if (f.type === 'river') return;
@@ -414,6 +416,8 @@ export function followerOptions(state) {
       }
       if (f.type === 'field' && !farmers) return;
       const g = getGroup(state.board, k, fi);
+      if (offered.has(g.id)) return;
+      offered.add(g.id);
       const occupied = g.meeples.some(isFollower);
       if (!occupied) for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s });
       // Traders & Builders: builder next to your own knight/highwayman, pig next to your farmer
@@ -706,6 +710,7 @@ export function finishTurn(state, act = null, noBonus = false) {
     if (dragonMoves(state).length) return events;
     state.flight = null;
     state.phase = 'action';
+    events.push({ kind: 'dragonStuck', winners: [], points: 0, nodes: [], meeples: [], key: state.dragon });
   }
   events.push(...scoreAndEnd(state));
   return events;
@@ -789,6 +794,7 @@ export function moveDragon(state, k) {
     events.push({ kind: 'return', winners: [], points: 0, nodes: [], meeples: loose });
   }
   if (state.flight.moves >= DRAGON_STEPS || !dragonMoves(state).length) {
+    if (state.flight.moves < DRAGON_STEPS) events.push({ kind: 'dragonLands', winners: [], points: 0, nodes: [], meeples: [], key: k, steps: state.flight.moves });
     state.flight = null;
     state.phase = 'action';
     events.push(...scoreAndEnd(state));

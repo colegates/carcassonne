@@ -11,7 +11,7 @@ const p = await ctx.newPage();
 const errors = [];
 p.on('console', (m) => { if (m.type() === 'error') { console.log('console:', m.text()); errors.push(m.text()); } });
 p.on('pageerror', (e) => { console.log('pageerror:', e.message); errors.push(e.message); });
-await p.goto(base); await p.waitForTimeout(1000);
+await p.goto(base, { timeout: 180000 }); await p.waitForTimeout(1000);
 const results = [];
 const check = (name, ok, extra = '') => { results.push(`${ok ? 'PASS' : 'FAIL'} ${name} ${extra}`); };
 const tapWorld = async (x, y) => {

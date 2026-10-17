@@ -15,7 +15,7 @@ const LEVELS = {
 
 export const P = {
   hand: 3.2, handExtra: 1, cityGrow: 2.5, roadGrow: 1.2, fieldOpen: 0.4, decay: 0.6, base: 1.6, monBase: 2.2, oppScale: 0.9,
-  large: 3, abbot: 2, builder: 3, pig: 1, goods: 1.5, floor: 0.25, towerRisk: 0.35, dragonRisk: 0.5,
+  large: 6.5, abbot: 4, builder: 3, pig: 1, goods: 1.5, floor: 0.25, towerRisk: 0.35, dragonRisk: 0.5,
 };
 
 function completionChance(openEdges, remaining) {
@@ -112,13 +112,17 @@ function estimate(state, adjust) {
     const m = s.meeple + (adjust.meeples[i] || 0);
     est[i] += (Math.min(m, 3) * P.hand + Math.max(0, m - 3) * P.handExtra) * frac;
     if ((s.large || 0) + (adjust.large?.[i] || 0) > 0) est[i] += P.large * frac;
-    if (s.abbot) est[i] += P.abbot * frac;
+    if ((s.abbot || 0) + (adjust.abbot?.[i] || 0) > 0) est[i] += P.abbot * frac;
     if (s.builder) est[i] += P.builder * frac * 0.5;
   }
-  // The Princess & the Dragon: the fairy's +1 per turn and +3 later
+  // The Princess & the Dragon: the fairy's +1 per turn and +3 later. Others usually take
+  // her straight back, so she is worth little more than a point to whoever holds her,
+  // and taking her only to deny a rival is not counted (bots would just swap her round).
   const fy = adjust.fairy || state.fairy;
-  // (others tend to move her away again within a few turns)
-  if (fy && fy.p !== null && fy.p !== undefined) est[fy.p] += Math.min(2, state.deck.length / n) * 0.5 + 1.2;
+  if (fy && fy.p !== null && fy.p !== undefined && fy.p === adjust.me) {
+    const rivals = state.players.some((q, i) => i !== fy.p && Object.values(state.board).some((t) => t.pieces.some((pc) => pc.p === i && isFollowerKind(pc.k))));
+    est[fy.p] += rivals ? 0.6 : 2.5;
+  }
   // The Tower: followers that an open tower could reach next turn are at risk
   if (hasExp(state, 'tower')) {
     const towers = Object.entries(state.towers).filter(([, t]) => !t.top);
@@ -197,11 +201,12 @@ function builderBonus(state, k, me) {
 // Value of doing act after placing the tile at k (the tile is already on the board).
 function evaluate(state, k, act, me, lvl, extra = 0) {
   const undo = [];
-  const adjust = { points: {}, meeples: {}, large: {}, returned: new Set(), fairy: null };
+  const adjust = { points: {}, meeples: {}, large: {}, abbot: {}, returned: new Set(), fairy: null, me };
   const addPts = (p, v) => { adjust.points[p] = (adjust.points[p] || 0) + v; };
   const handDelta = (p, kind, d) => {
     if (kind === 'meeple') adjust.meeples[p] = (adjust.meeples[p] || 0) + d;
     if (kind === 'large') adjust.large[p] = (adjust.large[p] || 0) + d;
+    if (kind === 'abbot') adjust.abbot[p] = (adjust.abbot[p] || 0) + d;
   };
   const lift = (key2, f, kind, p) => {
     if (f === 'top') { const tw = state.towers[key2]; const top = tw.top; tw.top = null; undo.push(() => { tw.top = top; }); return; }
@@ -231,10 +236,13 @@ function evaluate(state, k, act, me, lvl, extra = 0) {
       const [x, y] = parseKey(act.key);
       addPts(me, 1 + monasteryNeighbours(state.board, x, y));
       lift(act.key, act.fi, 'abbot', me);
+      handDelta(me, 'abbot', 1);
     } else if (act.kind === 'princess') {
       lift(act.key, act.fi, act.k, act.p);
       handDelta(act.p, act.k, 1);
     } else if (act.kind === 'fairy') {
+      // only worth it to guard figures from the dragon, for a +3 coming up, or when nobody can take her back
+      bonus -= 0.9;
       adjust.fairy = { key: act.key, f: act.fi, k: act.k, p: me };
       const saved = state.fairy;
       state.fairy = adjust.fairy;

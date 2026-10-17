@@ -74,7 +74,10 @@ function renderLocalPlayers() {
   const rows = $('player-rows');
   rows.innerHTML = '';
   const max = maxPlayers(activeExpansions());
-  while (setup.players.length > max) setup.players.pop();
+  if (setup.players.length > max) {
+    while (setup.players.length > max) setup.players.pop();
+    toast('The 6th player needs Inns & Cathedrals (it adds the pink figures)');
+  }
   setup.players.forEach((p, i) => {
     const row = document.createElement('div'); row.className = 'prow';
     const icon = pieceIcon(p.color); icon.title = 'Tap to change colour';
@@ -110,6 +113,9 @@ function renderLocalPlayers() {
     rows.appendChild(row);
   });
   $('add-human').disabled = $('add-bot').disabled = setup.players.length >= max;
+  const hint = $('players-hint');
+  hint.hidden = !(setup.players.length >= max && max < 6);
+  hint.textContent = 'Up to 5 players. Switch on Inns & Cathedrals below for a 6th.';
 }
 
 function renderOnlineMe() {

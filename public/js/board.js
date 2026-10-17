@@ -45,7 +45,10 @@ export class BoardView {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.bindInput();
-    const loop = (now) => { this.frame(now); requestAnimationFrame(loop); };
+    // never let one bad frame stop the board from drawing
+    const loop = (now) => {
+      try { this.frame(now); } catch (e) { console.error(e); this.dirty = true; } finally { requestAnimationFrame(loop); }
+    };
     requestAnimationFrame(loop);
   }
 
@@ -98,7 +101,7 @@ export class BoardView {
   }
 
   // Frame a set of tiles (world coordinates) in the free part of the screen.
-  frame(points, maxZ = 150) {
+  frameTiles(points, maxZ = 150) {
     if (!points.length) return;
     const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
     const minX = Math.min(...xs) - 0.75, maxX = Math.max(...xs) + 0.75, minY = Math.min(...ys) - 0.75, maxY = Math.max(...ys) + 0.75;
@@ -201,12 +204,13 @@ export class BoardView {
   frame(now) {
     if (this.camTarget) {
       const { from, to, start, dur } = this.camTarget;
-      const t = Math.min(1, (now - start) / dur), e = easeOut(t);
-      this.cam = { x: lerpN(from.x, to.x, e), y: lerpN(from.y, to.y, e), z: lerpN(from.z, to.z, e) };
+      // frame timestamps can be a little older than the animation's start
+      const t = clamp((now - start) / dur, 0, 1), e = easeOut(t);
+      this.cam = { x: lerpN(from.x, to.x, e), y: lerpN(from.y, to.y, e), z: clamp(lerpN(from.z, to.z, e), 24, 260) };
       if (t >= 1) this.camTarget = null;
       this.dirty = true;
     }
-    const animating = this.effects.length > 0 || this.vm.candidates?.length || this.vm.ghosts?.length || this.vm.tentative || this.vm.dragonMoves?.length || this.vm.dragonHop;
+    const animating = this.effects.length > 0 || this.vm.candidates?.length || this.vm.ghosts?.length || this.vm.tentative || this.vm.dragonMoves?.length || this.vm.dragonFly;
     if (!this.dirty && !animating) return;
     this.dirty = false;
     this.draw(now);
@@ -319,9 +323,20 @@ export class BoardView {
     }
     const dk = this.vm.dragonAt || this.state.dragon;
     if (dk && board[dk]) {
-      const [x, y] = parseKey(dk); const [sx, sy] = this.toScreen(x, y);
-      const hop = this.vm.dragonHop ? Math.sin(Math.min(1, (now - this.vm.dragonHop) / 420) * Math.PI) * z * 0.25 : 0;
-      drawPiece(this.ctx, 'dragon', sx + z * 0.06, sy - z * 0.02 - hop, z * 0.4, DRAGON_COLOR);
+      let [x, y] = parseKey(dk);
+      let lift = 0, grow = 1;
+      const fly = this.vm.dragonFly;
+      if (fly && board[fly.from]) {
+        // swoop from the previous tile: up, across and down again
+        const t = clamp((now - fly.start) / fly.dur, 0, 1), e = easeInOut(t);
+        const [fx, fy] = parseKey(fly.from);
+        x = lerpN(fx, x, e); y = lerpN(fy, y, e);
+        lift = Math.sin(t * Math.PI) * z * 0.45; grow = 1 + Math.sin(t * Math.PI) * 0.25;
+        if (t >= 1) this.vm.dragonFly = null;
+      }
+      const [sx, sy] = this.toScreen(x, y);
+      if (lift) { this.ctx.fillStyle = 'rgba(10,5,0,0.25)'; this.ctx.beginPath(); this.ctx.ellipse(sx + z * 0.06, sy + z * 0.12, z * 0.16, z * 0.06, 0, 0, 7); this.ctx.fill(); }
+      drawPiece(this.ctx, 'dragon', sx + z * 0.06, sy - z * 0.02 - lift, z * 0.4 * grow, DRAGON_COLOR);
     }
     // ghost meeple choices
     if (this.vm.ghosts) this.drawGhosts(now);
@@ -413,7 +428,9 @@ export class BoardView {
       ctx.setLineDash(good ? [] : [z * 0.08, z * 0.06]);
       ctx.stroke();
       ctx.setLineDash([]);
-      if (sx < -z / 2 || sx > this.w + z / 2 || sy < this.viewport().top - z / 2 || sy > this.h - (this.h - this.viewport().top - this.viewport().vh) + z / 2) offscreen.push([sx, sy, c.x, c.y]);
+      // an arrow at the screen edge as soon as a square's middle is out of view
+      const vp0 = this.viewport();
+      if (sx < z * 0.25 || sx > this.w - z * 0.25 || sy < vp0.top + z * 0.25 || sy > vp0.top + vp0.vh - z * 0.25) offscreen.push([sx, sy, c.x, c.y]);
       if (c.hint) {
         ctx.font = `${Math.round(z * 0.38)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('💡', sx, sy);
@@ -563,12 +580,13 @@ export class BoardView {
         const tile = this.state.board[g.key];
         const lying = type === 'follower' && TILE_TYPES[tile.t].features[g.fi]?.type === 'field';
         const kind = g.k || 'meeple';
+        const k = kind === 'large' ? 1 / 1.2 : 1; // big meeple ghosts stay about the size of the others
         if (g.selected) {
-          drawPiece(ctx, kind, mx, my - z * 0.04 * pulse, z * 0.32, this.vm.ghostColor, { lying });
+          drawPiece(ctx, kind, mx, my - z * 0.04 * pulse, z * 0.32 * k, this.vm.ghostColor, { lying });
         } else {
           ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`;
           ctx.beginPath(); ctx.arc(mx, my, z * 0.19, 0, 7); ctx.fill();
-          drawPiece(ctx, kind, mx, my, z * 0.26, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
+          drawPiece(ctx, kind, mx, my, z * 0.26 * k, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
         }
       }
       if (g.label && (g.selected || this.vm.showLabels)) {

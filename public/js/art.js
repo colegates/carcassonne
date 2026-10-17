@@ -50,7 +50,7 @@ function segPath(seg, S, p = new Path2D()) {
 const ROAD_W = 0.11;
 const RIVER_W = 0.13;
 const MONASTERY_BOX = (m) => [m.x - 0.2 * m.s, m.y - 0.22 * m.s, 0.4 * m.s, 0.44 * m.s];
-const GARDEN_BOX = (g) => [g.x - 0.1, g.y - 0.08, 0.2, 0.16];
+const GARDEN_BOX = (g) => [g.x - 0.14, g.y - 0.095, 0.28, 0.19];
 
 function buildHitMap(id, lay) {
   const t = TILE_TYPES[id];
@@ -86,6 +86,9 @@ function buildHitMap(id, lay) {
   if (lay.house) stamp((g) => g.fillRect((lay.house[0] - 0.07) * H, (lay.house[1] - 0.06) * H, 0.14 * H, 0.12 * H), -2);
   if (lay.volcano) stamp((g) => { g.beginPath(); g.ellipse(lay.volcano[0] * H, lay.volcano[1] * H, 0.15 * H, 0.12 * H, 0, 0, 7); g.fill(); }, -2);
   if (lay.foundation) stamp((g) => { g.beginPath(); g.arc(lay.foundation[0] * H, lay.foundation[1] * H, 0.125 * H, 0, 7); g.fill(); }, -2);
+  for (const [x, y, lx, ly] of lay.inns) {
+    stamp((g) => { g.fillRect((x - 0.075) * H, (y - 0.065) * H, 0.15 * H, 0.13 * H); g.beginPath(); g.ellipse(lx * H, ly * H, 0.07 * H, 0.045 * H, 0.2, 0, 7); g.fill(); }, -2);
+  }
   if (lay.monastery) { const [x, y, w, h] = MONASTERY_BOX(lay.monastery); stamp((g) => g.fillRect(x * H, y * H, w * H, h * H), lay.monastery.fi); }
   if (lay.garden && !lay.garden.auto) { const [x, y, w, h] = GARDEN_BOX(lay.garden); stamp((g) => g.fillRect(x * H, y * H, w * H, h * H), lay.garden.fi); }
   const problems = [];
@@ -170,7 +173,7 @@ function computeAnchors(id, lay, label) {
   const through = lay.roads.filter((r) => !r.dead);
   return t.features.map((f, fi) => {
     if (f.type === 'monastery' && lay.monastery) return [lay.monastery.x, lay.monastery.y + 0.07 * lay.monastery.s];
-    if (f.type === 'garden' && lay.garden) return [lay.garden.x ?? 0.5, lay.garden.y ?? 0.5];
+    if (f.type === 'garden' && lay.garden) return [(lay.garden.x ?? 0.5) + 0.05, (lay.garden.y ?? 0.5) + 0.02];
     if (f.type === 'river') return [0.5, 0.5];
     if (f.type === 'road') {
       const r = lay.roads.find((rr) => rr.fi === fi);
@@ -185,8 +188,9 @@ function computeAnchors(id, lay, label) {
     for (let i = 0; i < d.length; i++) {
       if (label[i] !== fi) continue;
       const x = (i % HIT + 0.5) / HIT, y = (((i / HIT) | 0) + 0.5) / HIT;
-      // prefer roomy spots, slightly toward the tile centre
-      const score = Math.min(d[i], f.type === 'field' ? 14 : 20) - Math.hypot(x - 0.5, y - 0.5) * 6;
+      // prefer roomy spots, slightly toward the tile centre (but not on top of a cathedral)
+      let score = Math.min(d[i], f.type === 'field' ? 14 : 20) - Math.hypot(x - 0.5, y - 0.5) * 6;
+      if (f.cathedral && lay.cathedral) score -= Math.max(0, 0.34 - Math.hypot(x - lay.cathedral[0], y - lay.cathedral[1])) * 60;
       if (score > best) { best = score; bx = x; by = y; }
     }
     const lo = f.type === 'city' ? 0.1 : 0.12;
@@ -376,9 +380,9 @@ function bushCluster(ctx, x, y, r, rnd, k) {
   for (let i = 0; i < 3; i++) bush(ctx, x + (rnd() - 0.5) * r, y + (rnd() - 0.5) * r * 0.6, r * 0.7, rnd, k);
 }
 
-function strokeRoadBed(ctx, S, rnd, segs) {
+function strokeRoadBed(ctx, S, rnd, segs, width = ROAD_W) {
   const k = S / 384;
-  const W = ROAD_W * S;
+  const W = width * S;
   ctx.save();
   ctx.lineCap = 'butt';
   ctx.filter = `blur(${4 * k}px)`;
@@ -414,17 +418,55 @@ function strokeRoadBed(ctx, S, rnd, segs) {
 function paintRoads(ctx, S, rnd, lay, which) {
   const list = lay.roads.filter((r) => (which === 'over' ? r.bridge === 'over' : r.bridge !== 'over'));
   if (!list.length) return;
+  const k = S / 384;
   if (which === 'over') {
-    // a stone bridge: parapets and a shadow on whatever is underneath
-    const k = S / 384;
+    // a stone bridge: a deep shadow on whatever passes underneath, then the deck
     for (const r of list) {
-      ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.strokeStyle = 'rgba(20,25,10,0.5)'; ctx.lineWidth = ROAD_W * S * 1.5; ctx.lineCap = 'butt';
-      ctx.translate(3 * k, 4 * k); ctx.stroke(segPath(bridgePart(r), S)); ctx.restore();
-      ctx.strokeStyle = '#7a7060'; ctx.lineWidth = ROAD_W * S * 1.35; ctx.lineCap = 'butt'; ctx.stroke(segPath(bridgePart(r), S));
-      ctx.strokeStyle = '#b3a88f'; ctx.lineWidth = ROAD_W * S * 1.18; ctx.stroke(segPath(bridgePart(r), S));
+      ctx.save(); ctx.filter = `blur(${4 * k}px)`; ctx.strokeStyle = 'rgba(15,18,8,0.65)'; ctx.lineWidth = ROAD_W * S * 1.75; ctx.lineCap = 'butt';
+      ctx.translate(4 * k, 6 * k); ctx.stroke(segPath(bridgePart(r), S)); ctx.restore();
+      ctx.strokeStyle = '#6a6153'; ctx.lineWidth = ROAD_W * S * 1.55; ctx.lineCap = 'butt'; ctx.stroke(segPath(bridgePart(r), S));
     }
   }
   strokeRoadBed(ctx, S, rnd, list.map((r) => r.seg));
+  if (which === 'over') for (const r of list) parapets(ctx, bridgePart(r), S, k);
+}
+
+// low stone walls along both sides of a bridge
+function parapets(ctx, seg, S, k) {
+  const off = ROAD_W * 0.66;
+  for (const side of [-1, 1]) {
+    const pts = [];
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24;
+      const [x, y] = bezierPoint(seg, t);
+      const [x2, y2] = bezierPoint(seg, Math.min(1, t + 0.02));
+      const [x0, y0] = bezierPoint(seg, Math.max(0, t - 0.02));
+      const dx = x2 - x0, dy = y2 - y0, len = Math.hypot(dx, dy) || 1;
+      pts.push([(x - (dy / len) * off * side) * S, (y + (dx / len) * off * side) * S]);
+    }
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(30,25,15,0.55)'; ctx.lineWidth = 7 * k;
+    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x + 1.5 * k, y + 2.5 * k) : ctx.moveTo(x + 1.5 * k, y + 2.5 * k))); ctx.stroke();
+    ctx.strokeStyle = '#a49a84'; ctx.lineWidth = 6 * k;
+    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    ctx.strokeStyle = '#cfc5ad'; ctx.lineWidth = 2.4 * k;
+    ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x - 0.8 * k, y - 0.8 * k) : ctx.moveTo(x - 0.8 * k, y - 0.8 * k))); ctx.stroke();
+    // joints between the stones
+    ctx.strokeStyle = 'rgba(60,50,40,0.45)'; ctx.lineWidth = 0.9 * k;
+    for (let i = 2; i < pts.length - 1; i += 3) {
+      const [x, y] = pts[i];
+      ctx.beginPath(); ctx.moveTo(x - 2.5 * k, y - 2.5 * k); ctx.lineTo(x + 2.5 * k, y + 2.5 * k); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+// short footpaths that split meadows but are not roads (Inns & Cathedrals village)
+function paintStubs(ctx, S, rnd, lay) {
+  if (!lay.stubs.length) return;
+  const line = (x1, y1, x2, y2) => [[x1, y1], [lerp(x1, x2, 1 / 3), lerp(y1, y2, 1 / 3)], [lerp(x1, x2, 2 / 3), lerp(y1, y2, 2 / 3)], [x2, y2]];
+  strokeRoadBed(ctx, S, rnd, lay.stubs.map(([x1, y1, x2, y2]) => line(x1, y1, x2, y2)), ROAD_W * 0.55);
 }
 
 // the middle part of a road that crosses on a bridge
@@ -919,29 +961,39 @@ function innArt(ctx, x, y, lx, ly, S, k, rnd) {
 }
 
 function gardenArt(ctx, x, y, S, k, rnd) {
-  const w = 0.2 * S, h = 0.14 * S;
+  // a walled kitchen garden: low hedge, rows of flowers and vegetables, a tree in one corner
+  const w = 0.27 * S, h = 0.18 * S;
   ctx.save();
   ctx.translate(x * S, y * S);
-  ctx.save(); ctx.filter = `blur(${2 * k}px)`; ctx.fillStyle = 'rgba(30,40,10,0.4)';
-  ctx.beginPath(); ctx.moveTo(-w / 2 + 3 * k, 3 * k); ctx.lineTo(3 * k, -h / 2 + 3 * k); ctx.lineTo(w / 2 + 3 * k, 3 * k); ctx.lineTo(3 * k, h / 2 + 3 * k); ctx.closePath(); ctx.fill(); ctx.restore();
-  const bed = new Path2D();
-  bed.moveTo(-w / 2, 0); bed.lineTo(0, -h / 2); bed.lineTo(w / 2, 0); bed.lineTo(0, h / 2); bed.closePath();
-  ctx.fillStyle = '#7a5a3a'; ctx.fill(bed);
-  ctx.save(); ctx.clip(bed);
-  const cols = ['#d84a3a', '#f0c63a', '#e889b4', '#5f7fd0', '#a35ad0', '#ffffff'];
-  for (let row = -6; row <= 6; row++) {
-    const c = cols[(row + 12) % cols.length];
-    for (let i = -8; i <= 8; i++) {
-      const px = i * 3.4 * k + row * 1.8 * k, py = row * 2.6 * k;
-      ctx.fillStyle = '#4f7a2e'; ctx.beginPath(); ctx.arc(px, py + 1 * k, 1.6 * k, 0, 7); ctx.fill();
-      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(px, py, 1.3 * k, 0, 7); ctx.fill();
+  ctx.rotate(-0.06);
+  ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(30,40,10,0.45)';
+  ctx.fillRect(-w / 2 + 3 * k, -h / 2 + 4 * k, w, h); ctx.restore();
+  // hedge border
+  ctx.fillStyle = '#3f5a26'; ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.fillStyle = '#56763a'; ctx.fillRect(-w / 2 + 1.2 * k, -h / 2 + 1.2 * k, w - 2.4 * k, h - 2.4 * k);
+  // soil
+  const iw = w - 8 * k, ih = h - 8 * k;
+  ctx.fillStyle = '#8d6a44'; ctx.fillRect(-iw / 2, -ih / 2, iw, ih);
+  ctx.save(); ctx.beginPath(); ctx.rect(-iw / 2, -ih / 2, iw, ih); ctx.clip();
+  const cols = ['#e2483a', '#f5cf3e', '#ef8fbd', '#7d9cf0', '#ffffff', '#b066d8'];
+  const rows = 3, per = 6;
+  for (let r = 0; r < rows; r++) {
+    const ry = -ih / 2 + (r + 0.5) * (ih / rows);
+    for (let i = 0; i < per; i++) {
+      const px = -iw / 2 + (i + 0.5) * (iw / per) + (rnd() - 0.5) * 1.5 * k;
+      ctx.fillStyle = '#4b7a2a'; ctx.beginPath(); ctx.arc(px, ry + 1.2 * k, 4.4 * k, 0, 7); ctx.fill();
+      const c = cols[(r * 2 + i) % cols.length];
+      for (let a = 0; a < 5; a++) {
+        const an = (a / 5) * 6.283 + r;
+        ctx.fillStyle = c; ctx.beginPath(); ctx.arc(px + Math.cos(an) * 1.9 * k, ry + Math.sin(an) * 1.9 * k, 1.9 * k, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = '#f7d65a'; ctx.beginPath(); ctx.arc(px, ry, 1.1 * k, 0, 7); ctx.fill();
     }
   }
+  // a little path down the middle
+  ctx.fillStyle = 'rgba(215,195,150,0.9)'; ctx.fillRect(-1.6 * k, -ih / 2, 3.2 * k, ih);
   ctx.restore();
-  ctx.strokeStyle = '#5a3f22'; ctx.lineWidth = 2 * k; ctx.stroke(bed);
-  ctx.strokeStyle = 'rgba(240,225,190,0.6)'; ctx.lineWidth = 0.8 * k; ctx.stroke(bed);
   ctx.restore();
-  void rnd;
 }
 
 function cottageArt(ctx, x, y, S, k) {
@@ -1007,7 +1059,7 @@ function volcanoArt(ctx, x, y, S, k, rnd) {
 
 function dragonSymbolArt(ctx, x, y, S, k) {
   // small red dragon emblem in a round cartouche
-  const r = 0.07 * S;
+  const r = 0.08 * S;
   ctx.save(); ctx.translate(x * S, y * S);
   ctx.save(); ctx.shadowColor = 'rgba(20,10,0,0.45)'; ctx.shadowBlur = 4 * k; ctx.shadowOffsetY = 2 * k;
   ctx.fillStyle = '#efe4c8'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.restore();
@@ -1025,7 +1077,7 @@ function dragonSymbolArt(ctx, x, y, S, k) {
 }
 
 function portalArt(ctx, x, y, S, k) {
-  const cx = x * S, cy = y * S, w = 0.11 * S, h = 0.15 * S;
+  const cx = x * S, cy = y * S, w = 0.14 * S, h = 0.19 * S;
   ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)';
   ctx.beginPath(); ctx.ellipse(cx + 3 * k, cy + h * 0.5, w * 0.9, h * 0.18, 0, 0, 7); ctx.fill(); ctx.restore();
   // glowing magic doorway inside a stone arch
@@ -1043,7 +1095,7 @@ function portalArt(ctx, x, y, S, k) {
 
 function princessArt(ctx, x, y, S, k) {
   // a small framed portrait of the princess
-  const w = 0.1 * S, h = 0.13 * S;
+  const w = 0.13 * S, h = 0.17 * S;
   ctx.save(); ctx.translate(x * S, y * S);
   ctx.save(); ctx.shadowColor = 'rgba(20,10,0,0.45)'; ctx.shadowBlur = 4 * k; ctx.shadowOffsetY = 2 * k;
   ctx.fillStyle = '#d9b860'; ctx.beginPath(); ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, 7); ctx.fill(); ctx.restore();
@@ -1061,7 +1113,7 @@ function princessArt(ctx, x, y, S, k) {
 
 function goodsArt(ctx, kind, x, y, S, k) {
   // white house-shaped plaque with the trade good on it
-  const w = 0.1 * S, h = 0.11 * S;
+  const w = 0.14 * S, h = 0.155 * S;
   ctx.save(); ctx.translate(x * S, y * S);
   const plaque = new Path2D();
   plaque.moveTo(-w / 2, -h * 0.15); plaque.lineTo(0, -h / 2); plaque.lineTo(w / 2, -h * 0.15); plaque.lineTo(w / 2, h / 2); plaque.lineTo(-w / 2, h / 2); plaque.closePath();
@@ -1139,6 +1191,7 @@ export function getTileArt(id) {
   paintFieldDecor(ctx, S, rnd, label, busy, id);
   paintRivers(ctx, S, rnd, lay);
   paintRoads(ctx, S, rnd, lay, 'under');
+  paintStubs(ctx, S, rnd, lay);
   if (lay.volcano) volcanoArt(ctx, lay.volcano[0], lay.volcano[1], S, k, rnd);
   if (lay.village) villageArt(ctx, lay.village, S, k, rnd);
   if (lay.trees) treeClumpArt(ctx, lay.trees, S, k, rnd);
