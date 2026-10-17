@@ -28,6 +28,7 @@ const sent = new Set(); // seq numbers of actions this phone sent (ignore their 
 let cursor = 0; // seq of the next action we expect from the server (applied + queued + in flight)
 let applied = []; // online: every action applied to our copy, in order (JSON), to check against the room's list
 const record = (action) => { if (session.online) applied.push(JSON.stringify(action)); };
+let forceRebuild = false; // set when a move from the room could not be applied
 let pumping = false;
 export const hooks = { onLeave: null, onRematch: null };
 
@@ -741,6 +742,7 @@ async function afterTurnAnimation(events, act, k, placer, token) {
 async function playTurnAction(a, token) {
   const p = cur();
   ui.busy = true;
+  record(a); // counts as applied from now on, even while it is still being animated
   ui.previewRot = a.r; ui.previewRotDeg = a.r * 90; drawPreview();
   view.ensureVisible(a.x, a.y);
   view.setVM({ tentative: { x: a.x, y: a.y, r: a.r, t: state.drawn, ok: true } });
@@ -758,7 +760,6 @@ async function playTurnAction(a, token) {
   const k = state.last;
   const events = G.finishTurn(state, a.act || null, !!a.noBonus);
   state.seq = (state.seq || 0) + 1;
-  record(a);
   await afterTurnAnimation(events, a.act, k, placer, token);
 }
 
@@ -790,36 +791,47 @@ async function pump() {
   if (pumping || !state) return;
   pumping = true;
   try {
-    while (pending.length && state && state.phase !== 'over') {
-      if (ui.busy) break;
-      const a = pending[0];
-      // the room's list is the truth: a move for a seat played on this phone can only
-      // arrive here if this phone's own attempt was beaten to it (it waits until we're idle)
-      if (a.t === 'turn') {
-        if (state.phase !== 'place') break;
-        if (controlOf(state.current) !== 'remote' && (ui.tentative || ui.placedAt)) break;
-        pending.shift();
-        await playTurnAction(a, turnToken);
-      } else if (a.t === 'dragon') {
-        if (state.phase !== 'dragon') break;
-        pending.shift();
-        await playDragonMove(a.key, turnToken);
-      } else if (a.t === 'ransom') {
-        pending.shift();
-        const events = G.applyAction(state, a);
-        record(a);
-        showRansom(events[0]);
-        if (controlOf(state.current) === 'remote') remoteWaiting();
-      } else {
-        pending.shift();
-        G.applyAction(state, a);
-        record(a);
-        renderPlayers();
-        startTurn();
-      }
-    }
+    await pumpLoop();
+  } catch (e) {
+    // our copy can't take the room's next move: start again from the room's copy
+    console.error('Could not apply a move from the room; rebuilding', e);
+    forceRebuild = true;
+    pending.length = 0;
+    ui.busy = false;
+    session.net?.send({ type: 'resync' });
   } finally {
     pumping = false;
+  }
+}
+
+async function pumpLoop() {
+  while (pending.length && state && state.phase !== 'over') {
+    if (ui.busy) break;
+    const a = pending[0];
+    // the room's list is the truth: a move for a seat played on this phone can only
+    // arrive here if this phone's own attempt was beaten to it (it waits until we're idle)
+    if (a.t === 'turn') {
+      if (state.phase !== 'place') break;
+      if (controlOf(state.current) !== 'remote' && (ui.tentative || ui.placedAt)) break;
+      pending.shift();
+      await playTurnAction(a, turnToken);
+    } else if (a.t === 'dragon') {
+      if (state.phase !== 'dragon') break;
+      pending.shift();
+      await playDragonMove(a.key, turnToken);
+    } else if (a.t === 'ransom') {
+      pending.shift();
+      const events = G.applyAction(state, a);
+      record(a);
+      showRansom(events[0]);
+      if (controlOf(state.current) === 'remote') remoteWaiting();
+    } else {
+      pending.shift();
+      G.applyAction(state, a);
+      record(a);
+      renderPlayers();
+      startTurn();
+    }
   }
 }
 
@@ -862,7 +874,8 @@ export function onNetMessage(msg) {
 // Bring this phone in line with the server's list of actions.
 export function resyncFrom(init, actions) {
   const keys = actions.map((a) => JSON.stringify(a));
-  const prefix = state && state.gameId === init.gameId && applied.length <= keys.length && applied.every((a, i) => a === keys[i]);
+  const prefix = !forceRebuild && state && state.gameId === init.gameId && applied.length <= keys.length && applied.every((a, i) => a === keys[i]);
+  forceRebuild = false;
   if (prefix) {
     // our copy is behind but on track: queue whatever we have not applied yet
     pending.length = 0;
