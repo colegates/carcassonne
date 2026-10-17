@@ -185,39 +185,114 @@ test('pig adds 1 per city for the winning farmer', () => {
 });
 
 // ---------------- random games with every combination ----------------
-const EXPS = ['river', 'abbot', 'inns', 'traders'];
+const EXPS = ['river', 'abbot', 'inns', 'traders', 'dragon', 'tower'];
+const rndOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const countAll = (s) => {
+  const onBoard = Object.values(s.board).reduce((a, t) => a + t.pieces.length, 0);
+  const onTowers = Object.values(s.towers).filter((t) => t.top).length;
+  const inHand = s.players.reduce((a, p) => a + Object.values(p.supply).reduce((x, y) => x + y, 0), 0);
+  const held = s.players.reduce((a, p) => a + p.prisoners.length, 0);
+  return onBoard + onTowers + inHand + held;
+};
+function randomGame(expansions, nPlayers = 3) {
+  const cols = ['red', 'blue', 'green', 'yellow', 'black', 'pink'];
+  const s = G.newGame(cols.slice(0, nPlayers).map((c) => ({ name: c, color: c })), { expansions });
+  const startPieces = countAll(s);
+  let guard = 0;
+  while (s.phase !== 'over' && guard++ < 600) {
+    if (s.phase === 'dragon') {
+      G.applyAction(s, { t: 'dragon', key: rndOf(G.dragonMoves(s)) });
+    } else {
+      const ro = G.ransomOptions(s);
+      if (ro.length && Math.random() < 0.3) { const o = rndOf(ro); G.applyAction(s, { t: 'ransom', from: o.from, k: o.k }); }
+      const vp = G.validPlacements(s);
+      const pick = rndOf(vp);
+      G.placeTile(s, pick.x, pick.y, rndOf(pick.rots));
+      const opts = G.followerOptions(s);
+      let act = opts.length && Math.random() < 0.6 ? { ...rndOf(opts) } : null;
+      if (act?.kind === 'floor') {
+        const targets = G.captureTargets(s, act.key, s.towers[act.key].h + 1);
+        if (targets.length && Math.random() < 0.7) act.capture = rndOf(targets);
+      }
+      G.finishTurn(s, act);
+    }
+    assert.equal(countAll(s), startPieces, `pieces conserved (${JSON.stringify(expansions)})`);
+    if (s.phase !== 'over') {
+      for (const [k, t] of Object.entries(s.board)) for (const pc of t.pieces) {
+        if (pc.k === 'builder' || pc.k === 'pig') {
+          const gr = G.getGroup(s.board, k, pc.f);
+          assert.ok(gr.meeples.some((m) => m.p === pc.p && (m.k === 'meeple' || m.k === 'large')), 'builder/pig supported');
+        }
+      }
+      if (s.dragon) assert.equal(s.board[s.dragon].pieces.length, 0, 'nothing shares the dragon\'s tile');
+      if (s.fairy && s.dragon) assert.notEqual(s.fairy.key, s.dragon, 'fairy and dragon never share a tile');
+    }
+  }
+  assert.equal(s.phase, 'over');
+  assert.ok(Object.values(s.board).every((t) => !t.pieces.length), 'all figures home at the end');
+  for (const p of s.players) {
+    const sum = Object.values(p.breakdown).reduce((a, b) => a + b, 0);
+    assert.equal(sum, p.score, 'breakdown adds up');
+    assert.ok(p.score >= 0, 'score never negative');
+  }
+  if (expansions.dragon) assert.equal(s.setAside.length === 0 || !s.dragon, true, 'set-aside tiles return with the dragon');
+  return s;
+}
+
 test('random games for every expansion combination keep invariants', () => {
   for (let mask = 0; mask < 1 << EXPS.length; mask++) {
     const expansions = {};
     EXPS.forEach((e, i) => { if (mask & (1 << i)) expansions[e] = true; });
-    for (let g = 0; g < 3; g++) {
-      const s = G.newGame([...two, { name: 'C', color: 'green' }], { expansions });
-      const startPieces = s.players.reduce((a, p) => a + Object.values(p.supply).reduce((x, y) => x + y, 0), 0);
-      let guard = 0;
-      while (s.phase !== 'over' && guard++ < 400) {
-        const vp = G.validPlacements(s);
-        const pick = vp[Math.floor(Math.random() * vp.length)];
-        G.placeTile(s, pick.x, pick.y, pick.rots[Math.floor(Math.random() * pick.rots.length)]);
-        const opts = G.followerOptions(s);
-        G.finishTurn(s, opts.length && Math.random() < 0.6 ? opts[Math.floor(Math.random() * opts.length)] : null);
-        if (s.phase !== 'over') {
-          const onBoard = Object.values(s.board).reduce((a, t) => a + t.pieces.length, 0);
-          const inHand = s.players.reduce((a, p) => a + Object.values(p.supply).reduce((x, y) => x + y, 0), 0);
-          assert.equal(onBoard + inHand, startPieces, `pieces conserved (${JSON.stringify(expansions)})`);
-          for (const [k, t] of Object.entries(s.board)) for (const pc of t.pieces) {
-            if (pc.k === 'builder' || pc.k === 'pig') {
-              const gr = G.getGroup(s.board, k, pc.f);
-              assert.ok(gr.meeples.some((m) => m.p === pc.p && (m.k === 'meeple' || m.k === 'large')), 'builder/pig supported');
-            }
-          }
-        }
-      }
-      assert.equal(s.phase, 'over');
-      assert.ok(Object.values(s.board).every((t) => !t.pieces.length), 'all figures home at the end');
-      for (const p of s.players) {
-        const sum = Object.values(p.breakdown).reduce((a, b) => a + b, 0);
-        assert.equal(sum, p.score, 'breakdown adds up');
-      }
-    }
+    randomGame(expansions, 2 + (mask % 3));
   }
+});
+
+test('random games with everything on, 2 to 6 players', () => {
+  const all = Object.fromEntries(EXPS.map((e) => [e, true]));
+  for (let n = 2; n <= 6; n++) for (let g = 0; g < 2; g++) randomGame(all, n);
+});
+
+test('a game replays identically from its actions (online lockstep)', () => {
+  const all = Object.fromEntries(EXPS.map((e) => [e, true]));
+  const s = G.newGame([{ name: 'a', color: 'red' }, { name: 'b', color: 'blue' }, { name: 'c', color: 'green' }], { expansions: all });
+  const init = G.cloneState(s);
+  const log = [];
+  let guard = 0;
+  while (s.phase !== 'over' && guard++ < 600) {
+    let a;
+    if (s.phase === 'dragon') a = { t: 'dragon', key: rndOf(G.dragonMoves(s)) };
+    else {
+      const pick = rndOf(G.validPlacements(s));
+      const r = rndOf(pick.rots);
+      const probe = G.cloneState(s);
+      G.placeTile(probe, pick.x, pick.y, r);
+      const opts = G.followerOptions(probe);
+      let act = opts.length && Math.random() < 0.6 ? { ...rndOf(opts) } : null;
+      if (act?.kind === 'floor') {
+        const targets = G.captureTargets(probe, act.key, probe.towers[act.key].h + 1);
+        if (targets.length) act.capture = rndOf(targets);
+      }
+      a = { t: 'turn', x: pick.x, y: pick.y, r, act };
+    }
+    a = JSON.parse(JSON.stringify(a));
+    G.applyAction(s, a);
+    log.push(a);
+  }
+  const replay = G.cloneState(init);
+  for (const a of log) G.applyAction(replay, a);
+  assert.deepEqual(JSON.parse(JSON.stringify(replay)), JSON.parse(JSON.stringify(s)));
+});
+
+test('river: a third bend the same way is refused, straights between do not reset it (B13)', () => {
+  const s = G.newGame(two, { expansions: { river: true } });
+  s.board = { '0,0': { t: 'RI/s', r: 0, pieces: [], n: 0 } };
+  const rs = G.riverSidesWorld('RI/s', 0);
+  s.river = { open: { x: 0, y: 0, side: rs[0] }, lastIn: null, run: { dir: 0, n: 0 } };
+  const seq = [['RI.1/IFI', 1, 0, 0], ['RI.1/II', 2, 0, 0], ['RI.1/IFI', 2, 1, 1], ['RI.1/IIG', 2, 2, 1], ['RI.1/IFI', 1, 2, 0]];
+  for (const [t, x, y, r] of seq) {
+    assert.ok(G.canPlace(s, x, y, t, r), `${t} at ${x},${y} r${r}`);
+    play(s, t, x, y, r);
+  }
+  assert.ok(!G.canPlace(s, 0, 2, 'RI.1/RrII', 2), 'third right bend refused');
+  assert.ok(G.canPlace(s, 0, 2, 'RI.1/RrII', 3), 'a left bend is fine');
 });

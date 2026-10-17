@@ -165,7 +165,7 @@ Validated by script: on every tile each of the 12 ports belongs to exactly one f
 ### Setup
 1. Shuffle the 18 tiles into the base stack. There is no new start tile (ZM3 p.1).
 2. Each player adds the large meeple of their colour to their supply, giving 7 normal + 1 large meeple (ZM3 p.3).
-3. Up to 6 players. The 6th colour is **pink** in the 3rd edition and was grey in the 1st edition. Our app currently lists "grey" as the 6th colour; pink is the authentic 3rd-edition choice.
+3. Up to 6 players. The 6th colour is **pink** in the 3rd edition and was grey in the 1st edition. The app already uses pink (`PLAYER_COLORS.pink` in game.js, `COLOR_ORDER` in lobby.js), which is the authentic 3rd-edition choice.
 
 ### Where the expansion hooks into a turn
 1. **Place a tile:** unchanged.
@@ -248,7 +248,7 @@ farms:           unchanged (3 per adjacent completed city; 4 with T&B pig)
 * A tower can capture the large meeple: one capture removes 2 majority strength.
 * **Ransom stays 3 points** (official).
 * Prisoner exchange is automatic and figure for figure, so a large meeple can be swapped for a normal one. With several prisoners, the owner chooses which to take back (WTW).
-* The large meeple may be placed on top of a tower to close it (WTW community list; JCZ allows it).
+* The large meeple may be placed on top of a tower to close it. This is official: The Tower 3rd-edition rulebook p.4, "Figures you may place on a tower: Large meeple" (JCZ allows it too).
 * No I&C tile has a tower foundation.
 
 ## 7. Edition differences
@@ -303,7 +303,7 @@ farms:           unchanged (3 per adjacent completed city; 4 with T&B pig)
 ## 11. Open points / uncertainties
 
 * **Fairy bonus on a 0-point feature** (incomplete inn road or cathedral city at game end): we pay it. This follows the Wikicarpedia wording and the JCZ engine test, but there is no explicit official FAQ.
-* **Large meeple on top of a tower:** allowed according to Wikicarpedia's community list and JCZ, but not stated in the Tower rulebook itself.
+* **Large meeple on top of a tower:** resolved by the master arbiter: allowed, and it *is* stated in the Tower 3rd-edition rulebook (p.4 "Figures you may place on a tower: Large meeple").
 * **Tower prisoner exchange with a large meeple:** follows from the general automatic figure-for-figure rule; no specific ruling exists.
 * **Art coordinates** were measured from 110 px scans (±0.05). The identity of the decorations, e.g. the round grey-roofed tower as the "water tower", follows Wikicarpedia's letter list.
 * The brief mentioned "one garden variant"; the 3rd edition actually has **two** garden tiles (IC/CCCCG and IC/RFr.iG).

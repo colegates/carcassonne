@@ -1,5 +1,5 @@
 // Small DOM helpers shared by the screens.
-import { drawPiece } from './art.js';
+import { drawPiece, FAIRY_COLOR, DRAGON_COLOR } from './art.js';
 import { PLAYER_COLORS } from './game.js';
 import { sfx } from './sound.js';
 
@@ -32,7 +32,8 @@ export function pieceIcon(color, size = 46, kind = 'meeple') {
   c.width = c.height = size * dpr;
   c.style.width = c.style.height = `${size}px`;
   const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
-  drawPiece(ctx, kind, size / 2, size / 2 - 1, size * 0.82, PLAYER_COLORS[color] || PLAYER_COLORS.red);
+  const col = kind === 'fairy' ? FAIRY_COLOR : kind === 'dragon' ? DRAGON_COLOR : PLAYER_COLORS[color] || PLAYER_COLORS.red;
+  drawPiece(ctx, kind, size / 2, size / 2 - 1, size * 0.82, col);
   return c;
 }
 

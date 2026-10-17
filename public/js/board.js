@@ -1,6 +1,6 @@
 // Board renderer: camera, pan/pinch-zoom, tiles, meeples, overlays & effects.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawPiece, getTableTexture, rotUnit, ART_SIZE } from './art.js';
+import { getTileArt, drawPiece, drawTower, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
 import { parseKey, PLAYER_COLORS } from './game.js';
 
 const HIT = 96;
@@ -196,7 +196,7 @@ export class BoardView {
       if (t >= 1) this.camTarget = null;
       this.dirty = true;
     }
-    const animating = this.effects.length > 0 || this.vm.candidates?.length || this.vm.ghosts?.length || this.vm.tentative;
+    const animating = this.effects.length > 0 || this.vm.candidates?.length || this.vm.ghosts?.length || this.vm.tentative || this.vm.dragonMoves?.length || this.vm.dragonHop;
     if (!this.dirty && !animating) return;
     this.dirty = false;
     this.draw(now);
@@ -277,10 +277,41 @@ export class BoardView {
       }
       this.drawPieces(v.tile, v.tile.pieces, v.sx, v.sy, a, fx ? { key: v.k, f: fx.f, dy } : null);
     }
+    // The Tower: floors and the meeple on top
+    const towers = Object.entries(this.state.towers || {}).filter(([k, tw]) => board[k] && (tw.h > 0 || tw.top));
+    towers.sort((a, b) => parseKey(a[0])[1] - parseKey(b[0])[1]);
+    for (const [k, tw] of towers) {
+      const [bx, by] = this.towerBase(k);
+      if (bx < -z || by < -z || bx > this.w + z || by > this.h + z) continue;
+      const top = drawTower(this.ctx, bx, by, z, tw.h, { badge: tw.h >= 2 });
+      if (tw.top && !hidden.has(k)) {
+        const p = this.state.players[tw.top.p];
+        drawPiece(this.ctx, tw.top.k, bx, top - z * 0.15, z * 0.3, PLAYER_COLORS[p.color] || PLAYER_COLORS.red);
+      }
+    }
     for (const m of this.vm.extraMeeples || []) {
       const tile = board[m.key]; if (!tile) continue;
+      if (m.f === 'top') {
+        const [tx, ty] = this.figurePos(m.key, 'top');
+        drawPiece(this.ctx, m.k, tx, ty, z * 0.3, PLAYER_COLORS[this.state.players[m.p].color] || PLAYER_COLORS.red);
+        continue;
+      }
       const [x, y] = parseKey(m.key); const [sx, sy] = this.toScreen(x, y);
       this.drawPieces(tile, [{ p: m.p, f: m.f, k: m.k || 'meeple' }], sx, sy, 1);
+    }
+    // The Princess & the Dragon: the dragon's path, the dragon and the fairy
+    if (this.vm.dragonPath?.length > 1) this.drawDragonPath(this.vm.dragonPath);
+    if (this.vm.dragonMoves) this.drawDragonMoves(now);
+    const fy = this.state.fairy;
+    if (fy && board[fy.key]) {
+      const [fx, fyy] = this.fairyPos(fy.key, fy.f);
+      drawPiece(this.ctx, 'fairy', fx, fyy, z * 0.3, FAIRY_COLOR);
+    }
+    const dk = this.vm.dragonAt || this.state.dragon;
+    if (dk && board[dk]) {
+      const [x, y] = parseKey(dk); const [sx, sy] = this.toScreen(x, y);
+      const hop = this.vm.dragonHop ? Math.sin(Math.min(1, (now - this.vm.dragonHop) / 420) * Math.PI) * z * 0.25 : 0;
+      drawPiece(this.ctx, 'dragon', sx + z * 0.06, sy - z * 0.02 - hop, z * 0.4, DRAGON_COLOR);
     }
     // ghost meeple choices
     if (this.vm.ghosts) this.drawGhosts(now);
@@ -435,7 +466,51 @@ export class BoardView {
     }
   }
 
+  // ---------- figure positions ----------
+  towerBase(k) {
+    const tile = this.state.board[k];
+    const z = this.cam.z;
+    const f = TILE_TYPES[tile.t].foundation || [0.5, 0.5];
+    const [rx, ry] = rotUnit(f[0], f[1], tile.r);
+    const [x, y] = parseKey(k);
+    const [sx, sy] = this.toScreen(x, y);
+    return [sx + (rx - 0.5) * z, sy + (ry - 0.5) * z + z * 0.06];
+  }
+
+  // Where the figure on feature f of tile k stands (f 'top' = on the tower).
+  figurePos(k, f, who = null) {
+    const tile = this.state.board[k];
+    const z = this.cam.z;
+    if (f === 'top') {
+      const [bx, by] = this.towerBase(k);
+      const h = Math.min(7, this.state.towers?.[k]?.h || 0);
+      return [bx, by - h * z * 0.075 - z * 0.034 - z * 0.15];
+    }
+    const [x, y] = parseKey(k);
+    const [sx, sy] = this.toScreen(x, y);
+    const list = tile.pieces.filter((pc) => pc.f === f);
+    const i = who ? Math.max(0, list.findIndex((pc) => pc.p === who.p && pc.k === who.k)) : 0;
+    return this.piecePos(tile, f, sx, sy, i, Math.max(1, list.length));
+  }
+
+  fairyPos(k, f) {
+    const z = this.cam.z;
+    if (f === null || f === undefined || (f !== 'top' && !this.state.board[k].pieces.some((pc) => pc.f === f))) {
+      const [x, y] = parseKey(k);
+      const [sx, sy] = this.toScreen(x, y);
+      return [sx - z * 0.22, sy + z * 0.22];
+    }
+    const [mx, my] = this.figurePos(k, f);
+    return [mx + z * 0.16, my + z * 0.04];
+  }
+
   ghostScreenPos(g) {
+    const z = this.cam.z;
+    const type = g.type || 'follower';
+    if (type === 'fairy') return this.fairyPos(g.key, g.fi);
+    if (type === 'princess' || type === 'capture') return this.figurePos(g.key, g.fi, g);
+    if (type === 'floor') { const [bx, by] = this.towerBase(g.key); const h = Math.min(7, this.state.towers[g.key].h); return [bx, by - (h + 0.5) * z * 0.075]; }
+    if (type === 'towerTop') return this.figurePos(g.key, 'top');
     const tile = this.state.board[g.key];
     const [x, y] = parseKey(g.key);
     const [sx, sy] = this.toScreen(x, y);
@@ -445,26 +520,78 @@ export class BoardView {
 
   drawGhosts(now) {
     const z = this.cam.z;
+    const ctx = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(now / 230);
     for (const g of this.vm.ghosts) {
-      const tile = this.state.board[g.key];
+      const type = g.type || 'follower';
+      const [mx, my] = this.ghostScreenPos(g);
       const [x, y] = parseKey(g.key);
       const [sx, sy] = this.toScreen(x, y);
-      const others = tile.pieces.filter((pc) => pc.f === g.fi).length;
-      const [mx, my] = others ? this.piecePos(tile, g.fi, sx, sy, others, others + 1) : this.anchorScreen(tile.t, tile.r, g.fi, sx, sy);
-      const lying = TILE_TYPES[tile.t].features[g.fi].type === 'field';
-      const kind = g.k || 'meeple';
-      if (g.selected) {
-        drawPiece(this.ctx, kind, mx, my - z * 0.04 * pulse, z * 0.32, this.vm.ghostColor, { lying });
+      if (type === 'princess' || type === 'capture') {
+        // a target ring around a figure that can be sent away
+        const r = z * (g.selected ? 0.2 : 0.17);
+        ctx.save();
+        ctx.lineWidth = Math.max(2, z * 0.03);
+        ctx.strokeStyle = g.selected ? '#ff3b2f' : `rgba(255,70,50,${0.55 + 0.4 * pulse})`;
+        ctx.fillStyle = g.selected ? 'rgba(255,60,40,0.3)' : 'rgba(255,60,40,0.12)';
+        ctx.beginPath(); ctx.arc(mx, my, r, 0, 7); ctx.fill(); ctx.stroke();
+        for (let a = 0; a < 4; a++) {
+          const ang = (a * Math.PI) / 2;
+          ctx.beginPath(); ctx.moveTo(mx + Math.cos(ang) * r * 0.7, my + Math.sin(ang) * r * 0.7); ctx.lineTo(mx + Math.cos(ang) * r * 1.3, my + Math.sin(ang) * r * 1.3); ctx.stroke();
+        }
+        ctx.restore();
+      } else if (type === 'fairy') {
+        if (!g.selected) { ctx.fillStyle = `rgba(200,230,255,${0.25 + 0.25 * pulse})`; ctx.beginPath(); ctx.arc(mx, my, z * 0.15, 0, 7); ctx.fill(); }
+        drawPiece(ctx, 'fairy', mx, my - (g.selected ? z * 0.04 * pulse : 0), z * (g.selected ? 0.32 : 0.26), FAIRY_COLOR, { alpha: g.selected ? 1 : 0.6 + 0.25 * pulse });
+      } else if (type === 'floor') {
+        const [bx, by] = this.towerBase(g.key);
+        const h = this.state.towers[g.key].h;
+        if (!g.selected) { ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`; ctx.beginPath(); ctx.arc(bx, by - z * 0.08, z * 0.2, 0, 7); ctx.fill(); }
+        drawTower(ctx, bx, by, z, h + 1, { alpha: g.selected ? 1 : 0.5 + 0.3 * pulse, badge: true });
       } else {
-        const ctx = this.ctx;
-        ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`;
-        ctx.beginPath(); ctx.arc(mx, my, z * 0.19, 0, 7); ctx.fill();
-        drawPiece(ctx, kind, mx, my, z * 0.26, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
+        const tile = this.state.board[g.key];
+        const lying = type === 'follower' && TILE_TYPES[tile.t].features[g.fi]?.type === 'field';
+        const kind = g.k || 'meeple';
+        if (g.selected) {
+          drawPiece(ctx, kind, mx, my - z * 0.04 * pulse, z * 0.32, this.vm.ghostColor, { lying });
+        } else {
+          ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`;
+          ctx.beginPath(); ctx.arc(mx, my, z * 0.19, 0, 7); ctx.fill();
+          drawPiece(ctx, kind, mx, my, z * 0.26, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
+        }
       }
       if (g.label && (g.selected || this.vm.showLabels)) {
         this.label(sx, sy + z * 0.5 + Math.max(12, z * 0.12), g.label);
       }
+    }
+  }
+
+  drawDragonPath(path) {
+    const { ctx } = this;
+    const z = this.cam.z;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(200,40,25,0.75)'; ctx.lineWidth = Math.max(3, z * 0.05); ctx.setLineDash([z * 0.1, z * 0.07]); ctx.lineCap = 'round';
+    ctx.beginPath();
+    path.forEach((k, i) => { const [x, y] = parseKey(k); const [sx, sy] = this.toScreen(x, y); if (i) ctx.lineTo(sx, sy); else ctx.moveTo(sx, sy); });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (const k of path.slice(0, -1)) {
+      const [x, y] = parseKey(k); const [sx, sy] = this.toScreen(x, y);
+      ctx.fillStyle = 'rgba(200,40,25,0.8)'; ctx.beginPath(); ctx.arc(sx, sy, Math.max(4, z * 0.05), 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawDragonMoves(now) {
+    const { ctx } = this;
+    const z = this.cam.z;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 220);
+    for (const k of this.vm.dragonMoves) {
+      const [x, y] = parseKey(k); const [sx, sy] = this.toScreen(x, y);
+      const inset = z * 0.05;
+      ctx.fillStyle = `rgba(255,70,40,${0.12 + 0.14 * pulse})`;
+      roundRect(ctx, sx - z / 2 + inset, sy - z / 2 + inset, z - 2 * inset, z - 2 * inset, z * 0.1); ctx.fill();
+      ctx.lineWidth = Math.max(2, z * 0.04); ctx.strokeStyle = `rgba(255,90,50,${0.6 + 0.4 * pulse})`; ctx.stroke();
     }
   }
 

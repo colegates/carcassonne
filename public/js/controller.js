@@ -2,15 +2,21 @@
 // Works for pass-and-play (one phone) and online play (one phone each).
 import { TILE_TYPES } from './tiles.js';
 import * as G from './game.js';
-import { chooseMove, suggestMove } from './ai.js';
+import { chooseMove, suggestMove, chooseDragonMove, chooseRansom } from './ai.js';
 import { BoardView } from './board.js';
 import { getTileArt, rotUnit } from './art.js';
 import { sfx } from './sound.js';
-import { $, sleep, store, escapeHtml, show, pieceIcon, banner, toast } from './ui.js';
+import { $, sleep, store, escapeHtml, show, pieceIcon, banner, toast, ask } from './ui.js';
 
 export const TYPE_LABEL = { road: 'Road', city: 'City', monastery: 'Monastery', field: 'Farm', garden: 'Garden' };
 const TYPE_ICON = { road: '🛣️', city: '🏯', monastery: '⛪', field: '🌾', garden: '🌳' };
-const PIECE_LABEL = { meeple: 'Meeple' };
+const PIECE_LABEL = {
+  meeple: 'Meeple', large: 'Big meeple', abbot: 'Abbot', builder: 'Builder', pig: 'Pig', recall: 'Abbot home',
+  fairy: 'Fairy', princess: 'Princess', floor: 'Tower floor', 'towerTop:meeple': 'Top a tower', 'towerTop:large': 'Big on tower',
+  'portal:meeple': 'Portal', 'portal:large': 'Portal · big', 'portal:abbot': 'Portal · abbot',
+};
+const GROUP_ICON = { recall: '⤴️', princess: '👸', floor: '🏰' };
+const KIND_NAME = { meeple: 'meeple', large: 'big meeple', abbot: 'abbot', builder: 'builder', pig: 'pig' };
 
 export const view = new BoardView($('board'));
 let state = null;
@@ -39,7 +45,9 @@ export function controlOf(i) {
   if (p.kind === 'ai') return session.room?.botRunner === session.net.id ? 'bot' : 'remote';
   return p.owner === session.net.id ? 'local' : 'remote';
 }
-const isLocal = () => controlOf(state.current) === 'local';
+// whose decision it is right now: the player in turn, or whoever moves the dragon
+const actingSeat = () => (state.phase === 'dragon' ? G.dragonMover(state) : state.current);
+const isLocal = () => controlOf(actingSeat()) === 'local';
 const localSeats = () => state.players.map((p, i) => i).filter((i) => controlOf(i) === 'local');
 
 export function startGame(s, sess = { online: false }) {
@@ -94,11 +102,15 @@ export function renderPlayers() {
     const off = online && p.kind !== 'ai' && p.owner && !online[p.owner]?.online;
     chip.classList.toggle('offline', !!off);
   });
-  $('deck-count').textContent = state.deck.length + (state.drawn ? 1 : 0);
+  $('deck-count').textContent = state.deck.length + (state.drawn ? 1 : 0) + (state.setAside?.length || 0);
 }
 
 function supplyText(p) {
-  return `♟${p.supply.meeple}`;
+  let t = `♟${p.supply.meeple}`;
+  if (p.supply.large) t += '+';
+  if (state.options.expansions?.tower) t += ` 🏰${p.floors}`;
+  if (p.prisoners?.length) t += ` ⛓${p.prisoners.length}`;
+  return t;
 }
 
 function bumpChip(i) {
@@ -123,9 +135,9 @@ function drawPreview() {
   c.style.transform = `rotate(${ui.previewRotDeg ?? ui.previewRot * 90}deg)`;
 }
 
-function setDock({ instruction, rotate = false, confirm = false, undo = false, pulse = false, picker = null }) {
-  const p = cur();
-  const who = session.online && controlOf(state.current) === 'local' ? ' (you)' : '';
+function setDock({ instruction, rotate = false, confirm = false, undo = false, pulse = false, picker = null, seat = actingSeat() }) {
+  const p = state.players[seat];
+  const who = session.online && controlOf(seat) === 'local' ? ' (you)' : '';
   $('turn-name').innerHTML = `<span class="dot" style="background:${colorOf(p).main}"></span>${escapeHtml(p.name)}${who}${p.kind === 'ai' ? ' 🤖' : ''}`;
   $('instruction').innerHTML = instruction;
   $('btn-rotate').disabled = !rotate;
@@ -134,7 +146,8 @@ function setDock({ instruction, rotate = false, confirm = false, undo = false, p
   $('btn-undo').disabled = !undo;
   $('btn-undo').hidden = !undo;
   $('btn-rotate').hidden = !rotate && undo;
-  $('btn-hint').hidden = !helper() || !isLocal() || state.phase === 'over';
+  $('btn-hint').hidden = !helper() || !isLocal() || state.phase === 'over' || state.phase === 'dragon';
+  $('btn-ransom').hidden = !(isLocal() && !ui.busy && G.ransomOptions(state).length);
   renderPicker(picker);
   requestAnimationFrame(() => { $('side-tools').style.bottom = `${$('dock').offsetHeight + 14}px`; });
 }
@@ -148,8 +161,8 @@ function renderPicker(picker) {
   for (const it of picker.items) {
     const b = document.createElement('button');
     b.className = 'pick' + (it.id === picker.active ? ' active' : '');
+    if (it.icon) b.append(document.createTextNode(it.icon));
     if (it.kind) b.append(pieceIcon(cur().color, 22, it.kind));
-    else b.append(document.createTextNode(it.icon || ''));
     const span = document.createElement('span'); span.textContent = it.label; b.append(span);
     b.onclick = () => { sfx.tap(); picker.onPick(it.id); };
     box.appendChild(b);
@@ -170,6 +183,8 @@ export async function startTurn() {
     toast(`Fits nowhere, put aside: ${gone.join(', ')}`);
   }
   ui.discardSeen = state.discarded.length;
+  if (state.phase === 'dragon') { dragonPhase(); return; }
+  view.setVM({ dragonPath: null, dragonMoves: null });
   const p = cur();
   const control = controlOf(state.current);
   ui.placements = G.validPlacements(state);
@@ -194,6 +209,93 @@ export async function startTurn() {
     sfx.turn();
     humanPlacePhase();
   }
+}
+
+// ---------- The Princess & the Dragon: the dragon's flight ----------
+async function dragonPhase() {
+  const token = turnToken;
+  const mover = G.dragonMover(state);
+  const p = state.players[mover];
+  const moves = G.dragonMoves(state);
+  const control = controlOf(mover);
+  const step = state.flight.moves + 1;
+  ui.dragonMoves = control === 'local' ? moves : null;
+  view.setVM({ dragonPath: [...state.flight.visited], dragonMoves: ui.dragonMoves, candidates: null, ghosts: null, highlight: null, tentative: null });
+  [...$('players').children].forEach((c, i) => c.classList.toggle('thinking', i === mover && control !== 'local'));
+  const [dx, dy] = G.parseKey(state.dragon);
+  view.ensureVisible(dx, dy);
+  if (step === 1) { banner('🐉 The dragon takes flight!', 1500); sfx.dragon(); }
+  if (control === 'local') {
+    if (session.online || state.players.filter((q) => q.kind === 'human').length > 1) banner(`<span style="color:${colorOf(p).dark}">●</span> ${escapeHtml(p.name)}: move the dragon`, 1400);
+    setDock({ instruction: `🐉 Move the dragon, step <b>${step} of ${G.DRAGON_STEPS}</b>: tap a <b style="color:#c62b1d">red</b> tile. It eats every figure there!`, seat: mover });
+  } else if (control === 'bot') {
+    setDock({ instruction: `🐉 ${escapeHtml(p.name)} is moving the dragon (${step}/${G.DRAGON_STEPS})…`, seat: mover });
+    await sleep(ui.fast ? 0 : 650);
+    if (token !== turnToken || state.phase !== 'dragon') return;
+    const k = chooseDragonMove(state, p.level);
+    if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action: { t: 'dragon', key: k }, over: false }); }
+    await playDragonMove(k, token);
+  } else {
+    setDock({ instruction: `🐉 Waiting for <b>${escapeHtml(p.name)}</b> to move the dragon (${step}/${G.DRAGON_STEPS})…`, seat: mover });
+    pump();
+  }
+}
+
+async function playDragonMove(k, token) {
+  ui.busy = true;
+  ui.dragonMoves = null;
+  const placer = state.current;
+  const path = [...state.flight.visited, k];
+  view.setVM({ dragonMoves: null, dragonPath: path });
+  const events = G.moveDragon(state, k);
+  state.seq = (state.seq || 0) + 1;
+  view.setVM({ dragonHop: performance.now() });
+  sfx.place();
+  await sleep(ui.fast ? 0 : 430);
+  view.setVM({ dragonHop: null });
+  if (token !== turnToken) return;
+  const eaten = events.find((e) => e.kind === 'dragon')?.meeples || [];
+  if (eaten.length) {
+    sfx.chomp();
+    const names = [...new Set(eaten.map((m) => state.players[m.p].name))];
+    banner(`🐉 Chomp! The dragon eats ${eaten.length === 1 ? `${escapeHtml(names[0])}'s ${KIND_NAME[eaten[0].k] || 'figure'}` : `${eaten.length} figures`}!`, 1600);
+  }
+  view.setVM({ extraMeeples: events.flatMap((e) => e.meeples || []) });
+  renderPlayers();
+  await animateEvents(events, placer, false, token);
+  if (token !== turnToken) return;
+  ui.busy = false;
+  if (state.phase !== 'dragon') view.setVM({ dragonPath: null });
+  startTurn();
+}
+
+// ---------- The Tower: buying a prisoner back ----------
+$('btn-ransom').addEventListener('click', async () => {
+  if (!state || ui.busy || !isLocal()) return;
+  const opts = G.ransomOptions(state);
+  if (!opts.length) return;
+  sfx.tap();
+  const choice = await ask('Buy back a prisoner', `Pay <b>3 points</b> to the player holding your figure and it comes straight back to you. You may do this once per turn.`, [
+    ...opts.map((o) => ({ label: `Pay ${state.players[o.from].name} for your ${KIND_NAME[o.k]}`, value: o, cls: 'red' })),
+    { label: 'Not now', value: null },
+  ]);
+  if (!choice || !G.ransomOptions(state).some((o) => o.from === choice.from && o.k === choice.k)) return;
+  const action = { t: 'ransom', from: choice.from, k: choice.k };
+  const events = G.applyAction(state, action);
+  // keep the ransom if the tile placement is undone
+  if (ui.snapshot) { G.payRansom(ui.snapshot.state, choice.from, choice.k); ui.snapshot.state.seq = state.seq; }
+  if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
+  showRansom(events[0]);
+  if (state.phase === 'action') beginActionPhase();
+  else setDock({ instruction: $('instruction').innerHTML, rotate: true, confirm: !!ui.tentative });
+});
+
+function showRansom(e) {
+  sfx.coins();
+  banner(`💰 ${escapeHtml(state.players[e.payer].name)} pays ${escapeHtml(state.players[e.winners[0]].name)} 3 points to free a ${KIND_NAME[e.k]}`, 2000);
+  ui.shown = state.players.map((q) => q.score);
+  bumpChip(e.payer); bumpChip(e.winners[0]);
+  renderPlayers();
 }
 
 function remoteWaiting() {
@@ -270,6 +372,14 @@ view.onTap = (wx, wy, sx, sy) => {
   if (ui.skippable) { ui.fast = true; return; }
   if (!state || state.phase === 'over' || !isLocal() || ui.busy) return;
   const x = Math.round(wx), y = Math.round(wy);
+  if (state.phase === 'dragon') {
+    const k = G.key(x, y);
+    if (!ui.dragonMoves?.includes(k)) { if (state.board[k]) { sfx.error(); toast('The dragon can only fly to a red tile'); } return; }
+    sfx.tap();
+    sendAction({ t: 'dragon', key: k });
+    playDragonMove(k, turnToken);
+    return;
+  }
   if (state.phase === 'place') {
     if (ui.tentative && ui.tentative.x === x && ui.tentative.y === y) { rotateTentative(); return; }
     const pl = ui.placements.find((p) => p.x === x && p.y === y);
@@ -278,7 +388,8 @@ view.onTap = (wx, wy, sx, sy) => {
     setTentative(x, y, pl.rots.includes(ui.previewRot) ? ui.previewRot : pl.rots[0], false);
   } else if (state.phase === 'action' && ui.ghosts?.length) {
     let best = null, bd = Math.max(26, view.cam.z * 0.22);
-    for (const g of ui.ghosts) {
+    // capture targets first (they sit on top of everything else)
+    for (const g of [...ui.ghosts].sort((a, b) => (b.type === 'capture') - (a.type === 'capture'))) {
       const [gx, gy] = view.ghostScreenPos(g);
       const d = Math.hypot(gx - sx, gy - sy);
       if (d < bd) { bd = d; best = g; }
@@ -291,12 +402,19 @@ view.onTap = (wx, wy, sx, sy) => {
         const fi = featureUnder(tile.t, ux, uy);
         best = ui.ghosts.find((g) => g.key === G.key(x, y) && g.fi === fi) || null;
       }
-      if (!best) { if (ui.selected) selectOption(null); return; }
+      if (!best) { if (ui.selected && !ui.capturing) selectOption(null); return; }
+    }
+    if (best.type === 'capture') {
+      ui.capture = ui.capture && sameCapture(ui.capture, best.act) ? null : best.act;
+      sfx.capture();
+      showGhosts();
+      return;
     }
     if (ui.selected && sameOpt(best.act, ui.selected)) { onConfirm(); return; } // second tap = place it
     selectOption(best.act);
   }
 };
+const sameCapture = (a, b) => a.key === b.key && a.fi === b.fi && a.k === b.k && a.p === b.p;
 
 function featureUnder(t, u, v) {
   const { label } = getTileArt(t);
@@ -321,83 +439,153 @@ async function onConfirm() {
     G.placeTile(state, x, y, r);
     ui.placedAt = { x, y, r };
     ui.tentative = null;
+    ui.noBonus = false; ui.bonusTold = false;
     view.setVM({ tentative: null, candidates: null, lastKey: state.last, lastColor: colorOf(cur()).light });
     view.addEffect({ type: 'drop', key: state.last, dur: 380 });
     sfx.place();
     drawPreview();
     beginActionPhase();
   } else if (state.phase === 'action') {
-    await completeTurn(ui.selected, ui.placedAt);
+    const act = ui.selected && ui.selected.kind === 'floor' ? { ...ui.selected, capture: ui.capture || null } : ui.selected;
+    await completeTurn(act, ui.placedAt);
   }
 }
 
 // ---------- follower phase ----------
 const sameOpt = (a, b) => !!a && !!b && a.kind === b.kind && a.key === b.key && a.fi === b.fi && a.k === b.k;
-const optGroup = (o) => (o.kind === 'follower' ? o.k : o.kind);
+const optGroup = (o) => (o.kind === 'follower' ? (o.portal ? `portal:${o.k}` : o.k) : o.kind === 'towerTop' ? `towerTop:${o.k}` : o.kind);
+const groupKind = (g) => (g.includes(':') ? g.split(':')[1] : ({ recall: 'abbot', fairy: 'fairy' }[g] || (G.PIECES[g] ? g : null)));
+const GROUP_ORDER = ['meeple', 'large', 'abbot', 'builder', 'pig', 'portal:meeple', 'portal:large', 'portal:abbot', 'princess', 'fairy', 'recall', 'floor', 'towerTop:meeple', 'towerTop:large'];
+
+// Traders & Builders: the builder's bonus tile may be declined
+function bonusToggle() {
+  if (!state.bonus || state.part !== 1) return '';
+  return ` <button class="bonus-toggle${ui.noBonus ? ' off' : ''}" id="bonus-toggle">🔨 Bonus tile: <b>${ui.noBonus ? 'skip' : 'yes'}</b></button>`;
+}
+$('instruction').addEventListener('click', (e) => {
+  if (e.target.closest('#bonus-toggle') && state?.phase === 'action' && isLocal()) {
+    ui.noBonus = !ui.noBonus;
+    sfx.tap();
+    const b = $('bonus-toggle');
+    b.classList.toggle('off', ui.noBonus);
+    b.innerHTML = `🔨 Bonus tile: <b>${ui.noBonus ? 'skip' : 'yes'}</b>`;
+  }
+});
 
 function beginActionPhase() {
   const opts = G.followerOptions(state);
   ui.options = opts;
-  ui.selected = null;
+  ui.selected = null; ui.capture = null; ui.capturing = false;
+  if (state.bonus && state.part === 1 && !ui.bonusTold) { ui.bonusTold = true; toast('🔨 Your builder earns you a bonus tile after this one!'); }
   const groups = [...new Set(opts.map(optGroup))];
-  ui.group = groups.includes('meeple') ? 'meeple' : groups[0] || null;
+  ui.group = groups.includes('meeple') ? 'meeple' : groups.sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b))[0] || null;
   if (!opts.length) {
     ui.ghosts = null;
     view.setVM({ ghosts: null });
-    const reason = cur().supply.meeple === 0 ? 'You have no followers left.' : 'Nothing free to claim on this tile.';
-    setDock({ instruction: `${reason} Press ✓ to finish`, confirm: true, undo: !!ui.snapshot, pulse: true });
+    const volcano = state.dragon === state.last;
+    const sup = cur().supply;
+    const reason = volcano ? '🌋 The dragon has landed here, so no figure may go on this tile.' : !sup.meeple && !sup.large && !sup.abbot ? 'You have no followers left.' : 'Nothing free to claim on this tile.';
+    setDock({ instruction: `${reason} Press ✓ to finish${bonusToggle()}`, confirm: true, undo: !!ui.snapshot, pulse: true });
     return;
   }
   const [x, y] = G.parseKey(state.last);
   view.animateCam({ x, y, z: Math.max(Math.min(view.cam.z, view.viewport().vh / 1.25), Math.min(170, view.w / 2.4, view.viewport().vh / 1.25)) });
+  if (state.dragon === state.last) toast('🌋 The dragon lands on the volcano: no figure may go on this tile');
   showGhosts();
   if (ui.hint && ui.hint.act && opts.some((o) => sameOpt(o, ui.hint.act))) {
     toast('💡 Hint: try this one');
-    selectOption(opts.find((o) => sameOpt(o, ui.hint.act)));
+    const best = opts.find((o) => sameOpt(o, ui.hint.act));
+    ui.group = optGroup(best);
+    selectOption(best);
+    if (ui.hint.act.capture) { ui.capture = ui.hint.act.capture; showGhosts(); }
   }
 }
 
 function ghostLabel(o) {
+  if (o.kind === 'fairy') return '🧚 Fairy here';
+  if (o.kind === 'princess') return `👸 Send ${state.players[o.p].name}'s knight home`;
+  if (o.kind === 'recall') {
+    const [x, y] = G.parseKey(o.key);
+    return `⤴️ Abbot home +${1 + G.monasteryNeighbours(state.board, x, y)}`;
+  }
+  if (o.kind === 'floor') return `🏰 Tower floor ${state.towers[o.key].h + 1}`;
+  if (o.kind === 'towerTop') return '🏰 Close this tower';
   const tile = state.board[o.key];
   const f = TILE_TYPES[tile.t].features[o.fi];
-  let label = TYPE_LABEL[f.type] || f.type;
+  let label = (o.portal ? '🌀 ' : '') + (o.k === 'builder' ? 'Builder' : o.k === 'pig' ? 'Pig' : TYPE_LABEL[f.type] || f.type);
   if (!helper()) return label;
-  if (f.type === 'monastery') {
+  if (f.type === 'monastery' || f.type === 'garden') {
     const [x, y] = G.parseKey(o.key);
     label += ` · ${1 + G.monasteryNeighbours(state.board, x, y)}`;
   } else if (f.type === 'road' || f.type === 'city') {
     const g = G.describeGroup(state, o.key, o.fi);
-    label += g.complete ? ` · ${g.points} pts!` : f.type === 'city' ? ` · ${g.points} now · ${(g.tiles.size + g.pennants) * 2} if finished` : ` · worth ${g.points}+`;
+    const mult = f.type === 'city' ? (g.cathedral ? 3 : 2) : (g.inn ? 2 : 1);
+    label += g.complete ? ` · ${g.points} pts!` : f.type === 'city' ? ` · ${g.points} now · ${(g.tiles.size + g.pennants) * mult} if finished` : ` · worth ${g.points}+`;
   }
   return label;
 }
 
+function ghostType(o) {
+  if (o.kind === 'follower') return 'follower';
+  return o.kind; // fairy, princess, recall, floor, towerTop
+}
+
 function showGhosts() {
-  const list = ui.options.filter((o) => optGroup(o) === ui.group && o.fi !== undefined);
-  ui.ghosts = list.map((o) => ({ key: o.key, fi: o.fi, k: o.k || 'meeple', act: o, label: ghostLabel(o), selected: sameOpt(o, ui.selected) }));
+  const list = ui.options.filter((o) => optGroup(o) === ui.group);
+  ui.ghosts = list.map((o) => ({
+    key: o.key, fi: o.fi, k: o.kind === 'recall' ? 'abbot' : o.k || 'meeple', p: o.kind === 'recall' ? state.current : o.p,
+    type: ghostType(o), act: o, label: ghostLabel(o), selected: sameOpt(o, ui.selected),
+  }));
+  // The Tower: after choosing a floor, the figures it can capture
+  ui.capturing = false;
+  if (ui.selected?.kind === 'floor' && ui.group === 'floor') {
+    const targets = G.captureTargets(state, ui.selected.key, state.towers[ui.selected.key].h + 1);
+    if (targets.length) {
+      ui.capturing = true;
+      for (const c of targets) {
+        ui.ghosts.push({ key: c.key, fi: c.fi, k: c.k, p: c.p, type: 'capture', act: c, selected: !!ui.capture && sameCapture(ui.capture, c),
+          label: c.p === state.current ? `Take your ${KIND_NAME[c.k]} back` : `Capture ${state.players[c.p].name}'s ${KIND_NAME[c.k]}` });
+      }
+    }
+  }
   view.setVM({ ghosts: ui.ghosts, ghostColor: colorOf(cur()), showLabels: false });
   updateActionDock();
 }
 
 function pickerFor() {
-  const groups = [...new Set(ui.options.map(optGroup))];
+  const groups = [...new Set(ui.options.map(optGroup))].sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
   return {
     active: ui.group,
-    items: groups.map((g) => ({ id: g, kind: g, label: PIECE_LABEL[g] || g })),
-    onPick: (g) => { ui.group = g; ui.selected = null; view.setVM({ highlight: null }); showGhosts(); },
+    items: groups.map((g) => ({ id: g, kind: groupKind(g), icon: GROUP_ICON[g] || (g.startsWith('portal') ? '🌀' : g.startsWith('towerTop') ? '🏰' : ''), label: PIECE_LABEL[g] || g })),
+    onPick: (g) => { ui.group = g; ui.selected = null; ui.capture = null; view.setVM({ highlight: null }); showGhosts(); },
   };
 }
 
+const GROUP_HELP = {
+  fairy: '🧚 Tap a fairy to move her next to one of your figures: <b>+1</b> each turn, <b>+3</b> when it scores, and the dragon can\'t come near',
+  princess: '👸 Tap a knight to send it home (you place nothing else this turn)',
+  recall: '⤴️ Tap your abbot to bring him home and score his monastery or garden now',
+  floor: '🏰 Tap a tower to add a floor, then you may capture one figure in range',
+  'towerTop:meeple': '🏰 Tap a tower to put your meeple on top: nobody can build it higher',
+  'towerTop:large': '🏰 Tap a tower to put your big meeple on top',
+};
+
 function updateActionDock(info = '') {
   const left = `<small>(♟${cur().supply.meeple} left)</small>`;
-  setDock({
-    instruction: ui.selected ? `${info}. Tap again or ✓` : `Tap a <b>ghost</b> to claim it, or ✓ to skip ${left}`,
-    confirm: true, undo: !!ui.snapshot, pulse: !!ui.selected, picker: pickerFor(),
-  });
+  let instruction;
+  if (ui.capturing) {
+    const c = ui.capture;
+    instruction = c ? `${c.p === state.current ? `Your ${KIND_NAME[c.k]} goes home` : `Capture ${escapeHtml(state.players[c.p].name)}'s ${KIND_NAME[c.k]}`}. Press ✓` : '🏰 Tap a <b style="color:#c62b1d">red</b> ring to capture that figure, or ✓ to build without capturing';
+  } else if (ui.selected) instruction = `${info}. Tap again or ✓`;
+  else if (GROUP_HELP[ui.group]) instruction = `${GROUP_HELP[ui.group]}, or ✓ to skip`;
+  else if (ui.group?.startsWith('portal')) instruction = '🌀 Magic portal: tap a ghost <b>anywhere on the map</b> to place there, or ✓ to skip';
+  else instruction = `Tap a <b>ghost</b> to claim it, or ✓ to skip ${left}`;
+  setDock({ instruction: instruction + bonusToggle(), confirm: true, undo: !!ui.snapshot, pulse: !!ui.selected, picker: pickerFor() });
 }
 
 function selectOption(opt) {
   ui.selected = opt;
+  ui.capture = null;
   for (const g of ui.ghosts || []) g.selected = sameOpt(g.act, opt);
   sfx.meeple();
   let highlight = null;
@@ -405,24 +593,41 @@ function selectOption(opt) {
   if (opt && opt.kind === 'follower') {
     const tile = state.board[opt.key];
     const feat = TILE_TYPES[tile.t].features[opt.fi];
-    if (feat.type === 'monastery') {
+    if (opt.portal) view.ensureVisible(...G.parseKey(opt.key));
+    if (feat.type === 'monastery' || feat.type === 'garden') {
       highlight = { nodes: [[opt.key, opt.fi]] };
-      info = `${TYPE_ICON.monastery} Monk in the monastery: 9 points when surrounded`;
+      info = feat.type === 'garden' ? `${TYPE_ICON.garden} Abbot in the garden: 9 points when surrounded` : `${TYPE_ICON.monastery} ${opt.k === 'abbot' ? 'Abbot' : 'Monk'} in the monastery: 9 points when surrounded`;
     } else {
       const g = G.getGroup(state.board, opt.key, opt.fi);
       highlight = { nodes: g.nodes, color: feat.type === 'field' ? '#b6ff6a' : '#ffe680' };
-      if (feat.type === 'field') {
+      if (opt.k === 'builder') info = '🔨 Builder: extend this again on a later turn to play a second tile';
+      else if (opt.k === 'pig') info = '🐖 Pig: +1 per finished city for your farmers here at the end';
+      else if (feat.type === 'field') {
         const done = G.fieldCities(state.board, g).filter((c) => c.complete).length;
         info = `${TYPE_ICON.field} Farmer (stays all game): ${done * 3} pts so far`;
       } else if (feat.type === 'road') {
-        info = `${TYPE_ICON.road} Thief on a ${g.tiles.size}-tile road${g.complete ? ' — finished' : ''}`;
+        info = `${TYPE_ICON.road} Thief on a ${g.tiles.size}-tile road${g.inn ? ' with an inn 🍺' : ''}${g.complete ? ' — finished' : ''}`;
       } else {
-        info = `${TYPE_ICON.city} Knight in a ${g.tiles.size}-tile city${g.pennants ? ` with ${g.pennants} 🛡️` : ''}${g.complete ? ' — finished' : ''}`;
+        info = `${TYPE_ICON.city} Knight in a ${g.tiles.size}-tile city${g.pennants ? ` with ${g.pennants} 🛡️` : ''}${g.cathedral ? ' and a cathedral' : ''}${g.complete ? ' — finished' : ''}`;
       }
+      if (opt.portal) info = `🌀 ${info}`;
     }
+  } else if (opt && opt.kind === 'princess') {
+    const g = G.getGroup(state.board, opt.key, opt.fi);
+    highlight = { nodes: g.nodes, color: '#ff9ad0' };
+    info = `👸 ${escapeHtml(state.players[opt.p].name)}'s ${KIND_NAME[opt.k]} goes home`;
+  } else if (opt && opt.kind === 'fairy') {
+    info = '🧚 The fairy will stand by this figure';
+  } else if (opt && opt.kind === 'recall') {
+    info = '⤴️ Your abbot comes home and scores now';
+  } else if (opt && opt.kind === 'towerTop') {
+    info = '🏰 Your figure stays on top for good: the tower is closed';
+  } else if (opt && opt.kind === 'floor') {
+    info = `🏰 Tower goes up to ${state.towers[opt.key].h + 1}`;
   }
-  view.setVM({ ghosts: ui.ghosts, highlight });
-  updateActionDock(info);
+  view.setVM({ highlight });
+  showGhosts();
+  if (opt) updateActionDock(info);
 }
 
 function onUndo() {
@@ -431,7 +636,7 @@ function onUndo() {
   const snap = ui.snapshot;
   for (const k of Object.keys(state)) delete state[k];
   Object.assign(state, snap.state);
-  ui.snapshot = null; ui.ghosts = null; ui.selected = null; ui.placedAt = null;
+  ui.snapshot = null; ui.ghosts = null; ui.selected = null; ui.placedAt = null; ui.capture = null; ui.capturing = false;
   view.setState(state);
   view.setVM({ ghosts: null, highlight: null, lastKey: state.last });
   drawPreview();
@@ -450,7 +655,10 @@ function onHint() {
     toast('💡 How about here?');
   } else if (state.phase === 'action' && ui.options?.length) {
     const best = ui.hint?.act && ui.options.find((o) => sameOpt(o, ui.hint.act));
-    if (best) { ui.group = optGroup(best); showGhosts(); selectOption(best); } else toast('💡 Keeping your follower might be smart');
+    if (best) {
+      ui.group = optGroup(best); showGhosts(); selectOption(best);
+      if (ui.hint.act.capture) { ui.capture = ui.hint.act.capture; showGhosts(); }
+    } else toast('💡 Keeping your follower might be smart');
   }
 }
 
@@ -469,8 +677,10 @@ async function completeTurn(act, placedAt) {
   ui.busy = true;
   const placer = state.current;
   const k = state.last;
-  const action = { t: 'turn', x: placedAt.x, y: placedAt.y, r: placedAt.r, act: act || null };
-  const events = G.finishTurn(state, act);
+  const noBonus = !!(ui.noBonus && state.bonus);
+  const action = { t: 'turn', x: placedAt.x, y: placedAt.y, r: placedAt.r, act: act || null, ...(noBonus ? { noBonus: true } : {}) };
+  const events = G.finishTurn(state, act, noBonus);
+  ui.noBonus = false; ui.bonusTold = false;
   state.seq = (state.seq || 0) + 1;
   if (session.online && !placedAt.resumed) sendAction(action);
   await afterTurnAnimation(events, act, k, placer, token);
@@ -482,9 +692,14 @@ async function afterTurnAnimation(events, act, k, placer, token) {
   const returning = events.flatMap((e) => e.meeples || []);
   view.setVM({ extraMeeples: returning.map((m) => ({ ...m })) });
   if (act && act.kind === 'follower') {
+    if (act.portal) { view.ensureVisible(...G.parseKey(act.key)); sfx.magic(); }
     view.addEffect({ type: 'pop', key: act.key, f: act.fi, dur: 500 });
     sfx.meeple();
     await sleep(420);
+  } else if (act && (act.kind === 'floor' || act.kind === 'towerTop')) {
+    view.ensureVisible(...G.parseKey(act.key));
+    sfx.place();
+    await sleep(ui.fast ? 0 : 380);
   }
   if (token !== turnToken) return;
   renderPlayers();
@@ -514,7 +729,7 @@ async function playTurnAction(a, token) {
   if (token !== turnToken) return;
   [...$('players').children].forEach((c) => c.classList.remove('thinking'));
   const k = state.last;
-  const events = G.finishTurn(state, a.act || null);
+  const events = G.finishTurn(state, a.act || null, !!a.noBonus);
   state.seq = (state.seq || 0) + 1;
   await afterTurnAnimation(events, a.act, k, placer, token);
 }
@@ -523,6 +738,14 @@ async function aiTurn(token) {
   ui.busy = true;
   const p = cur();
   await sleep(350);
+  const ro = chooseRansom(state, p.level);
+  if (ro && token === turnToken) {
+    const action = { t: 'ransom', from: ro.from, k: ro.k };
+    const events = G.applyAction(state, action);
+    if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
+    showRansom(events[0]);
+    await sleep(900);
+  }
   const t0 = performance.now();
   const mv = chooseMove(state, p.level);
   await sleep(Math.max(0, 450 - (performance.now() - t0)));
@@ -541,9 +764,18 @@ async function pump() {
       if (ui.busy) break;
       const a = pending[0];
       if (a.t === 'turn') {
-        if (controlOf(state.current) !== 'remote') break; // it's not their turn on this phone
+        if (state.phase !== 'place' || controlOf(state.current) !== 'remote') break; // it's not their turn on this phone
         pending.shift();
         await playTurnAction(a, turnToken);
+      } else if (a.t === 'dragon') {
+        if (state.phase !== 'dragon' || controlOf(G.dragonMover(state)) !== 'remote') break;
+        pending.shift();
+        await playDragonMove(a.key, turnToken);
+      } else if (a.t === 'ransom') {
+        pending.shift();
+        const events = G.applyAction(state, a);
+        showRansom(events[0]);
+        if (controlOf(state.current) === 'remote') remoteWaiting();
       } else {
         pending.shift();
         G.applyAction(state, a);
@@ -622,7 +854,8 @@ async function animateEvents(events, placer, final = false, token = turnToken) {
   for (const e of events) {
     if (token !== turnToken) return;
     const nodes = e.nodes || [];
-    if (!nodes.length) continue;
+    if (await animateSpecial(e, wait)) continue;
+    if (!nodes.length) { for (const m of e.meeples || []) flyHome(m); continue; }
     const tiles = [...new Set(nodes.map(([k]) => k))].map(G.parseKey);
     const cx = tiles.reduce((a, [x]) => a + x, 0) / tiles.length;
     const cy = tiles.reduce((a, [, y]) => a + y, 0) / tiles.length;
@@ -662,15 +895,110 @@ async function animateEvents(events, placer, final = false, token = turnToken) {
   void placer;
 }
 
-function flyHome(m) {
+// World position of a figure (f 'top' = standing on a tower).
+function figureWorld(m) {
   const tile = state.board[m.key];
-  if (!tile) return;
   const [x, y] = G.parseKey(m.key);
+  if (m.f === 'top' || m.f === null || m.f === undefined) {
+    const f = m.f === 'top' ? TILE_TYPES[tile.t].foundation || [0.5, 0.5] : [0.5, 0.5];
+    const [rx, ry] = rotUnit(f[0], f[1], tile.r);
+    return [x + rx - 0.5, y + ry - 0.5 - (m.f === 'top' ? 0.3 : 0)];
+  }
   const [ax, ay] = getTileArt(tile.t).anchors[m.f];
   const [rx, ry] = rotUnit(ax, ay, tile.r);
+  return [x + rx - 0.5, y + ry - 0.5];
+}
+
+function flyHome(m, to = m.p) {
+  const tile = state.board[m.key];
+  if (!tile) return;
   const extra = (view.vm.extraMeeples || []).filter((q) => !(q.key === m.key && q.f === m.f && q.k === m.k && q.p === m.p));
   view.setVM({ extraMeeples: extra });
-  view.addEffect({ type: 'fly', from: [x + rx - 0.5, y + ry - 0.5], to: chipCenter(m.p), color: colorOf(state.players[m.p]), kind: m.k, dur: 700 });
+  view.addEffect({ type: 'fly', from: figureWorld(m), to: chipCenter(to), color: colorOf(state.players[m.p]), kind: m.k, dur: 700 });
+}
+
+// Events of the expansions that are not a feature being scored.
+async function animateSpecial(e, wait) {
+  const name = (i) => escapeHtml(state.players[i].name);
+  switch (e.kind) {
+    case 'bonus':
+      banner(`🔨 ${name(e.player)}'s builder: play another tile!`, 1800);
+      await wait(600);
+      return true;
+    case 'fairyMove': {
+      const [wx, wy] = figureWorld({ key: e.key, f: state.fairy?.f ?? null });
+      view.addEffect({ type: 'sparkle', x: wx, y: wy, dur: 900, n: 24, colors: ['#e6f3ff', '#bfe0ff', '#fff'] });
+      sfx.magic();
+      await wait(500);
+      return true;
+    }
+    case 'fairy':
+      if (e.nodes?.length) return false; // the +3 shows like a scored feature
+      {
+        const [wx, wy] = figureWorld({ key: e.key, f: null });
+        view.ensureVisible(wx, wy);
+        view.addEffect({ type: 'float', x: wx + 0.2, y: wy, text: `+${e.points}`, sub: '🧚 Fairy', color: colorOf(state.players[e.winners[0]]).light, dur: 1500 });
+        view.addEffect({ type: 'sparkle', x: wx + 0.2, y: wy, dur: 900, n: 18, colors: ['#e6f3ff', '#bfe0ff', '#fff'] });
+        sfx.magic();
+        await wait(700);
+        for (const w of e.winners) { ui.shown[w] += e.points; bumpChip(w); }
+        renderPlayers();
+        await wait(300);
+      }
+      return true;
+    case 'floor':
+      return true;
+    case 'capture': {
+      const c = e.captured;
+      view.ensureVisible(...figureWorld(c));
+      sfx.capture();
+      if (e.own) banner(`🏰 ${name(e.captor)} takes back their own ${KIND_NAME[c.k]}`, 1700);
+      else if (e.exchange) banner(`🏰 ${name(e.captor)} captures ${name(c.p)}'s ${KIND_NAME[c.k]}: prisoners swapped straight back!`, 2200);
+      else banner(`🏰 ${name(e.captor)} captures ${name(c.p)}'s ${KIND_NAME[c.k]}!`, 1900);
+      flyHome(c, e.own || e.exchange ? c.p : e.captor);
+      await wait(900);
+      renderPlayers();
+      return true;
+    }
+    case 'princess': {
+      const m = e.meeples[0];
+      view.ensureVisible(...figureWorld(m));
+      view.addEffect({ type: 'glow', nodes: e.nodes, dur: 900, color: '#ff9ad0' });
+      banner(`👸 The princess sends ${name(m.p)}'s knight home`, 1800);
+      sfx.magic();
+      await wait(500);
+      flyHome(m);
+      await wait(600);
+      return true;
+    }
+    case 'dragon':
+      for (const m of e.meeples) flyHome(m);
+      if (e.meeples.length) await wait(650);
+      return true;
+    case 'return':
+      for (const m of e.meeples) flyHome(m);
+      if (e.meeples.length) await wait(450);
+      return true;
+    case 'ransom':
+      return true;
+    case 'goods': {
+      const ICON = { wine: '🍷', grain: '🌾', cloth: '🧵' };
+      if (e.player !== undefined) {
+        const got = Object.entries(e.goods).map(([g, n]) => `${n} ${ICON[g] || g}`).join(' ');
+        banner(`📦 ${name(e.player)} takes the city's goods: ${got}`, 1800);
+        await wait(700);
+        return true;
+      }
+      banner(`${ICON[e.good] || '📦'} Most ${e.good}: ${e.winners.map(name).join(' & ')} +${e.points}`, 1800);
+      sfx.score(true);
+      for (const w of e.winners) { ui.shown[w] += e.points; bumpChip(w); }
+      renderPlayers();
+      await wait(1300);
+      return true;
+    }
+    default:
+      return false;
+  }
 }
 
 // ---------- end of game ----------
@@ -695,7 +1023,7 @@ async function endGame() {
     for (const e of events) {
       if (e.kind !== lastKind && !ui.fast) {
         lastKind = e.kind;
-        const title = e.section || { road: '🛣️ Unfinished roads', city: '🏯 Unfinished cities', monastery: '⛪ Monasteries', field: '🌾 Farms' }[e.kind];
+        const title = e.section || { road: '🛣️ Unfinished roads', city: '🏯 Unfinished cities', monastery: '⛪ Monasteries & gardens', field: '🌾 Farms', goods: '📦 Trade goods' }[e.kind];
         if (title) banner(title, 1500);
         await sleep(600);
       }
@@ -716,7 +1044,7 @@ async function endGame() {
   if (!session.online) store.del('carc-save');
 }
 
-const SCORE_COLUMNS = [['road', '🛣️'], ['city', '🏯'], ['monastery', '⛪'], ['field', '🌾']];
+const SCORE_COLUMNS = [['road', '🛣️'], ['city', '🏯'], ['monastery', '⛪'], ['field', '🌾'], ['goods', '📦'], ['fairy', '🧚'], ['tower', '🏰']];
 
 export function showScores() {
   if (!state) return;

@@ -1258,7 +1258,38 @@ const PIG_PATH = (() => {
   for (const lx of [-0.3, -0.12, 0.08, 0.22]) p.rect(lx, 0.22, 0.08, 0.2);           // legs
   return p;
 })();
-const SHAPES = { meeple: MEEPLE_PATH, abbot: ABBOT_PATH, pig: PIG_PATH };
+// The Princess & the Dragon: the big red dragon and the little fairy
+const DRAGON_PATH = (() => {
+  const p = new Path2D();
+  p.ellipse(-0.02, 0.2, 0.32, 0.2, -0.1, 0, Math.PI * 2);                  // body
+  p.moveTo(0.16, 0.12); p.bezierCurveTo(0.3, 0.02, 0.3, -0.2, 0.36, -0.3);   // neck
+  p.lineTo(0.5, -0.3); p.bezierCurveTo(0.44, -0.18, 0.4, 0.0, 0.3, 0.2); p.closePath();
+  p.moveTo(0.3, -0.36); p.bezierCurveTo(0.38, -0.46, 0.5, -0.44, 0.6, -0.36); // head & snout
+  p.lineTo(0.58, -0.3); p.bezierCurveTo(0.5, -0.28, 0.38, -0.26, 0.3, -0.3); p.closePath();
+  p.moveTo(0.36, -0.42); p.lineTo(0.33, -0.54); p.lineTo(0.43, -0.44); p.closePath(); // horn
+  p.moveTo(-0.08, 0.04);                                                       // wing
+  p.bezierCurveTo(-0.16, -0.18, -0.3, -0.4, -0.22, -0.56);
+  p.bezierCurveTo(-0.08, -0.44, 0.06, -0.42, 0.2, -0.46);
+  p.bezierCurveTo(0.14, -0.36, 0.14, -0.3, 0.16, -0.24);
+  p.bezierCurveTo(0.08, -0.22, 0.02, -0.18, 0.02, -0.12);
+  p.bezierCurveTo(-0.02, -0.08, -0.04, -0.02, -0.08, 0.04); p.closePath();
+  p.moveTo(-0.3, 0.26); p.bezierCurveTo(-0.46, 0.3, -0.56, 0.4, -0.5, 0.52); // tail
+  p.lineTo(-0.42, 0.46); p.bezierCurveTo(-0.44, 0.38, -0.38, 0.34, -0.26, 0.34); p.closePath();
+  p.rect(-0.2, 0.3, 0.1, 0.2); p.rect(0.1, 0.3, 0.1, 0.2);                 // legs
+  return p;
+})();
+const FAIRY_PATH = (() => {
+  const p = new Path2D();
+  p.ellipse(-0.2, -0.12, 0.17, 0.24, -0.5, 0, Math.PI * 2);   // wings
+  p.moveTo(0.37, -0.12); p.ellipse(0.2, -0.12, 0.17, 0.24, 0.5, 0, Math.PI * 2);
+  p.moveTo(0.11, -0.33); p.arc(0, -0.33, 0.11, 0, Math.PI * 2); // head
+  p.moveTo(0, -0.2); p.bezierCurveTo(0.12, -0.18, 0.14, 0.0, 0.24, 0.5); // dress
+  p.lineTo(-0.24, 0.5); p.bezierCurveTo(-0.14, 0.0, -0.12, -0.18, 0, -0.2); p.closePath();
+  return p;
+})();
+const SHAPES = { meeple: MEEPLE_PATH, abbot: ABBOT_PATH, pig: PIG_PATH, dragon: DRAGON_PATH, fairy: FAIRY_PATH };
+export const DRAGON_COLOR = { main: '#b3261c', dark: '#5e110b', light: '#ef7a5c' };
+export const FAIRY_COLOR = { main: '#8fb7e0', dark: '#3f6390', light: '#e6f3ff' };
 
 function woodenShape(ctx, path, size, color, opts) {
   if (opts.ghost) {
@@ -1299,6 +1330,14 @@ export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
   if (kind === 'large') { sx = sy = 1.32; }
   if (kind === 'builder') { sx = 0.82; sy = 1.22; path = MEEPLE_PATH; }
   if (kind === 'pig') { sx = sy = 0.95; }
+  if (kind === 'dragon') { sx = sy = 1.45; }
+  if (kind === 'fairy') { sx = sy = 0.72; }
+  if (kind === 'fairy' && !opts.ghost) {
+    // a soft magic glow around the fairy
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.55);
+    g.addColorStop(0, 'rgba(230,245,255,0.55)'); g.addColorStop(1, 'rgba(230,245,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, size * 0.55, 0, 7); ctx.fill();
+  }
   if (opts.lying && (kind === 'meeple' || kind === 'large')) ctx.rotate(-Math.PI / 2 + 0.15);
   ctx.scale(size * sx, size * sy);
   woodenShape(ctx, path, size, color, opts);
@@ -1312,7 +1351,44 @@ export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.beginPath(); ctx.arc(0.38, -0.06, 0.025, 0, 7); ctx.fill();
   }
+  if (kind === 'dragon' && !opts.ghost) {
+    ctx.fillStyle = '#ffd36a'; ctx.beginPath(); ctx.arc(0.46, -0.37, 0.025, 0, 7); ctx.fill();
+  }
   ctx.restore();
+}
+
+// The Tower: a stack of h wooden tower floors standing at (x, y) (its base);
+// returns the screen y of the top of the stack.
+export function drawTower(ctx, x, y, size, h, opts = {}) {
+  const w = size * 0.24, fh = size * 0.075;
+  const shown = Math.min(h, 7);
+  ctx.save();
+  ctx.globalAlpha = opts.alpha ?? 1;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = size * 0.08; ctx.shadowOffsetX = size * 0.03; ctx.shadowOffsetY = size * 0.04;
+  ctx.fillStyle = '#6f6555';
+  ctx.fillRect(x - w / 2, y - shown * fh, w, shown * fh);
+  ctx.restore();
+  for (let i = 0; i < shown; i++) {
+    const top = y - (i + 1) * fh;
+    const g = ctx.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+    g.addColorStop(0, '#e9dfc7'); g.addColorStop(0.55, '#cfc2a3'); g.addColorStop(1, '#9d9077');
+    ctx.fillStyle = g; ctx.fillRect(x - w / 2, top, w, fh - Math.max(1, size * 0.006));
+    ctx.fillStyle = 'rgba(60,45,30,0.35)'; ctx.fillRect(x - w / 2, top + fh - Math.max(1, size * 0.008), w, Math.max(1, size * 0.008));
+    ctx.fillStyle = 'rgba(50,40,30,0.55)'; ctx.fillRect(x - w * 0.06, top + fh * 0.3, w * 0.12, fh * 0.45);
+  }
+  // crenellations on the top floor
+  const top = y - shown * fh;
+  ctx.fillStyle = '#ddd1b5';
+  for (let i = 0; i < 3; i++) ctx.fillRect(x - w / 2 + i * w * 0.4, top - fh * 0.45, w * 0.2, fh * 0.45);
+  if (h > shown || opts.badge) {
+    const r = size * 0.075;
+    ctx.fillStyle = 'rgba(30,18,8,0.88)'; ctx.beginPath(); ctx.arc(x + w * 0.75, top + r * 0.4, r, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffe7a6'; ctx.font = `900 ${Math.round(r * 1.3)}px Nunito, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(h), x + w * 0.75, top + r * 0.45);
+  }
+  ctx.restore();
+  return top - fh * 0.45;
 }
 
 // ---------- tile back & table ----------

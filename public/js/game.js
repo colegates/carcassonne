@@ -1,8 +1,9 @@
 // Pure, deterministic rules engine for Carcassonne (3rd-edition rules) with
-// the expansions The River, The Abbot, Inns & Cathedrals, Traders & Builders.
+// the expansions The River, The Abbot, Inns & Cathedrals, Traders & Builders,
+// The Princess & the Dragon and The Tower.
 // Every state change is driven by serialisable actions so that several phones
 // can replay exactly the same game (see applyAction).
-import { TILE_TYPES, buildDeck, rotPort, oppositePort, SIDE_DELTA, RIVER_SPRING, isRiverTile } from './tiles.js';
+import { TILE_TYPES, buildDeck, rotPort, oppositePort, SIDE_DELTA, RIVER_SPRING, isRiverTile, hasTag } from './tiles.js';
 
 export const MEEPLES_PER_PLAYER = 7;
 export const PLAYER_COLORS = {
@@ -24,10 +25,23 @@ export const PIECES = {
   pig: { weight: 0, follower: false, name: 'Pig' },
 };
 export const GOODS = ['wine', 'grain', 'cloth'];
+// The Tower: floors each player gets, by number of players
+export const FLOORS = { 2: 10, 3: 9, 4: 7, 5: 6, 6: 5 };
+// The Princess & the Dragon: the dragon flies this many tiles
+export const DRAGON_STEPS = 6;
+const FOLLOWER_KINDS = ['meeple', 'large', 'abbot'];
 
 export const key = (x, y) => `${x},${y}`;
 export const parseKey = (k) => k.split(',').map(Number);
 export const hasExp = (state, id) => !!state.options?.expansions?.[id];
+
+// Deterministic random numbers kept in the state, so every phone agrees.
+function rand(state) {
+  const a = (state.rng = (state.rng + 0x6d2b79f5) | 0);
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
 
 export function shuffle(arr, rnd = Math.random) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -49,14 +63,16 @@ export function newGame(players, options = {}, rnd = Math.random) {
     return s;
   };
   const state = {
-    version: 3,
+    version: 4,
     options: opts,
     players: players.map((p) => ({
       name: p.name, color: p.color, kind: p.kind || 'human', level: p.level || 'medium',
       score: 0,
       supply: supply(),
       goods: exp.traders ? { wine: 0, grain: 0, cloth: 0 } : undefined,
-      breakdown: { road: 0, city: 0, monastery: 0, field: 0, goods: 0 },
+      floors: exp.tower ? FLOORS[players.length] || 5 : 0,
+      prisoners: [], // figures of other players held by this player (The Tower)
+      breakdown: { road: 0, city: 0, monastery: 0, field: 0, goods: 0, fairy: 0, tower: 0 },
     })),
     board: { [key(0, 0)]: { t: start, r: 0, pieces: [], n: 0 } },
     deck,
@@ -70,10 +86,18 @@ export function newGame(players, options = {}, rnd = Math.random) {
     last: null,
     discarded: [],
     seq: 0,
+    rng: Math.floor(rnd() * 4294967296) | 0,
+    deckSize: deck.length,
+    dragon: null, // key of the tile the dragon stands on
+    fairy: null, // { key, f, k, p } the follower she stands next to (p null = nobody's)
+    setAside: [], // dragon tiles drawn before the dragon arrived
+    flight: null, // { visited: [keys], moves } while the dragon flies
+    towers: {}, // key -> { h: floors, top: null | { p, k } }
+    ransomPaid: false,
   };
   if (start === RIVER_SPRING) {
     const rs = riverSidesWorld(start, 0);
-    state.river = { open: { x: 0, y: 0, side: rs[0] }, lastIn: null };
+    state.river = { open: { x: 0, y: 0, side: rs[0] }, lastIn: null, run: { dir: 0, n: 0 } };
   }
   drawTile(state);
   return state;
@@ -101,6 +125,18 @@ export function migrate(s) {
     s.bonus = !!s.bonus;
     for (const p of s.players) p.breakdown.goods = p.breakdown.goods || 0;
     s.version = 3;
+  }
+  if (s.version < 4) {
+    s.rng = s.rng ?? 12345;
+    s.dragon = s.dragon ?? null; s.fairy = s.fairy ?? null; s.flight = s.flight ?? null;
+    s.setAside = s.setAside || []; s.towers = s.towers || {}; s.ransomPaid = !!s.ransomPaid;
+    s.deckSize = s.deckSize || s.deck.length + Object.keys(s.board).length;
+    if (s.river && !s.river.run) s.river.run = { dir: 0, n: 0 };
+    for (const p of s.players) {
+      p.floors = p.floors || 0; p.prisoners = p.prisoners || [];
+      p.breakdown.fairy = p.breakdown.fairy || 0; p.breakdown.tower = p.breakdown.tower || 0;
+    }
+    s.version = 4;
   }
   return s;
 }
@@ -154,6 +190,9 @@ export function canPlace(state, x, y, t, r) {
     if (!rs.includes(entry)) return false;
     const exit = rs.find((s) => s !== entry);
     if (exit !== undefined && rv.lastIn !== null && exit === (rv.lastIn + 2) % 4) return false;
+    // nor a third bend the same way (straight pieces in between don't count)
+    const turn = exit === undefined ? 0 : (exit - rv.open.side + 4) % 4;
+    if ((turn === 1 || turn === 3) && rv.run?.dir === turn && rv.run.n >= 2) return false;
   }
   return true;
 }
@@ -283,6 +322,8 @@ export function drawTile(state) {
   state.drawn = null;
   while (state.deck.length) {
     const t = state.deck.pop();
+    // The Princess & the Dragon: dragon tiles wait until a volcano brings the dragon
+    if (!state.dragon && hasExp(state, 'dragon') && hasTag(t, 'dragon')) { state.setAside.push(t); continue; }
     if (validPlacements(state, t).length) { state.drawn = t; return t; }
     state.discarded.push(t); // unplayable tiles are removed from the game
   }
@@ -301,7 +342,22 @@ export function placeTile(state, x, y, r) {
   if (isRiverTile(t) && state.river?.open) {
     const entry = (state.river.open.side + 2) % 4;
     const exit = riverSidesWorld(t, r).find((s) => s !== entry);
-    state.river = { lastIn: state.river.open.side, open: exit === undefined ? null : { x, y, side: exit } };
+    const turn = exit === undefined ? 0 : (exit - state.river.open.side + 4) % 4; // 1 right, 3 left
+    let run = state.river.run || { dir: 0, n: 0 };
+    if (turn === 1 || turn === 3) run = run.dir === turn ? { dir: turn, n: run.n + 1 } : { dir: turn, n: 1 };
+    state.river = { lastIn: state.river.open.side, open: exit === undefined ? null : { x, y, side: exit }, run };
+  }
+  // The Tower: an empty foundation, ready for floors
+  if (hasExp(state, 'tower') && hasTag(t, 'tower')) state.towers[k] = { h: 0, top: null };
+  // The Princess & the Dragon: a volcano calls the dragon onto the new tile
+  if (hasExp(state, 'dragon') && hasTag(t, 'volcano')) {
+    const first = !state.dragon;
+    state.dragon = k;
+    if (first) {
+      // the dragon tiles set aside so far go back into the pile
+      for (const st of state.setAside) state.deck.splice(Math.floor(rand(state) * (state.deck.length + 1)), 0, st);
+      state.setAside = [];
+    }
   }
   // Traders & Builders: extending the road/city with your builder earns a second tile.
   state.bonus = false;
@@ -329,7 +385,9 @@ const isFollower = (m) => (m.w ?? weightOf(m.k)) > 0;
 const supportsFigure = (m, p) => m.p === p && (m.k === 'meeple' || m.k === 'large');
 
 // Everything the current player may do after placing a tile (besides passing).
-// Each option is an action object accepted by finishTurn.
+// Each option is an action object accepted by finishTurn. Only one may be
+// chosen per tile: placing a figure, calling the abbot home, using the magic
+// portal or the princess, moving the fairy, or a tower action.
 export function followerOptions(state) {
   if (state.phase !== 'action' || !state.last) return [];
   const p = state.current;
@@ -340,30 +398,33 @@ export function followerOptions(state) {
   const feats = TILE_TYPES[tile.t].features;
   const farmers = state.options.farmers !== false;
   const sizes = ['meeple', 'large'].filter((s) => pl.supply[s] > 0);
-  feats.forEach((f, fi) => {
-    if (f.type === 'river') return;
-    if (f.type === 'garden') {
-      if (pl.supply.abbot > 0 && !tile.pieces.some((pc) => pc.f === fi)) out.push({ kind: 'follower', key: k, fi, k: 'abbot' });
-      return;
-    }
-    if (f.type === 'monastery') {
-      if (tile.pieces.some((pc) => pc.f === fi)) return;
-      for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s });
-      if (pl.supply.abbot > 0) out.push({ kind: 'follower', key: k, fi, k: 'abbot' });
-      return;
-    }
-    if (f.type === 'field' && !farmers) return;
-    const g = getGroup(state.board, k, fi);
-    const occupied = g.meeples.some(isFollower);
-    if (!occupied) for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s });
-    // Traders & Builders: builder next to your own knight/highwayman, pig next to your farmer
-    if ((f.type === 'road' || f.type === 'city') && pl.supply.builder > 0 && !g.complete && g.meeples.some((m) => supportsFigure(m, p))) {
-      out.push({ kind: 'follower', key: k, fi, k: 'builder' });
-    }
-    if (f.type === 'field' && pl.supply.pig > 0 && g.meeples.some((m) => supportsFigure(m, p))) {
-      out.push({ kind: 'follower', key: k, fi, k: 'pig' });
-    }
-  });
+  // no figure may share a tile with the dragon (a volcano tile has just called it)
+  if (state.dragon !== k) {
+    feats.forEach((f, fi) => {
+      if (f.type === 'river') return;
+      if (f.type === 'garden') {
+        if (pl.supply.abbot > 0 && !tile.pieces.some((pc) => pc.f === fi)) out.push({ kind: 'follower', key: k, fi, k: 'abbot' });
+        return;
+      }
+      if (f.type === 'monastery') {
+        if (tile.pieces.some((pc) => pc.f === fi)) return;
+        for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s });
+        if (pl.supply.abbot > 0) out.push({ kind: 'follower', key: k, fi, k: 'abbot' });
+        return;
+      }
+      if (f.type === 'field' && !farmers) return;
+      const g = getGroup(state.board, k, fi);
+      const occupied = g.meeples.some(isFollower);
+      if (!occupied) for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s });
+      // Traders & Builders: builder next to your own knight/highwayman, pig next to your farmer
+      if ((f.type === 'road' || f.type === 'city') && pl.supply.builder > 0 && !g.complete && g.meeples.some((m) => supportsFigure(m, p))) {
+        out.push({ kind: 'follower', key: k, fi, k: 'builder' });
+      }
+      if (f.type === 'field' && pl.supply.pig > 0 && g.meeples.some((m) => supportsFigure(m, p))) {
+        out.push({ kind: 'follower', key: k, fi, k: 'pig' });
+      }
+    });
+  }
   // The Abbot: call your abbot home from an unfinished monastery or garden and score it now.
   if (hasExp(state, 'abbot')) {
     const a = findPiece(state, p, 'abbot');
@@ -371,6 +432,89 @@ export function followerOptions(state) {
       const [x, y] = parseKey(a.key);
       if (monasteryNeighbours(state.board, x, y) < 8) out.push({ kind: 'recall', key: a.key, fi: a.f });
     }
+  }
+  if (hasExp(state, 'dragon')) {
+    // magic portal: a follower onto any empty, unfinished feature of any tile
+    if (hasTag(tile.t, 'portal')) out.push(...portalOptions(state, p, sizes));
+    // princess: send one knight home from the city she joins
+    feats.forEach((f, fi) => {
+      if (f.type !== 'city' || !f.princess) return;
+      for (const m of getGroup(state.board, k, fi).meeples) {
+        if (isFollower(m)) out.push({ kind: 'princess', key: m.key, fi: m.f, k: m.k, p: m.p });
+      }
+    });
+    // fairy: stand her next to one of your followers
+    const fy = state.fairy;
+    for (const f of followersOf(state, p)) {
+      if (fy && fy.p === p && fy.key === f.key && fy.f === f.fi) continue;
+      out.push({ kind: 'fairy', key: f.key, fi: f.fi, k: f.k });
+    }
+  }
+  if (hasExp(state, 'tower')) {
+    for (const [tk, tw] of Object.entries(state.towers)) {
+      if (tw.top) continue; // closed while someone stands on top
+      if (pl.floors > 0) out.push({ kind: 'floor', key: tk });
+      if (tw.h > 0 && tk !== state.dragon) for (const s of sizes) out.push({ kind: 'towerTop', key: tk, k: s });
+    }
+  }
+  return out;
+}
+
+// Followers of player p on the board (fi 'top' = standing on a tower).
+export function followersOf(state, p) {
+  const out = [];
+  for (const [k, tile] of Object.entries(state.board)) {
+    for (const pc of tile.pieces) if (pc.p === p && FOLLOWER_KINDS.includes(pc.k)) out.push({ key: k, fi: pc.f, k: pc.k });
+  }
+  for (const [k, tw] of Object.entries(state.towers || {})) if (tw.top?.p === p) out.push({ key: k, fi: 'top', k: tw.top.k });
+  return out;
+}
+
+// The Princess & the Dragon, magic portal: empty, unfinished features anywhere
+// (other than the new tile itself, which has its normal options).
+function portalOptions(state, p, sizes) {
+  const out = [];
+  const pl = state.players[p];
+  const farmers = state.options.farmers !== false;
+  const groups = new Map();
+  const groupOf = (k, fi) => {
+    const id = `${k}#${fi}`;
+    if (!groups.has(id)) {
+      const g = getGroup(state.board, k, fi);
+      for (const [nk, nf] of g.nodes) groups.set(`${nk}#${nf}`, g);
+    }
+    return groups.get(id);
+  };
+  for (const [k, tile] of Object.entries(state.board)) {
+    if (k === state.last || k === state.dragon) continue;
+    const [x, y] = parseKey(k);
+    TILE_TYPES[tile.t].features.forEach((f, fi) => {
+      if (f.type === 'river' || (f.type === 'field' && !farmers)) return;
+      if (f.type === 'monastery' || f.type === 'garden') {
+        if (tile.pieces.some((pc) => pc.f === fi) || monasteryNeighbours(state.board, x, y) === 8) return;
+        if (f.type === 'monastery') for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s, portal: true });
+        if (pl.supply.abbot > 0) out.push({ kind: 'follower', key: k, fi, k: 'abbot', portal: true });
+        return;
+      }
+      const g = groupOf(k, fi);
+      if (g.complete || g.meeples.some(isFollower)) return;
+      for (const s of sizes) out.push({ kind: 'follower', key: k, fi, k: s, portal: true });
+    });
+  }
+  return out;
+}
+
+// The Tower: figures a tower of height h at towerKey can capture: the tower's
+// own tile and up to h tiles straight up, down, left or right.
+export function captureTargets(state, towerKey, h = state.towers[towerKey].h) {
+  const [tx, ty] = parseKey(towerKey);
+  const out = [];
+  for (const [k, tile] of Object.entries(state.board)) {
+    const [x, y] = parseKey(k);
+    if (!((x === tx && Math.abs(y - ty) <= h) || (y === ty && Math.abs(x - tx) <= h))) continue;
+    for (const pc of tile.pieces) if (FOLLOWER_KINDS.includes(pc.k)) out.push({ key: k, fi: pc.f, k: pc.k, p: pc.p });
+    const tw = state.towers[k];
+    if (tw?.top) out.push({ key: k, fi: 'top', k: tw.top.k, p: tw.top.p });
   }
   return out;
 }
@@ -389,12 +533,35 @@ function award(state, players, pts, kind) {
 
 function returnPieces(state, pieces) {
   for (const m of pieces) {
-    const tile = state.board[m.key];
-    const i = tile.pieces.findIndex((pc) => pc.p === m.p && pc.f === m.f && pc.k === m.k);
-    if (i < 0) continue;
-    tile.pieces.splice(i, 1);
+    if (m.f === 'top') {
+      const tw = state.towers[m.key];
+      if (!tw?.top || tw.top.p !== m.p) continue;
+      tw.top = null; // the tower is open again
+    } else {
+      const tile = state.board[m.key];
+      const i = tile.pieces.findIndex((pc) => pc.p === m.p && pc.f === m.f && pc.k === m.k);
+      if (i < 0) continue;
+      tile.pieces.splice(i, 1);
+    }
     state.players[m.p].supply[m.k] = (state.players[m.p].supply[m.k] || 0) + 1;
   }
+  syncFairy(state);
+}
+
+// The fairy stays on her tile when her follower leaves, but belongs to nobody.
+function syncFairy(state) {
+  const fy = state.fairy;
+  if (!fy || fy.p === null || fy.p === undefined) return;
+  const there = fy.f === 'top' ? state.towers?.[fy.key]?.top : state.board[fy.key]?.pieces.find((pc) => pc.f === fy.f && pc.p === fy.p && pc.k === fy.k);
+  if (!there || there.p !== fy.p || there.k !== fy.k) state.fairy = { key: fy.key, f: null, k: null, p: null };
+}
+
+// The fairy's +3 when the feature with her follower is scored.
+function fairyEvent(state, e) {
+  const fy = state.fairy;
+  if (!fy || fy.p === null || fy.p === undefined || !e.meeples) return null;
+  if (!e.meeples.some((m) => m.key === fy.key && m.f === fy.f && m.p === fy.p && m.k === fy.k)) return null;
+  return { kind: 'fairy', winners: [fy.p], points: 3, nodes: e.nodes, meeples: [], key: fy.key, label: 'Fairy bonus +3' };
 }
 
 // Builders and pigs need one of their owner's meeples in the same feature;
@@ -455,17 +622,23 @@ export function scoreAfterPlacement(state, k, apply = true) {
   });
   const [x, y] = parseKey(k);
   events.push(...completedCloisters(board, x, y));
+  const out = [];
+  for (const e of events) {
+    out.push(e);
+    const fe = fairyEvent(state, e);
+    if (fe) out.push(fe);
+    if (!apply) continue;
+    if (e.winners.length) award(state, e.winners, e.points, e.kind === 'garden' ? 'monastery' : e.kind);
+    if (fe) award(state, fe.winners, fe.points, 'fairy');
+    returnPieces(state, e.meeples);
+  }
   if (apply) {
-    for (const e of events) {
-      if (e.winners.length) award(state, e.winners, e.points, e.kind === 'garden' ? 'monastery' : e.kind);
-      returnPieces(state, e.meeples);
-    }
     for (const e of goodsEvents) {
       const pl = state.players[e.player];
       for (const [gname, n] of Object.entries(e.goods)) pl.goods[gname] = (pl.goods[gname] || 0) + n;
     }
   }
-  return events.concat(goodsEvents);
+  return out.concat(goodsEvents);
 }
 
 function sameAction(a, b) {
@@ -473,29 +646,73 @@ function sameAction(a, b) {
 }
 
 // Finish the current part of the turn: perform the follower-phase action (or
-// pass with null), score, then continue with the builder's extra tile or hand
-// over to the next player.
-export function finishTurn(state, act = null) {
+// pass with null), let the dragon fly if the tile shows one, score, then
+// continue with the builder's extra tile (unless declined with noBonus) or
+// hand over to the next player.
+export function finishTurn(state, act = null, noBonus = false) {
   if (state.phase !== 'action') throw new Error('Not in action phase');
   if (typeof act === 'number') act = { kind: 'follower', key: state.last, fi: act, k: 'meeple' };
+  if (noBonus) state.bonus = false;
   const events = [];
   if (act) {
     const legal = followerOptions(state).find((o) => sameAction(o, act));
     if (!legal) throw new Error('Illegal action');
-    const pl = state.players[state.current];
+    const p = state.current;
+    const pl = state.players[p];
     if (act.kind === 'follower') {
-      state.board[act.key].pieces.push({ p: state.current, f: act.fi, k: act.k });
+      state.board[act.key].pieces.push({ p, f: act.fi, k: act.k });
       pl.supply[act.k]--;
     } else if (act.kind === 'recall') {
       const [x, y] = parseKey(act.key);
       const pts = 1 + monasteryNeighbours(state.board, x, y);
-      const piece = { key: act.key, p: state.current, f: act.fi, k: 'abbot' };
-      award(state, [state.current], pts, 'monastery');
+      const piece = { key: act.key, p, f: act.fi, k: 'abbot' };
+      // the recall scores the abbot, not the feature: no fairy bonus (she stays behind)
+      award(state, [p], pts, 'monastery');
       returnPieces(state, [piece]);
-      events.push({ kind: 'recall', winners: [state.current], points: pts, nodes: [[act.key, act.fi]], meeples: [piece], label: 'Abbot comes home' });
+      events.push({ kind: 'recall', winners: [p], points: pts, nodes: [[act.key, act.fi]], meeples: [piece], label: 'Abbot comes home' });
+    } else if (act.kind === 'princess') {
+      const knight = { key: legal.key, p: legal.p, f: legal.fi, k: legal.k };
+      returnPieces(state, [knight]);
+      events.push({ kind: 'princess', winners: [], points: 0, nodes: [[knight.key, knight.f]], meeples: [knight], label: 'The princess sends a knight home' });
+    } else if (act.kind === 'fairy') {
+      const from = state.fairy ? state.fairy.key : null;
+      state.fairy = { key: act.key, f: act.fi, k: act.k, p };
+      events.push({ kind: 'fairyMove', winners: [], points: 0, nodes: [], meeples: [], key: act.key, from });
+    } else if (act.kind === 'floor') {
+      const tw = state.towers[act.key];
+      tw.h++;
+      pl.floors--;
+      events.push({ kind: 'floor', winners: [], points: 0, nodes: [], meeples: [], key: act.key, h: tw.h });
+      if (act.capture) {
+        const c = act.capture;
+        const target = captureTargets(state, act.key).find((t) => t.key === c.key && t.fi === c.fi && t.k === c.k && t.p === c.p);
+        if (!target) throw new Error('Illegal capture');
+        events.push(capture(state, target, act.swap));
+      }
+    } else if (act.kind === 'towerTop') {
+      state.towers[act.key].top = { p, k: act.k };
+      pl.supply[act.k]--;
+    }
+    const loose = unsupportedFigures(state);
+    if (loose.length) {
+      returnPieces(state, loose);
+      events.push({ kind: 'return', winners: [], points: 0, nodes: [], meeples: loose });
     }
   }
-  events.push(...scoreAfterPlacement(state, state.last, true));
+  // The Princess & the Dragon: a dragon tile makes the dragon fly before scoring
+  if (state.dragon && hasExp(state, 'dragon') && hasTag(state.board[state.last].t, 'dragon')) {
+    state.flight = { visited: [state.dragon], moves: 0 };
+    state.phase = 'dragon';
+    if (dragonMoves(state).length) return events;
+    state.flight = null;
+    state.phase = 'action';
+  }
+  events.push(...scoreAndEnd(state));
+  return events;
+}
+
+function scoreAndEnd(state) {
+  const events = scoreAfterPlacement(state, state.last, true);
   const loose = unsupportedFigures(state);
   if (loose.length) {
     returnPieces(state, loose);
@@ -503,6 +720,105 @@ export function finishTurn(state, act = null) {
   }
   endPart(state, events);
   return events;
+}
+
+// The Tower: take one figure in range off the board.
+function capture(state, c, swapKind) {
+  const captor = state.current;
+  if (c.fi === 'top') state.towers[c.key].top = null;
+  else {
+    const tile = state.board[c.key];
+    tile.pieces.splice(tile.pieces.findIndex((pc) => pc.p === c.p && pc.f === c.fi && pc.k === c.k), 1);
+  }
+  const e = { kind: 'capture', winners: [], points: 0, nodes: c.fi === 'top' ? [] : [[c.key, c.fi]], meeples: [], captured: { ...c }, captor };
+  if (c.p === captor) {
+    state.players[captor].supply[c.k]++; // your own figure simply goes home
+    e.own = true;
+  } else {
+    const held = state.players[c.p].prisoners;
+    const mine = held.filter((q) => q.p === captor);
+    if (mine.length) {
+      // prisoners are exchanged at once; the captor picks which of theirs comes back
+      const pick = mine.find((q) => q.k === swapKind) || mine.find((q) => q.k === 'large') || mine.find((q) => q.k === 'abbot') || mine[0];
+      held.splice(held.indexOf(pick), 1);
+      state.players[captor].supply[pick.k]++;
+      state.players[c.p].supply[c.k]++;
+      e.exchange = pick.k;
+    } else {
+      state.players[captor].prisoners.push({ p: c.p, k: c.k });
+    }
+  }
+  syncFairy(state);
+  return e;
+}
+
+// ---------- The Princess & the Dragon: the dragon's flight ----------
+export function dragonMover(state) {
+  return state.flight ? (state.current + state.flight.moves) % state.players.length : null;
+}
+
+// Tiles the dragon may fly to next: next door, never back over its own path
+// and never onto the fairy's tile.
+export function dragonMoves(state) {
+  if (state.phase !== 'dragon' || !state.flight || !state.dragon) return [];
+  const [x, y] = parseKey(state.dragon);
+  const out = [];
+  for (const [dx, dy] of SIDE_DELTA) {
+    const nk = key(x + dx, y + dy);
+    if (!state.board[nk] || state.flight.visited.includes(nk) || state.fairy?.key === nk) continue;
+    out.push(nk);
+  }
+  return out;
+}
+
+export function moveDragon(state, k) {
+  if (!dragonMoves(state).includes(k)) throw new Error('Illegal dragon move');
+  const from = state.dragon;
+  state.dragon = k;
+  state.flight.visited.push(k);
+  state.flight.moves++;
+  // the dragon eats every figure on the tile
+  const eaten = state.board[k].pieces.map((pc) => ({ key: k, ...pc }));
+  const tw = state.towers?.[k];
+  if (tw?.top) eaten.push({ key: k, f: 'top', ...tw.top });
+  const events = [{ kind: 'dragon', winners: [], points: 0, nodes: [], meeples: eaten, key: k, from }];
+  returnPieces(state, eaten);
+  const loose = unsupportedFigures(state);
+  if (loose.length) {
+    returnPieces(state, loose);
+    events.push({ kind: 'return', winners: [], points: 0, nodes: [], meeples: loose });
+  }
+  if (state.flight.moves >= DRAGON_STEPS || !dragonMoves(state).length) {
+    state.flight = null;
+    state.phase = 'action';
+    events.push(...scoreAndEnd(state));
+  }
+  return events;
+}
+
+// ---------- The Tower: buying prisoners back ----------
+export function ransomOptions(state, p = state.current) {
+  if (!hasExp(state, 'tower') || state.ransomPaid || p !== state.current) return [];
+  if (state.phase !== 'place' && state.phase !== 'action') return [];
+  if (state.players[p].score < 3) return [];
+  const out = [];
+  state.players.forEach((holder, i) => {
+    if (i === p) return;
+    for (const k of new Set(holder.prisoners.filter((q) => q.p === p).map((q) => q.k))) out.push({ from: i, k });
+  });
+  return out;
+}
+
+export function payRansom(state, from, k) {
+  const p = state.current;
+  if (!ransomOptions(state).some((o) => o.from === from && o.k === k)) throw new Error('Illegal ransom');
+  const held = state.players[from].prisoners;
+  held.splice(held.findIndex((q) => q.p === p && q.k === k), 1);
+  state.players[p].supply[k] = (state.players[p].supply[k] || 0) + 1;
+  award(state, [p], -3, 'tower');
+  award(state, [from], 3, 'tower');
+  state.ransomPaid = true;
+  return [{ kind: 'ransom', winners: [from], points: 3, payer: p, k, nodes: [], meeples: [] }];
 }
 
 function endPart(state, events) {
@@ -519,17 +835,24 @@ function endPart(state, events) {
     gameOver(state);
     return;
   }
-  endTurn(state);
+  endTurn(state, events);
 }
 
-function endTurn(state) {
+function endTurn(state, events = []) {
   state.part = 1;
   state.bonus = false;
+  state.ransomPaid = false;
   state.current = (state.current + 1) % state.players.length;
   state.turn++;
   drawTile(state);
-  if (!state.drawn) gameOver(state);
-  else state.phase = 'place';
+  if (!state.drawn) { gameOver(state); return; }
+  state.phase = 'place';
+  // The Princess & the Dragon: +1 at the start of your turn if the fairy is by your follower
+  const fy = state.fairy;
+  if (fy && fy.p === state.current) {
+    award(state, [fy.p], 1, 'fairy');
+    events.push({ kind: 'fairy', winners: [fy.p], points: 1, nodes: [], meeples: [], key: fy.key, label: 'Fairy +1', start: true });
+  }
 }
 
 function gameOver(state) {
@@ -538,13 +861,19 @@ function gameOver(state) {
 }
 
 // Apply one serialisable action (used for network play and replays).
-//   { t: 'turn', x, y, r, act }   place the drawn tile, then do act (or null)
+//   { t: 'turn', x, y, r, act, noBonus? }   place the drawn tile, then do act (or null)
+//   { t: 'dragon', key }   the next player in turn moves the dragon one tile
+//   { t: 'ransom', from, k }   the current player buys a prisoner back
 //   { t: 'kind', seat, kind, level }   switch a seat between person and bot
 export function applyAction(state, a) {
   let events = [];
   if (a.t === 'turn') {
     placeTile(state, a.x, a.y, a.r);
-    events = finishTurn(state, a.act || null);
+    events = finishTurn(state, a.act || null, !!a.noBonus);
+  } else if (a.t === 'dragon') {
+    events = moveDragon(state, a.key);
+  } else if (a.t === 'ransom') {
+    events = payRansom(state, a.from, a.k);
   } else if (a.t === 'kind') {
     const p = state.players[a.seat];
     p.kind = a.kind;
@@ -601,14 +930,21 @@ export function finalScoring(state, apply = true) {
       events.push({ kind: 'goods', good: gname, winners, points: 10, nodes: [], meeples: [], label: `Most ${gname}`, complete: false });
     }
   }
+  // The Princess & the Dragon: the fairy's +3 right after her follower's feature
+  const out = [];
+  for (const e of events) {
+    out.push(e);
+    const fe = fairyEvent(state, e);
+    if (fe) out.push(fe);
+  }
   if (apply) {
-    for (const e of events) {
+    for (const e of out) {
       const cat = e.kind === 'garden' ? 'monastery' : e.kind === 'pig' ? 'field' : e.kind;
       if (e.winners.length && e.points) award(state, e.winners, e.points, cat);
       if (e.meeples?.length) returnPieces(state, e.meeples);
     }
   }
-  return events;
+  return out;
 }
 
 // Snapshot of what a feature would score right now (for UI hints).

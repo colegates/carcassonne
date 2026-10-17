@@ -8,7 +8,7 @@
 |---|---|---|
 | Start tile | The **spring** is the start tile. The normal start tile goes **back in the box**, so the land deck stays at 71 base tiles. | Z-Man 2014 sheet, HiG 2014, Z-Man Big Box 2017 |
 | River stack | Shuffle the other 10 river tiles face down and put the **lake underneath**. Draw only from this stack until it is empty, then switch to land tiles. | Same |
-| Placement | (1) The river must join the river's single open end. (2) All edges must match. (3) **No immediate U-turn**: two river bends *in a row* may not turn the same way. A wide U (bend, straight(s), bend the same way) is legal. | Z-Man, HiG wording; HiG FAQ; official example |
+| Placement | (1) The river must join the river's single open end. (2) All edges must match. (3) **No immediate U-turn**: two river bends *in a row* may not turn the same way. A wide U (bend, straight(s), bend the same way) is legal. (4) **No third same-way bend** (master ruling): three consecutive bends, straights ignored, may not all turn the same way. | Z-Man, HiG wording; HiG FAQ (WikiCarpedia wording); official example; MASTER.md |
 | Unplaceable tile | Back in the box, draw the next tile (river stack first). The river may stay unfinished. | HiG base rule; River II rules |
 | Followers | Normal placement on roads, cities, the monastery and fields of the river tile. **Never on the river** (not a feature, never scored). | Z-Man Big Box 2017 |
 | Fields | The river divides fields. On the **spring and lake** tiles the single field **wraps around** the river end. | HiG FAQ via S-CAR |
@@ -72,6 +72,7 @@ HiG base rule for any tile: *"Sollte der sehr seltene Fall eintreten, dass Du ni
 2. **All edges match**, as always: river to river, field to field, road to road, city to city, against every neighbour of the target square.
 3. **No immediate U-turn.** A bend may not turn the same way as an immediately preceding bend. It does not matter whether you look downstream or upstream: two adjacent same-way bends reverse the flow. HiG FAQ (via S-CAR): *"Only immediate U-turns are explicitly forbidden. (Naturally there can also be problems if a straight river tile lies between.)"*
    * The official completed-river example itself contains **right, straight, right**, a legal wide U (see the layout below).
+   * **Master ruling — no third same-way bend:** looking only at the bends (straights ignored), three consecutive bends may not all turn the same way (right–straight–right–straight–right is illegal). The HiG FAQ answer as recorded on WikiCarpedia (The River, New Edition; also the German page) ends: *"Turning river the same way three times should also be considered prohibited."* S-CAR v7.3 (2014) quotes the same answer without that sentence. The C3.1 (2025) wording "you must not place a river bend in the direction opposite to the flow direction of the river source" is not 3rd edition and is not used.
    * The spring and the lake are neither straight nor bend. The first tile after the spring may bend either way.
 4. Tiles rotate but never flip. At the open end, a straight tile has 2 rotations (which bank gets the city or monastery) and a bend has 1 rotation per direction. At most one of a bend's two rotations is forbidden by the U-turn rule.
 
@@ -97,6 +98,11 @@ function riverOK(state, x, y, t, r) {
   return true;
 }
 // after placing: river.lastIn = end.side; river.open = exit === undefined ? null : { x, y, side: exit };
+// Master ruling (third same-way bend): also keep river.run = { dir: +1|-1|0, n } over bends only.
+//   turn = exit === undefined ? 0 : (exit - entryFlow + 4) % 4  where entryFlow = end.side
+//   d = turn === 1 ? +1 : turn === 3 ? -1 : 0          (right / left / straight)
+//   illegal if d !== 0 && river.run.dir === d && river.run.n >= 2
+//   after placing a bend: run = run.dir === d ? { dir: d, n: run.n + 1 } : { dir: d, n: 1 }; straights keep run
 ```
 
 Rule 3 is equivalent to: *the new tile's exit direction must not be the reverse of the flow that entered the previous tile.* That only happens when two adjacent bends turn the same way.
@@ -242,7 +248,7 @@ Flow bends: IIG **L**, CcII **R**, II **R** (after a straight, so legal), RrII *
 
 ## FAQ and edge cases
 
-* **Do straights "reset" the U-turn rule?** Yes. Only bends that are directly adjacent along the river matter (HiG FAQ; Big Box "twice in a row"; the official example). Some groups play "never two same-way bends at all" as a house rule (S-CAR: "Ban all river U-turns").
+* **Do straights "reset" the U-turn rule?** For the immediate U-turn rule, yes: only bends that are directly adjacent along the river matter (HiG FAQ; Big Box "twice in a row"; the official example). But (master ruling) a *third* consecutive same-way bend is forbidden even with straights between (HiG FAQ, WikiCarpedia wording). Some groups play "never two same-way bends at all" as a house rule (S-CAR: "Ban all river U-turns").
 * **Can the river get stuck?** Yes, if players wind it back into itself. The tile is discarded, and the river may remain unfinished. A reported official reply: "Players may have an unfinished River … but it's their own fault."
 * **Can two river tiles touch other than along the river?** Only if the river loops around a single hole, which needs all 4 bends. The touching edges must still match. A river road or city could then even complete during the river phase. No special case is needed.
 * **Is the lake turn a normal turn?** Yes in the 3rd edition: follower allowed, scoring as normal.

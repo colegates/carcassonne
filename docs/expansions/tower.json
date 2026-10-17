@@ -1412,7 +1412,7 @@
       "A meeple may only be put on a tower that already has at least 1 floor. You can't block an empty foundation with a meeple (S-CAR fn 190; Sweeney FAQ).",
       "A tower with a meeple on top is closed: no more floors and no second meeple. If that meeple leaves (captured by another tower or eaten by the dragon), the tower is OPEN again and can be built higher or closed by someone else (S-CAR fn 200, official clarification 11/2013; Sweeney FAQ; JCZ).",
       "Each tower tile has exactly one foundation, so there is at most one tower per tile.",
-      "With Princess & Dragon: no meeple may be put on top of a tower on the dragon's current tile (followers may never share the dragon's tile). Adding a floor there is fine."
+      "With Princess & Dragon: no meeple may be put on top of a tower on the dragon's current tile (official clarification: no figure on the dragon's menu may share the dragon's tile - WikiCarpedia P&D footnote 6). Adding a floor there is fine."
     ],
     "followers": [
       "May stand on a tower top: a normal meeple or the large meeple (I&C). May NOT: the abbot, the builder or the pig (3rd-ed rulebook p.4 figure table; builder/pig are special figures, not meeples).",
@@ -1457,7 +1457,7 @@
       "Snatch before scoring: your tile completes a city where an opponent has the majority. Instead of placing a meeple you raise a tower in range and capture their knight, then the city is scored without it (turn order step 2 before step 3).",
       "Dragon tile + tower floor in the same turn: capture first, then the dragon moves (S-CAR fn 138/193).",
       "Volcano tile: you may not place a meeple on the volcano tile, but you may still place a floor or put a meeple on a tower elsewhere (S-CAR fn 134 and p.212 table; JCZ). The 2006-07 Sweeney FAQ said no tower block after a volcano (old ruling).",
-      "Dragon's tile: no meeple may be put on top of a tower on the tile where the dragon stands ('at no point may followers occupy the same tile as the dragon', S-CAR p.54). A floor may still be added there (floors aren't followers and the dragon never eats them). JCZ allows the meeple too; we follow the rule text.",
+      "Dragon's tile: no meeple may be put on top of a tower on the tile where the dragon stands ('at no point may followers occupy the same tile as the dragon', S-CAR p.54; official clarification quoted in WikiCarpedia P&D footnote 6: none of the figures on the dragon's menu may occupy the dragon's tile, by any means). A floor may still be added there (floors aren't followers and the dragon never eats them). JCZ allows the meeple too; we follow the official clarification.",
       "Princess: a tower-top meeple is not in the city, so the princess can't remove it (S-CAR fn 165/204; Sweeney FAQ). Using the princess spends your figure action, so no tower action that turn (S-CAR princess rule 'may not deploy or move any other figure'; JCZ).",
       "Fairy: no protection against capture (3rd-ed Tower and P&D rulebooks). It may be moved next to your meeple on a tower (S-CAR fn 124/201; Sweeney FAQ). There it protects the tile from the dragon and earns the 1-point start-of-turn bonus. The 3-point scoring bonus never fires because a tower is never scored. If that meeple is captured, the fairy stays on the tile assigned to nobody (JCZ).",
       "Two meeples on one tile are normal with towers: a tower-top meeple plus a meeple on one of the tile's features.",

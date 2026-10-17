@@ -252,3 +252,6 @@ table.scores tr.winner td { background: rgba(255,215,90,.35); }
 .emotes { display: flex; justify-content: space-between; margin-top: 10px; }
 .emotes button { font-size: 28px; padding: 6px; border-radius: 12px; background: rgba(255,255,255,.5); }
 .ask-body { text-align: center; margin: 4px 0 8px; line-height: 1.4; }
+
+.bonus-toggle { display: inline-block; margin-left: 4px; padding: 2px 9px; border-radius: 12px; border: 1.5px solid #8a6a2a; background: #f3e2b5; color: #4a3010; font: 800 13px Nunito, sans-serif; }
+.bonus-toggle.off { background: #ddd2bb; color: #7a6a55; border-style: dashed; }

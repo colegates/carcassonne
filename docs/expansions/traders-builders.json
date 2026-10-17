@@ -554,7 +554,7 @@
         "Each tile of a double turn resolves its own symbols: a dragon tile as the second tile makes the dragon move again; a volcano as either tile moves the dragon there."
       ],
       "tower": [
-        "Builders and pigs cannot be captured and cannot be placed on top of a tower (Z-Man Tower p.4).",
+        "Builders and pigs cannot be captured (Z-Man Tower p.4 list) and cannot be placed on top of a tower (Tower p.2: action C places 'one of your meeples'; builder and pig are special figures, not meeples - T&B p.3; WikiCarpedia The Tower list).",
         "If a tower captures a player's last meeple in the road/city with that player's builder (or the last farmer in the pig's field), the builder/pig returns to its owner's supply (S-CAR p.70; Z-Man T&B p.3 \"Your builder is always returned to your supply if you no longer have meeples on that feature\").",
         "Placing a tower floor or a meeple on a tower is the step-2 action: no builder or pig with that tile.",
         "In a double turn you may use step 2 of each tile for tower actions (e.g. a floor with tile 1, close the tower with a meeple with tile 2). Buying back a prisoner is allowed only once per turn; the automatic prisoner exchange happens whenever it applies (S-CAR p.39 double-turn table; Sweeney FAQ)."

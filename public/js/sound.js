@@ -56,6 +56,11 @@ export const sfx = {
     notes.forEach((f, i) => tone({ f: f * 2, type: 'sine', dur: 0.18, vol: 0.05, delay: i * 0.08 }));
   },
   turn() { tone({ f: 587, type: 'sine', dur: 0.12, vol: 0.08 }); tone({ f: 880, type: 'sine', dur: 0.16, vol: 0.06, delay: 0.09 }); },
+  dragon() { noise({ dur: 0.5, vol: 0.35, freq: 420 }); tone({ f: 110, f2: 55, type: 'sawtooth', dur: 0.5, vol: 0.12 }); tone({ f: 82, f2: 60, type: 'square', dur: 0.4, vol: 0.05, delay: 0.05 }); },
+  chomp() { noise({ dur: 0.08, vol: 0.4, freq: 900 }); noise({ dur: 0.08, vol: 0.35, freq: 700, delay: 0.12 }); },
+  magic() { [988, 1319, 1568, 1976].forEach((f, i) => tone({ f, type: 'sine', dur: 0.2, vol: 0.06, delay: i * 0.06 })); },
+  capture() { tone({ f: 330, f2: 220, type: 'triangle', dur: 0.18, vol: 0.2 }); noise({ dur: 0.06, vol: 0.25, freq: 1200, delay: 0.1 }); },
+  coins() { [1568, 2093, 1760].forEach((f, i) => tone({ f, type: 'triangle', dur: 0.12, vol: 0.1, delay: i * 0.07 })); },
   fanfare() {
     [[523, 0], [523, 0.15], [523, 0.3], [698, 0.45], [880, 0.75], [784, 0.95], [1046, 1.15]].forEach(([f, d]) => {
       tone({ f, type: 'sawtooth', dur: 0.28, vol: 0.06, delay: d });

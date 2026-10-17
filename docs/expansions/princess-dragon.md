@@ -306,8 +306,10 @@ step-4 action. It excludes moving the fairy, and it happens before the dragon fl
 No abbot may be placed after a princess removal (EN p.6). By the same logic, the abbot cannot be recalled that turn
 either. The gardens on `C.dG` and `Cc.pG` and the
 monasteries on `LRRR.d` and `LCcc.d` are normal.
-*Our interpretation:* a recall scores the monastery or garden, so a fairy assigned to that abbot gives +3. JCZ does not
-award this.
+*Master ruling (MASTER.md, superseding our earlier interpretation):* a recall gives **no** fairy +3. The recall scores
+the abbot immediately in step 4, never the feature itself (official clarifications 3/2015, updated 10/2024, and
+11/2020 on WikiCarpedia The Abbot; WikiCarpedia P&D: "the 3-point fairy scoring bonus is not applicable to an abbot when
+removed"; JCZ agrees). The fairy stays on that tile, unassigned.
 
 **Inns & Cathedrals.** The large meeple is eaten. A princess removes it as one knight. It may use the portal and may
 have the fairy. The fairy's bonuses stay +1 and +3, not doubled. Inns and cathedrals do not change the fairy bonus.
@@ -334,8 +336,10 @@ have the fairy. The fairy's bonuses stay +1 and +3, not doubled. Inns and cathed
   princess removal, and its capture resolves before the flight.
 * The princess cannot remove a follower on a tower. Prisoners are off the board and safe from both the dragon and the
   princess.
-* *Our interpretation:* no follower may be placed on top of a tower that stands on the dragon's current tile, because
-  followers may never occupy the dragon's tile. JCZ allows it.
+* No follower may be placed on top of a tower that stands on the dragon's current tile. This is an official
+  clarification, not only our reading: none of the figures on the dragon's menu ("meeple on a tower" is one) may occupy
+  the dragon's tile at any point, by any means (Carcassonne I rules in Big Boxes 1–3, quoted as an official
+  clarification in WikiCarpedia P&D footnote 6). JCZ allows it; we do not.
 * After a volcano you may still place a tower piece (CAR fn 134) or, by the same reasoning, put a follower on a tower
   elsewhere. The volcano rule only forbids figures *on the volcano tile*. JCZ allows both.
 
@@ -370,8 +374,8 @@ have the fairy. The fairy's bonuses stay +1 and +3, not doubled. Inns and cathed
   tile. Excluded targets are empty spaces, visited tiles and the fairy's tile. Up to 6 moves. Everything on an entered
   tile is eaten, except figures in a castle and barns.
 * Places where JCZ differs from our choices: it gives the `Ccc+.g` city 1 pennant; it allows a follower on a tower top
-  on the dragon's tile; it gives no fairy +3 on an abbot recall; it deactivates the dragon tiles instead of setting
-  them aside.
+  on the dragon's tile; it deactivates the dragon tiles instead of setting them aside. (JCZ gives no fairy +3 on an
+  abbot recall, and neither do we: see MASTER.md.)
 
 ---
 
@@ -402,12 +406,15 @@ have the fairy. The fairy's bonuses stay +1 and +3, not doubled. Inns and cathed
    2969451](https://boardgamegeek.com/image/2969451) clearly shows no pennant. It is a blue-roofed post-2014 tile with
    the portal and the expansion mark in its field. The 3rd-ed `Ccc.p` in the EN rulebook example has no pennant
    either. The 1st-ed art and JCZ (both sets) have 1 pennant. JCZ's `:2` sets only ever add gardens, which suggests
-   nobody checked other 3rd-ed changes. I found no second 3rd-ed image of this tile. Flip `pennants` to 1 if better
-   evidence turns up.
-2. **The fairy +3 on an abbot recall:** the rule text ("when scoring a feature") suggests yes. JCZ says no. We chose
-   yes.
+   nobody checked other 3rd-ed changes. **Confirmed by the master arbiter:** the WikiCarpedia C2 tile scan
+   `Princess_And_Dragon_C2_Tile_S` (the three-sided portal city) shows no coat of arms, while the C2 scans of the
+   other pennant tiles (`CCc+.p`, `CFc+.d`) clearly show the blue-and-white shield. Keep 0.
+2. **The fairy +3 on an abbot recall:** **no** (master ruling; this file originally chose yes). The recall scores the
+   abbot in step 4, never the feature (official clarifications 3/2015 and 11/2020); JCZ and the WikiCarpedia community
+   ruling agree. See MASTER.md.
 3. **The fairy +3 in final scoring:** yes (the rule names farms; JCZ agrees).
-4. **A follower on a tower on the dragon's tile:** we forbid it (CAR principle). JCZ allows it.
+4. **A follower on a tower on the dragon's tile:** forbidden by official clarification (no figure on the dragon's menu
+   may share the dragon's tile; WikiCarpedia P&D footnote 6). JCZ allows it.
 5. **A follower on an older volcano tile via the portal:** allowed once the dragon has left (no rule against it; JCZ
    agrees).
 6. **The "1b" heading against the text:** we follow the text and the FAQ. The order is meeple or fairy, then the
