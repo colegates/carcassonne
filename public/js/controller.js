@@ -663,7 +663,7 @@ function beginActionPhase() {
 function gardenTip(opts) {
   if (!state.options.expansions?.abbot) return;
   const tile = state.board[state.last];
-  const gi = TILE_TYPES[tile.t].features.findIndex((f) => f.type === 'garden');
+  const gi = G.featuresOf(tile).findIndex((f) => f.type === 'garden');
   if (gi < 0) return;
   if (opts.some((o) => o.kind === 'follower' && o.k === 'abbot' && o.key === state.last && o.fi === gi)) {
     if (ui.group !== 'abbot') toast('🌷 This tile has a garden: tap "Abbot" to put your abbot on it');
@@ -682,7 +682,7 @@ function ghostLabel(o) {
   if (o.kind === 'floor') return `🏰 Tower floor ${state.towers[o.key].h + 1}`;
   if (o.kind === 'towerTop') return '🏰 Close this tower';
   const tile = state.board[o.key];
-  const f = TILE_TYPES[tile.t].features[o.fi];
+  const f = G.featuresOf(tile)[o.fi];
   if (o.k === 'builder') return '🔨 Builder here';
   if (o.k === 'pig') return '🐖 Pig here';
   let label = (o.portal ? '🌀 ' : '') + (TYPE_LABEL[f.type] || f.type);
@@ -793,7 +793,7 @@ function selectOption(opt) {
   let info = '';
   if (opt && opt.kind === 'follower') {
     const tile = state.board[opt.key];
-    const feat = TILE_TYPES[tile.t].features[opt.fi];
+    const feat = G.featuresOf(tile)[opt.fi];
     if (opt.portal) view.ensureVisible(...G.parseKey(opt.key));
     if (feat.type === 'monastery' || feat.type === 'garden') {
       highlight = { nodes: [[opt.key, opt.fi]] };
@@ -1240,6 +1240,7 @@ function figureWorld(m) {
     const [rx, ry] = rotUnit(f[0], f[1], tile.r);
     return [x + rx - 0.5, y + ry - 0.5 - (m.f === 'top' ? 0.3 : 0)];
   }
+  if (m.f === G.bridgeFeature(tile)) return tile.bridge === 0 ? [x, y - 0.22] : [x + 0.22, y]; // standing on a bridge
   const [ax, ay] = getTileArt(tile.t).anchors[m.f];
   const [rx, ry] = rotUnit(ax, ay, tile.r);
   return [x + rx - 0.5, y + ry - 0.5];

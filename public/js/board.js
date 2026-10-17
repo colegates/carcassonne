@@ -1,7 +1,7 @@
 // Board renderer: camera, pan/pinch-zoom, tiles, meeples, overlays & effects.
 import { TILE_TYPES } from './tiles.js';
 import { getTileArt, drawPiece, drawTower, drawTowerBadge, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
-import { parseKey, PLAYER_COLORS } from './game.js';
+import { parseKey, PLAYER_COLORS, featuresOf, bridgeFeature } from './game.js';
 
 const HIT = 96;
 const maskCache = new Map();
@@ -387,10 +387,17 @@ export class BoardView {
     return [sx + (rx - 0.5) * z, sy + (ry - 0.5) * z];
   }
 
+  // Where a figure stands on feature fi of a tile on the board (a bridge's road
+  // is not printed on the tile: its figure stands on the bridge, off-centre).
+  tileAnchor(tile, fi, sx, sy, z = this.cam.z) {
+    if (fi !== bridgeFeature(tile)) return this.anchorScreen(tile.t, tile.r, fi, sx, sy, z);
+    return tile.bridge === 0 ? [sx, sy - z * 0.22] : [sx + z * 0.22, sy];
+  }
+
   // Screen position of the i-th figure standing on a feature (several figures
   // on one feature, e.g. a knight and a builder, are spread out a little).
   piecePos(tile, fi, sx, sy, i = 0, n = 1) {
-    const [mx, my] = this.anchorScreen(tile.t, tile.r, fi, sx, sy);
+    const [mx, my] = this.tileAnchor(tile, fi, sx, sy);
     if (n <= 1) return [mx, my];
     const z = this.cam.z;
     const off = (i - (n - 1) / 2) * z * 0.2;
@@ -405,7 +412,7 @@ export class BoardView {
       byFeature.get(pc.f).push(pc);
     }
     for (const [fi, list] of byFeature) {
-      const feat = TILE_TYPES[tile.t].features[fi];
+      const feat = featuresOf(tile)[fi];
       list.forEach((pc, i) => {
         const p = this.state.players[pc.p];
         const color = PLAYER_COLORS[p.color] || PLAYER_COLORS.red;
@@ -570,7 +577,7 @@ export class BoardView {
     const [x, y] = parseKey(g.key);
     const [sx, sy] = this.toScreen(x, y);
     const others = tile.pieces.filter((pc) => pc.f === g.fi).length;
-    return others ? this.piecePos(tile, g.fi, sx, sy, others, others + 1) : this.anchorScreen(tile.t, tile.r, g.fi, sx, sy);
+    return others ? this.piecePos(tile, g.fi, sx, sy, others, others + 1) : this.tileAnchor(tile, g.fi, sx, sy);
   }
 
   drawGhosts(now) {
@@ -610,7 +617,7 @@ export class BoardView {
         drawTower(ctx, bx, by, z, h + 1, { alpha: g.selected ? 1 : 0.5 + 0.3 * pulse, fh: this.towerFloorH(g.key, h + 1), badge: true });
       } else {
         const tile = this.state.board[g.key];
-        const lying = type === 'follower' && TILE_TYPES[tile.t].features[g.fi]?.type === 'field';
+        const lying = type === 'follower' && featuresOf(tile)[g.fi]?.type === 'field';
         const kind = g.k || 'meeple';
         const k = kind === 'large' ? 1 / 1.2 : 1; // big meeple ghosts stay about the size of the others
         if (g.act?.portal) {
@@ -721,11 +728,15 @@ export class BoardView {
       if (!tile) continue;
       const [x, y] = parseKey(k);
       const [sx, sy] = this.toScreen(x, y);
-      const feat = TILE_TYPES[tile.t].features[fi];
+      const feat = featuresOf(tile)[fi];
       ctx.save();
       ctx.translate(sx, sy); ctx.rotate((tile.r * Math.PI) / 2);
       if (feat.type === 'monastery') {
         ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, z * 0.3, 0, 7); ctx.fill();
+      } else if (feat.bridge) {
+        // a bridge's road: a band straight across the tile (the canvas is in the tile's own frame here)
+        ctx.fillStyle = color;
+        if (feat.sides[0] === 0) ctx.fillRect(-z * 0.09, -z / 2, z * 0.18, z); else ctx.fillRect(-z / 2, -z * 0.09, z, z * 0.18);
       } else {
         ctx.drawImage(featureMask(tile.t, fi, color), -z / 2, -z / 2, z, z);
       }

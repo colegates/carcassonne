@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Pieces preview</title>
+<style>body{margin:0;background:#3a2a18}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+import { getTileArt, drawBridge, drawCastle, drawPiece, rotUnit } from '../public/js/art.js';
+import { PLAYER_COLORS } from '../public/js/game.js';
+const c = document.getElementById('c');
+const Z = 180, W = 6 * Z, H = 3 * Z;
+c.width = W; c.height = H;
+const ctx = c.getContext('2d');
+const tile = (id, gx, gy, r = 0) => {
+  const art = getTileArt(id).canvas;
+  ctx.save(); ctx.translate(gx * Z + Z / 2, gy * Z + Z / 2); ctx.rotate(r * Math.PI / 2);
+  ctx.drawImage(art, -Z / 2, -Z / 2, Z, Z); ctx.restore();
+};
+// row 0: bridges on a meadow, over a road, next to a city
+tile('B', 0, 0); drawBridge(ctx, Z / 2, Z / 2, Z, 0);
+tile('U', 1, 0); drawBridge(ctx, Z * 1.5, Z / 2, Z, 1);
+tile('E', 2, 0); drawBridge(ctx, Z * 2.5, Z / 2, Z, 1);
+drawPiece(ctx, 'meeple', Z * 2.5 + Z * 0.22, Z / 2, Z * 0.3, PLAYER_COLORS.blue);
+// row 1: a two-tile castle (city caps facing each other)
+tile('E', 1, 1, 2); tile('E', 1, 2, 0);
+const top = drawCastle(ctx, Z * 1.5, Z * 2 + Z * 0.08, Z);
+drawPiece(ctx, 'meeple', Z * 1.5, top - Z * 0.12, Z * 0.26, PLAYER_COLORS.red);
+tile('E', 3, 1, 1); tile('E', 4, 1, 3);
+const top2 = drawCastle(ctx, Z * 4, Z * 1.5 + Z * 0.12, Z);
+drawPiece(ctx, 'large', Z * 4, top2 - Z * 0.14, Z * 0.26, PLAYER_COLORS.green);
+document.title = 'done';
+</script></body></html>

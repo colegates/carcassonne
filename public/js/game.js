@@ -143,22 +143,48 @@ export function migrate(s) {
 }
 
 // ---------- tile geometry helpers ----------
+// A tile on the board is its printed tile type, plus (Bridges, Castles &
+// Bazaars) a bridge carrying a road straight across it: tile.bridge = 0 for a
+// north–south bridge, 1 for east–west (world directions). The bridge is an extra
+// road feature (the last index); the fields under it keep their outer ports.
+const bridged = new Map();
+function bridgedType(t, axis) {
+  const id = `${t}|${axis}`;
+  if (bridged.has(id)) return bridged.get(id);
+  const base = TILE_TYPES[t];
+  const sides = axis === 0 ? [0, 2] : [1, 3];
+  const centre = sides.map((s) => 3 * s + 1);
+  const features = base.features.map((f) => (f.type === 'field' && f.ports.some((p) => centre.includes(p))
+    ? { ...f, ports: f.ports.filter((p) => !centre.includes(p)) } : f));
+  features.push({ type: 'road', sides, ports: centre, bridge: true });
+  const portFeature = base.portFeature.slice();
+  for (const p of centre) portFeature[p] = features.length - 1;
+  const bt = { features, portFeature };
+  bridged.set(id, bt);
+  return bt;
+}
+// the bridge's direction in the tile's own (unrotated) frame
+const localAxis = (tile) => (tile.bridge + tile.r) % 2;
+const typeOf = (tile) => (tile.bridge === undefined || tile.bridge === null ? TILE_TYPES[tile.t] : bridgedType(tile.t, localAxis(tile)));
+export const featuresOf = (tile) => typeOf(tile).features;
+export const bridgeFeature = (tile) => (tile.bridge === undefined || tile.bridge === null ? -1 : featuresOf(tile).length - 1);
+
 export function featureAtPort(tile, worldPort) {
   const local = (worldPort - 3 * tile.r + 12) % 12;
-  return TILE_TYPES[tile.t].portFeature[local];
+  return typeOf(tile).portFeature[local];
 }
 export function edgeType(tile, side) {
   const fi = featureAtPort(tile, 3 * side + 1);
-  return TILE_TYPES[tile.t].features[fi].type;
+  return featuresOf(tile)[fi].type;
 }
 export function worldPorts(tile, fi) {
-  return TILE_TYPES[tile.t].features[fi].ports.map((p) => rotPort(p, tile.r));
+  return featuresOf(tile)[fi].ports.map((p) => rotPort(p, tile.r));
 }
 export function neighbour(board, x, y, side) {
   const [dx, dy] = SIDE_DELTA[side];
   return board[key(x + dx, y + dy)];
 }
-export const featureOf = (tile, fi) => TILE_TYPES[tile.t].features[fi];
+export const featureOf = (tile, fi) => featuresOf(tile)[fi];
 export function riverSidesWorld(t, r) {
   const f = TILE_TYPES[t].features.find((ff) => ff.type === 'river');
   return f ? f.sides.map((s) => (s + r) % 4) : [];
@@ -228,7 +254,7 @@ const weightOf = (k) => PIECES[k]?.weight ?? 0;
 // A group is the connected feature (road/city/field) spanning tiles.
 export function getGroup(board, k, fi) {
   const start = board[k];
-  const type = TILE_TYPES[start.t].features[fi].type;
+  const type = featuresOf(start)[fi].type;
   const nodes = [];
   const seen = new Set();
   const tiles = new Set();
@@ -240,7 +266,7 @@ export function getGroup(board, k, fi) {
   while (stack.length) {
     const [ck, cf] = stack.pop();
     const tile = board[ck];
-    const feat = TILE_TYPES[tile.t].features[cf];
+    const feat = featuresOf(tile)[cf];
     nodes.push([ck, cf]);
     tiles.add(ck);
     if (feat.pennants) pennants += feat.pennants;
@@ -310,7 +336,7 @@ export function fieldCities(board, g) {
   const cities = new Map();
   for (const [k, fi] of g.nodes) {
     const tile = board[k];
-    for (const ci of TILE_TYPES[tile.t].features[fi].cities) {
+    for (const ci of featuresOf(tile)[fi].cities) {
       const cg = getGroup(board, k, ci);
       if (!cities.has(cg.id)) cities.set(cg.id, cg);
     }
@@ -365,7 +391,7 @@ export function placeTile(state, x, y, r) {
   if (state.part === 1 && hasExp(state, 'traders')) {
     const b = findPiece(state, state.current, 'builder');
     if (b) {
-      const feats = TILE_TYPES[t].features;
+      const feats = featuresOf(state.board[k]);
       for (let fi = 0; fi < feats.length && !state.bonus; fi++) {
         if (feats[fi].type !== 'road' && feats[fi].type !== 'city') continue;
         const g = getGroup(state.board, k, fi);
@@ -396,7 +422,7 @@ export function followerOptions(state) {
   const out = [];
   const k = state.last;
   const tile = state.board[k];
-  const feats = TILE_TYPES[tile.t].features;
+  const feats = featuresOf(tile);
   const farmers = state.options.farmers !== false;
   const sizes = ['meeple', 'large'].filter((s) => pl.supply[s] > 0);
   // no figure may share a tile with the dragon (a volcano tile has just called it)
@@ -492,7 +518,7 @@ function portalOptions(state, p, sizes) {
   for (const [k, tile] of Object.entries(state.board)) {
     if (k === state.last || k === state.dragon) continue;
     const [x, y] = parseKey(k);
-    TILE_TYPES[tile.t].features.forEach((f, fi) => {
+    featuresOf(tile).forEach((f, fi) => {
       if (f.type === 'river' || (f.type === 'field' && !farmers)) return;
       if (f.type === 'monastery' || f.type === 'garden') {
         if (tile.pieces.some((pc) => pc.f === fi) || monasteryNeighbours(state.board, x, y) === 8) return;
@@ -590,7 +616,7 @@ function completedCloisters(board, x, y) {
     const mt = board[mk];
     if (!mt) continue;
     for (const pc of mt.pieces) {
-      const feat = TILE_TYPES[mt.t].features[pc.f];
+      const feat = featuresOf(mt)[pc.f];
       if (feat.type !== 'monastery' && feat.type !== 'garden') continue;
       if (monasteryNeighbours(board, x + dx, y + dy) === 8) {
         out.push({ kind: feat.type, winners: [pc.p], points: 9, nodes: [[mk, pc.f]], meeples: [{ key: mk, p: pc.p, f: pc.f, k: pc.k }], complete: true, tiles: 9 });
@@ -607,7 +633,7 @@ export function scoreAfterPlacement(state, k, apply = true) {
   const tile = board[k];
   const seen = new Set();
   const goodsEvents = [];
-  TILE_TYPES[tile.t].features.forEach((f, fi) => {
+  featuresOf(tile).forEach((f, fi) => {
     if (f.type !== 'road' && f.type !== 'city') return;
     const g = getGroup(board, k, fi);
     if (seen.has(g.id)) return;
@@ -900,7 +926,7 @@ export function finalScoring(state, apply = true) {
   const seen = new Set();
   for (const [k, tile] of Object.entries(board)) {
     for (const pc of tile.pieces) {
-      const feat = TILE_TYPES[tile.t].features[pc.f];
+      const feat = featuresOf(tile)[pc.f];
       if (feat.type === 'monastery' || feat.type === 'garden') {
         if (!isFollower(pc)) continue;
         const [x, y] = parseKey(k);

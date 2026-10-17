@@ -1,10 +1,10 @@
 // Computer opponents. They look at every legal placement & follower choice,
 // simulate the immediate scoring and estimate the long-term value.
-import { TILE_TYPES, hasTag, SIDE_DELTA } from './tiles.js';
+import { hasTag, SIDE_DELTA } from './tiles.js';
 import {
   key, parseKey, validPlacements, getGroup, owners, groupPoints, monasteryNeighbours,
   scoreAfterPlacement, fieldCities, followerOptions, captureTargets, dragonMoves, dragonMover,
-  ransomOptions, hasExp, DRAGON_STEPS, PIECES,
+  ransomOptions, hasExp, DRAGON_STEPS, PIECES, featuresOf,
 } from './game.js';
 
 const LEVELS = {
@@ -42,7 +42,7 @@ function grp(board, k, fi) {
 function fcities(board, g) {
   const out = new Map();
   for (const [k, fi] of g.nodes) {
-    for (const ci of TILE_TYPES[board[k].t].features[fi].cities) {
+    for (const ci of featuresOf(board[k])[fi].cities) {
       const cg = grp(board, k, ci);
       if (!out.has(cg.id)) out.set(cg.id, cg);
     }
@@ -68,7 +68,7 @@ function estimate(state, adjust) {
   for (const [k, tile] of Object.entries(board)) {
     for (const pc of tile.pieces) {
       if (adjust.returned.has(pieceId({ key: k, ...pc }))) continue;
-      const feat = TILE_TYPES[tile.t].features[pc.f];
+      const feat = featuresOf(tile)[pc.f];
       if (feat.type === 'monastery' || feat.type === 'garden') {
         if (!isFollowerKind(pc.k)) continue;
         const [x, y] = parseKey(k);
@@ -202,7 +202,7 @@ function builderBonus(state, k, me) {
   let at = null;
   for (const [bk, bt] of Object.entries(state.board)) for (const pc of bt.pieces) if (pc.p === me && pc.k === 'builder') at = [bk, pc.f];
   if (!at) return 0;
-  const feats = TILE_TYPES[state.board[k].t].features;
+  const feats = featuresOf(state.board[k]);
   for (let fi = 0; fi < feats.length; fi++) {
     if (feats[fi].type !== 'road' && feats[fi].type !== 'city') continue;
     if (getGroup(state.board, k, fi).nodes.some(([nk, nf]) => nk === at[0] && nf === at[1])) return 4;
@@ -312,7 +312,7 @@ function portalShortlist(state, opts, n = 12) {
   const portal = opts.filter((o) => o.portal);
   if (portal.length <= n) return opts;
   const score = (o) => {
-    const f = TILE_TYPES[state.board[o.key].t].features[o.fi];
+    const f = featuresOf(state.board[o.key])[o.fi];
     if (f.type === 'monastery' || f.type === 'garden') { const [x, y] = parseKey(o.key); return 1.2 * monasteryNeighbours(state.board, x, y); }
     const g = grp(state.board, o.key, o.fi);
     if (g.type === 'field') return 3 * fcities(state.board, g).filter((c) => c.complete).length;
@@ -340,7 +340,7 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
           if (rnd() < lvl.lookMeeple + 0.0001) {
             // (tower floors and tops are worked out later, for the most promising placements only)
             for (const o of portalShortlist(state, followerOptions(state))) {
-              if (o.kind === 'follower' && !lvl.farmers && TILE_TYPES[state.board[o.key].t].features[o.fi].type === 'field') continue;
+              if (o.kind === 'follower' && !lvl.farmers && featuresOf(state.board[o.key])[o.fi].type === 'field') continue;
               if (!lvl.smart && o.kind !== 'follower' && o.kind !== 'recall') continue;
               if (o.portal && !lvl.portal) continue;
               (isGlobal(o) ? global : options).push(o);
@@ -394,7 +394,7 @@ function figureValues(state) {
   for (const [k, tile] of Object.entries(state.board)) {
     const [x, y] = parseKey(k);
     for (const pc of tile.pieces) {
-      const f = TILE_TYPES[tile.t].features[pc.f];
+      const f = featuresOf(tile)[pc.f];
       let v = 2.5;
       if (f.type === 'monastery' || f.type === 'garden') v += 1 + monasteryNeighbours(state.board, x, y) * 0.8;
       else if (isFollowerKind(pc.k)) {

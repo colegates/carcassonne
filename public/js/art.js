@@ -1469,6 +1469,93 @@ export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
   ctx.restore();
 }
 
+// Bridges, Castles & Bazaars: a stone bridge carrying a road straight across a
+// tile, from one edge to the opposite one (axis 0 = up–down on screen, 1 = across),
+// seen from above like the tiles; (cx, cy) is the tile's centre.
+export function drawBridge(ctx, cx, cy, size, axis, opts = {}) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (axis === 0) ctx.rotate(Math.PI / 2);
+  ctx.globalAlpha = opts.alpha ?? 1;
+  const L = size / 2, w = size * 0.085, wall = size * 0.028;
+  // shadow on the meadow below
+  ctx.save();
+  ctx.filter = `blur(${Math.max(1, size * 0.02)}px)`;
+  ctx.fillStyle = 'rgba(25,30,10,0.45)';
+  ctx.fillRect(-L * 0.86, -w - wall + size * 0.035, L * 1.72, 2 * (w + wall));
+  ctx.restore();
+  // stone abutments where it meets the ground at each end
+  for (const e of [-1, 1]) {
+    const g = ctx.createLinearGradient(0, -w * 1.8, 0, w * 1.8);
+    g.addColorStop(0, '#b9ad94'); g.addColorStop(1, '#7d725f');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(e * L, -w - wall * 1.9); ctx.lineTo(e * (L - size * 0.11), -w - wall); ctx.lineTo(e * (L - size * 0.11), w + wall); ctx.lineTo(e * L, w + wall * 1.9);
+    ctx.closePath(); ctx.fill();
+  }
+  // the roadway
+  const deck = ctx.createLinearGradient(0, -w, 0, w);
+  deck.addColorStop(0, '#d9c49a'); deck.addColorStop(0.5, '#e8d6ae'); deck.addColorStop(1, '#c4ad80');
+  ctx.fillStyle = deck;
+  ctx.fillRect(-L, -w, 2 * L, 2 * w);
+  ctx.strokeStyle = 'rgba(120,95,60,0.35)'; ctx.lineWidth = Math.max(0.6, size * 0.006);
+  for (let x = -L + size * 0.05; x < L; x += size * 0.055) { ctx.beginPath(); ctx.moveTo(x, -w); ctx.lineTo(x + size * 0.01, w); ctx.stroke(); }
+  // parapets, bowing out a little over the arch
+  for (const e of [-1, 1]) {
+    const g = ctx.createLinearGradient(0, e * w, 0, e * (w + wall));
+    g.addColorStop(0, '#e2d8c2'); g.addColorStop(1, '#9a8f7a');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-L, e * w);
+    ctx.quadraticCurveTo(0, e * (w + wall * 0.6), L, e * w);
+    ctx.lineTo(L, e * (w + wall));
+    ctx.quadraticCurveTo(0, e * (w + wall * 2.2), -L, e * (w + wall));
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(60,50,38,0.6)'; ctx.lineWidth = Math.max(0.7, size * 0.007); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Bridges, Castles & Bazaars: a little wooden castle standing at (x, y) (its base).
+export function drawCastle(ctx, x, y, size, opts = {}) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = opts.alpha ?? 1;
+  const w = size * 0.5, h = size * 0.2, tw = size * 0.13, th = size * 0.3;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = size * 0.06; ctx.shadowOffsetX = size * 0.025; ctx.shadowOffsetY = size * 0.03;
+  ctx.fillStyle = '#8a6a3c';
+  ctx.fillRect(-w / 2, -h, w, h);
+  ctx.restore();
+  const wood = (x0, x1) => {
+    const g = ctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, '#e8c98f'); g.addColorStop(0.55, '#cfa565'); g.addColorStop(1, '#9c7440');
+    return g;
+  };
+  const edge = Math.max(0.8, size * 0.008);
+  // curtain wall with battlements and a gate
+  ctx.fillStyle = wood(-w / 2, w / 2);
+  ctx.fillRect(-w / 2, -h, w, h);
+  for (let i = 0; i < 4; i++) ctx.fillRect(-w / 2 + tw + i * ((w - 2 * tw) / 4) + size * 0.012, -h - size * 0.04, (w - 2 * tw) / 8, size * 0.04);
+  ctx.fillStyle = 'rgba(60,38,16,0.8)';
+  ctx.beginPath(); ctx.moveTo(-size * 0.045, 0); ctx.lineTo(-size * 0.045, -h * 0.55); ctx.arc(0, -h * 0.55, size * 0.045, Math.PI, 0); ctx.lineTo(size * 0.045, 0); ctx.closePath(); ctx.fill();
+  // two corner towers
+  for (const e of [-1, 1]) {
+    const x0 = e < 0 ? -w / 2 : w / 2 - tw;
+    ctx.fillStyle = wood(x0, x0 + tw);
+    ctx.fillRect(x0, -th, tw, th);
+    for (let i = 0; i < 3; i++) if (i !== 1) ctx.fillRect(x0 + i * tw / 3, -th - size * 0.045, tw / 3, size * 0.045);
+    ctx.fillStyle = 'rgba(60,38,16,0.75)';
+    ctx.fillRect(x0 + tw * 0.4, -th * 0.7, tw * 0.2, th * 0.18);
+    ctx.strokeStyle = 'rgba(70,45,20,0.6)'; ctx.lineWidth = edge;
+    ctx.strokeRect(x0, -th, tw, th);
+  }
+  ctx.strokeStyle = 'rgba(70,45,20,0.6)'; ctx.lineWidth = edge;
+  ctx.strokeRect(-w / 2 + tw, -h, w - 2 * tw, h);
+  ctx.restore();
+  return y - th - size * 0.045; // top of the towers
+}
+
 // The Tower: a stack of h wooden tower floors standing at (x, y) (its base);
 // returns the screen y of the top of the stack.
 export function drawTower(ctx, x, y, size, h, opts = {}) {
