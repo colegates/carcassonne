@@ -133,8 +133,8 @@ const H = {
   'RI/s': { rivers: { 0: { end: [0.46, 0.5], spring: true } }, rock: [0.3, 0.5] },
   'RI.1/I.e': { rivers: { 0: { end: [0.4, 0.5] } }, lake: [0.63, 0.52, 0.26, 0.3] },
   'RI.1/CICI': { cities: { 0: { shape: 'cap', depth: 0.25 }, 1: { shape: 'cap', rot: 2, depth: 0.25 } } },
-  'RI.1/CIRI': { cities: { 0: { shape: 'cap', depth: 0.26 } }, roads: { 1: { end: [0.55, 0.12] } }, rivers: { 2: { c1: [0.3, 0.62], c2: [0.7, 0.62] } } },
-  'RI.1/LIRI': { monastery: [0.44, 0.27, 0.78], roads: { 0: { end: [0.47, 0.32] } }, rivers: { 1: { c1: [0.3, 0.66], c2: [0.7, 0.66] } } },
+  'RI.1/CIRI': { cities: { 0: { shape: 'cap', depth: 0.26 } }, roads: { 1: { end: [0.55, 0.12], bridge: 'over', span: [0.26, 0.52] } }, rivers: { 2: { c1: [0.3, 0.62], c2: [0.7, 0.62] } } },
+  'RI.1/LIRI': { monastery: [0.44, 0.27, 0.78], roads: { 0: { end: [0.47, 0.32], bridge: 'over', span: [0.24, 0.5] } }, rivers: { 1: { c1: [0.3, 0.66], c2: [0.7, 0.66] } } },
   'RI.1/RIrI': { roads: { 0: { bridge: 'over' } } },
   'RI.1/IIG': { garden: [0.7, 0.33] },
   // ---- 3rd-edition garden versions of base tiles ----

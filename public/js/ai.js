@@ -173,13 +173,25 @@ function withTile(state, k, t, r, fn) {
   }
 }
 
-// Expand tower floors into one option per capture choice.
+// Expand tower floors into one option per capture choice. Floors and tower tops that
+// change nothing nearby are left out: late in a big game there are dozens of towers.
 function expandOptions(state, opts) {
+  const me = state.current;
   const out = [];
+  let bare = 0;
+  const closing = new Set();
   for (const o of opts) {
-    if (o.kind !== 'floor') { out.push(o); continue; }
-    out.push(o);
-    for (const c of captureTargets(state, o.key, state.towers[o.key].h + 1)) out.push({ ...o, capture: c });
+    if (o.kind === 'floor') {
+      const h = state.towers[o.key].h + 1;
+      // capturing your own figure only helps when you have no meeples left
+      for (const c of captureTargets(state, o.key, h)) if (c.p !== me || !state.players[me].supply.meeple) out.push({ ...o, capture: c });
+      // a floor on its own: only where other players' figures come within reach next time
+      if (bare < 2 && captureTargets(state, o.key, h + 1).some((c) => c.p !== me)) { out.push(o); bare++; }
+    } else if (o.kind === 'towerTop') {
+      // closing a tower: only one that could otherwise grow to reach my figures
+      if (!closing.has(o.key) && closing.size >= 2) continue;
+      if (closing.has(o.key) || captureTargets(state, o.key, state.towers[o.key].h + 1).some((c) => c.p === me)) { closing.add(o.key); out.push(o); }
+    } else out.push(o);
   }
   return out;
 }
@@ -228,6 +240,12 @@ function evaluate(state, k, act, me, lvl, extra = 0) {
       tile.pieces.push({ p: me, f: act.fi, k: act.k });
       undo.push(() => tile.pieces.pop());
       handDelta(me, act.k, -1);
+      // a figure on my own dragon tile may well be eaten in the flight that follows
+      if (act.key === k && state.dragon && hasTag(state.board[k].t, 'dragon')) {
+        const [dx, dy] = parseKey(state.dragon), [kx, ky] = parseKey(k);
+        const d = Math.abs(dx - kx) + Math.abs(dy - ky);
+        if (d <= DRAGON_STEPS) bonus -= d <= 3 ? 3.5 : 1.8;
+      }
       if (act.k === 'pig') {
         const g = grp(state.board, act.key, act.fi);
         bonus += P.pig * fcities(state.board, g).filter((c) => c.complete).length;
@@ -320,7 +338,8 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
           const options = [null];
           const global = [];
           if (rnd() < lvl.lookMeeple + 0.0001) {
-            for (const o of portalShortlist(state, expandOptions(state, followerOptions(state)))) {
+            // (tower floors and tops are worked out later, for the most promising placements only)
+            for (const o of portalShortlist(state, followerOptions(state))) {
               if (o.kind === 'follower' && !lvl.farmers && TILE_TYPES[state.board[o.key].t].features[o.fi].type === 'field') continue;
               if (!lvl.smart && o.kind !== 'follower' && o.kind !== 'recall') continue;
               if (o.portal && !lvl.portal) continue;
@@ -343,9 +362,10 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
     // a tile that completes something may pair well with a capture or the fairy
     later.sort((a, b) => b.best - a.best);
     const top = Math.max(2, lvl.portal);
-    for (const pl of later.filter((l, i) => i < top || l.completes)) {
+    let completing = 0;
+    for (const pl of later.filter((l, i) => i < top || (l.completes && completing++ < 4))) {
       withTile(state, pl.k, t, pl.r, () => {
-        for (const act of pl.global) {
+        for (const act of expandOptions(state, pl.global)) {
           const v = evaluate(state, pl.k, act, me, lvl, pl.extra) + (rnd() - 0.5) * lvl.noise;
           moves.push({ x: pl.x, y: pl.y, r: pl.r, act, v, meeple: null });
         }
@@ -436,8 +456,12 @@ export function chooseRansom(state, levelName = 'medium') {
   if (!opts.length || levelName === 'easy') return null;
   const me = state.current;
   const pl = state.players[me];
-  if (state.deck.length < 10 || pl.score < 8 || pl.supply.meeple >= 2) return null;
-  // pay the player furthest behind, prefer getting the big meeple back
-  opts.sort((a, b) => (a.k === 'large' ? -1 : 0) - (b.k === 'large' ? -1 : 0) || state.players[a.from].score - state.players[b.from].score);
-  return opts[0];
+  // 3 points to another player is a lot: only buy a meeple back when none are left,
+  // and (hard bots) the big meeple or abbot when few are left
+  if (state.deck.length < 15 || pl.score < 10) return null;
+  const pool = !pl.supply.meeple ? opts : levelName === 'hard' && pl.supply.meeple < 2 ? opts.filter((o) => o.k !== 'meeple') : [];
+  if (!pool.length) return null;
+  // prefer the big meeple, and paying the player furthest behind
+  pool.sort((a, b) => (a.k === 'large' ? -1 : 0) - (b.k === 'large' ? -1 : 0) || state.players[a.from].score - state.players[b.from].score);
+  return pool[0];
 }

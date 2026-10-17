@@ -85,7 +85,7 @@ function buildHitMap(id, lay) {
   if (lay.trees) stamp((g) => { g.beginPath(); g.arc(lay.trees.x * H, lay.trees.y * H, 0.085 * H, 0, 7); g.fill(); }, -2);
   if (lay.house) stamp((g) => g.fillRect((lay.house[0] - 0.07) * H, (lay.house[1] - 0.06) * H, 0.14 * H, 0.12 * H), -2);
   if (lay.volcano) stamp((g) => { g.beginPath(); g.ellipse(lay.volcano[0] * H, lay.volcano[1] * H, 0.15 * H, 0.12 * H, 0, 0, 7); g.fill(); }, -2);
-  if (lay.foundation) stamp((g) => { g.beginPath(); g.arc(lay.foundation[0] * H, lay.foundation[1] * H, 0.125 * H, 0, 7); g.fill(); }, -2);
+  if (lay.foundation) stamp((g) => g.fillRect((lay.foundation[0] - 0.115) * H, (lay.foundation[1] - 0.115) * H, 0.23 * H, 0.23 * H), -2);
   for (const [x, y, lx, ly] of lay.inns) {
     stamp((g) => { g.fillRect((x - 0.075) * H, (y - 0.065) * H, 0.15 * H, 0.13 * H); g.beginPath(); g.ellipse(lx * H, ly * H, 0.07 * H, 0.045 * H, 0.2, 0, 7); g.fill(); }, -2);
   }
@@ -189,7 +189,7 @@ function computeAnchors(id, lay, label) {
       if (label[i] !== fi) continue;
       const x = (i % HIT + 0.5) / HIT, y = (((i / HIT) | 0) + 0.5) / HIT;
       // prefer roomy spots, slightly toward the tile centre (but not on top of a cathedral)
-      let score = Math.min(d[i], f.type === 'field' ? 14 : 20) - Math.hypot(x - 0.5, y - 0.5) * 6;
+      let score = Math.min(d[i], f.type === 'field' ? 17 : 20) - Math.hypot(x - 0.5, y - 0.5) * 6;
       if (f.cathedral && lay.cathedral) score -= Math.max(0, 0.34 - Math.hypot(x - lay.cathedral[0], y - lay.cathedral[1])) * 60;
       if (score > best) { best = score; bx = x; by = y; }
     }
@@ -365,15 +365,60 @@ function paintRivers(ctx, S, rnd, lay) {
     bushCluster(ctx, (x + rx * 0.35) * S, (y + ry * 0.4) * S, 9 * k, rnd, k);
     ctx.fillStyle = '#8a3b22'; ctx.beginPath(); ctx.ellipse((x - rx * 0.3) * S, (y - ry * 0.6) * S, 7 * k, 2.6 * k, -0.3, 0, 7); ctx.fill();
   }
-  if (lay.rock) {
-    const [x, y] = lay.rock;
-    ctx.fillStyle = 'rgba(30,30,20,0.35)'; ctx.beginPath(); ctx.ellipse((x + 0.02) * S, (y + 0.03) * S, 0.1 * S, 0.17 * S, 0, 0, 7); ctx.fill();
-    const g = ctx.createLinearGradient((x - 0.1) * S, 0, (x + 0.1) * S, 0);
-    g.addColorStop(0, '#9b958a'); g.addColorStop(1, '#6b665d');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x * S, y * S, 0.09 * S, 0.16 * S, 0, 0, 7); ctx.fill();
-    bushCluster(ctx, x * S, (y - 0.08) * S, 7 * k, rnd, k);
-    bushCluster(ctx, (x - 0.02) * S, (y + 0.09) * S, 6 * k, rnd, k);
+  if (lay.rock) rockyOutcrop(ctx, lay.rock[0] * S, lay.rock[1] * S, S, rnd, k);
+}
+
+// The spring's rocks: a heap of mossy boulders the river wells up from.
+function rockyOutcrop(ctx, cx, cy, S, rnd, k) {
+  ctx.save();
+  ctx.filter = `blur(${4 * k}px)`;
+  ctx.fillStyle = 'rgba(30,32,18,0.4)';
+  ctx.beginPath(); ctx.ellipse(cx + 0.015 * S, cy + 0.025 * S, 0.12 * S, 0.17 * S, 0, 0, 7); ctx.fill();
+  ctx.restore();
+  const stones = [];
+  for (let i = 0; i < 11; i++) {
+    const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd());
+    stones.push({ x: cx + Math.cos(a) * d * 0.075 * S, y: cy + Math.sin(a) * d * 0.13 * S, r: (0.032 + rnd() * 0.03) * S * (1.15 - d * 0.35) });
   }
+  stones.sort((p, q) => p.y - q.y);
+  for (const st of stones) {
+    const pts = [];
+    for (let j = 0; j < 9; j++) {
+      const a = (j / 9) * Math.PI * 2 + rnd() * 0.3;
+      const rr = st.r * (0.78 + rnd() * 0.3);
+      pts.push([st.x + Math.cos(a) * rr, st.y + Math.sin(a) * rr * 0.82]);
+    }
+    const path = new Path2D();
+    pts.forEach(([px, py], j) => {
+      const [nx, ny] = pts[(j + 1) % pts.length];
+      const mx = (px + nx) / 2, my = (py + ny) / 2;
+      if (j === 0) path.moveTo(mx, my); else path.quadraticCurveTo(px, py, mx, my);
+    });
+    const [px0, py0] = pts[0], [nx0, ny0] = pts[1];
+    path.quadraticCurveTo(px0, py0, (px0 + nx0) / 2, (py0 + ny0) / 2);
+    path.closePath();
+    const g = ctx.createLinearGradient(st.x - st.r, st.y - st.r, st.x + st.r, st.y + st.r);
+    const tone = 0.85 + rnd() * 0.25;
+    const c = (v) => Math.round(Math.min(255, v * tone));
+    g.addColorStop(0, `rgb(${c(176)},${c(170)},${c(156)})`);
+    g.addColorStop(0.55, `rgb(${c(132)},${c(127)},${c(116)})`);
+    g.addColorStop(1, `rgb(${c(84)},${c(80)},${c(72)})`);
+    ctx.fillStyle = g; ctx.fill(path);
+    ctx.strokeStyle = 'rgba(40,38,30,0.55)'; ctx.lineWidth = 1.1 * k; ctx.stroke(path);
+    // light catching the top edge, a crack, and a little moss
+    ctx.save(); ctx.clip(path);
+    ctx.strokeStyle = 'rgba(235,230,215,0.45)'; ctx.lineWidth = 1.6 * k;
+    ctx.beginPath(); ctx.arc(st.x + st.r * 0.15, st.y + st.r * 0.2, st.r * 0.85, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
+    if (rnd() < 0.6) {
+      ctx.strokeStyle = 'rgba(50,46,38,0.5)'; ctx.lineWidth = 0.9 * k;
+      ctx.beginPath(); ctx.moveTo(st.x - st.r * 0.3, st.y - st.r * 0.1); ctx.lineTo(st.x + st.r * 0.05, st.y + st.r * 0.2); ctx.lineTo(st.x + st.r * 0.3, st.y + st.r * 0.15); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(96,120,52,0.75)';
+    for (let m = 0; m < 3; m++) if (rnd() < 0.55) { ctx.beginPath(); ctx.ellipse(st.x + (rnd() - 0.6) * st.r, st.y - rnd() * st.r * 0.6, 2.4 * k, 1.6 * k, rnd(), 0, 7); ctx.fill(); }
+    ctx.restore();
+  }
+  bushCluster(ctx, cx - 0.04 * S, cy - 0.15 * S, 7 * k, rnd, k);
+  bushCluster(ctx, cx - 0.05 * S, cy + 0.15 * S, 6 * k, rnd, k);
 }
 
 function bushCluster(ctx, x, y, r, rnd, k) {
@@ -1140,18 +1185,32 @@ function goodsArt(ctx, kind, x, y, S, k) {
   ctx.restore();
 }
 
+// The Tower: a square stone foundation (as on the 3rd-edition tiles).
 function foundationArt(ctx, x, y, S, k) {
-  const cx = x * S, cy = y * S, r = 0.125 * S;
+  const cx = x * S, cy = y * S, a = 0.105 * S; // half the side
   ctx.save(); ctx.filter = `blur(${3 * k}px)`; ctx.fillStyle = 'rgba(30,25,10,0.45)';
-  ctx.beginPath(); ctx.ellipse(cx + 3 * k, cy + 5 * k, r, r * 0.8, 0, 0, 7); ctx.fill(); ctx.restore();
-  ctx.fillStyle = '#6e6658'; ctx.beginPath(); ctx.ellipse(cx, cy + 3 * k, r, r * 0.8, 0, 0, 7); ctx.fill();
-  const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 1, cx, cy, r);
-  g.addColorStop(0, '#c9c0aa'); g.addColorStop(1, '#8c8371');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.8, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(60,50,40,0.45)'; ctx.lineWidth = 1 * k;
-  for (let i = 0; i < 10; i++) { const a = (i / 10) * 6.283; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r * 0.55, cy + Math.sin(a) * r * 0.44); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8); ctx.stroke(); }
-  ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.55, r * 0.44, 0, 0, 7); ctx.stroke();
-  ctx.fillStyle = 'rgba(90,80,65,0.5)'; ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.5, r * 0.4, 0, 0, 7); ctx.fill();
+  ctx.fillRect(cx - a + 3 * k, cy - a + 5 * k, 2 * a, 2 * a); ctx.restore();
+  // its stone sides, seen a little from the south, then the top
+  ctx.fillStyle = '#6a6153'; ctx.fillRect(cx - a, cy - a + 4 * k, 2 * a, 2 * a);
+  const g = ctx.createLinearGradient(cx - a, cy - a, cx + a, cy + a);
+  g.addColorStop(0, '#d4cbb4'); g.addColorStop(1, '#8f8673');
+  ctx.fillStyle = g; ctx.fillRect(cx - a, cy - a, 2 * a, 2 * a);
+  // squared stones laid in courses
+  ctx.strokeStyle = 'rgba(60,50,40,0.5)'; ctx.lineWidth = 1.1 * k;
+  const rows = 4, cols = 3;
+  ctx.beginPath();
+  for (let i = 0; i < rows; i++) {
+    const y0 = cy - a + (i * 2 * a) / rows, y1 = y0 + (2 * a) / rows;
+    if (i) { ctx.moveTo(cx - a, y0); ctx.lineTo(cx + a, y0); }
+    for (let j = 1; j <= cols; j++) {
+      const xx = cx - a + ((j - (i % 2 ? 0.5 : 0)) * 2 * a) / cols;
+      if (xx > cx - a + 2 * k && xx < cx + a - 2 * k) { ctx.moveTo(xx, y0); ctx.lineTo(xx, y1); }
+    }
+  }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(40,32,24,0.7)'; ctx.lineWidth = 1.4 * k; ctx.strokeRect(cx - a, cy - a, 2 * a, 2 * a);
+  ctx.strokeStyle = 'rgba(240,232,210,0.5)'; ctx.lineWidth = 1.2 * k;
+  ctx.beginPath(); ctx.moveTo(cx - a + k, cy + a - k); ctx.lineTo(cx - a + k, cy - a + k); ctx.lineTo(cx + a - k, cy - a + k); ctx.stroke();
 }
 
 // Find a spot inside feature fi for a symbol, preferring a target point and
@@ -1413,7 +1472,7 @@ export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
 // The Tower: a stack of h wooden tower floors standing at (x, y) (its base);
 // returns the screen y of the top of the stack.
 export function drawTower(ctx, x, y, size, h, opts = {}) {
-  const w = size * 0.24, fh = size * 0.075;
+  const w = size * 0.24, fh = opts.fh ?? size * 0.075;
   const shown = Math.min(h, 7);
   ctx.save();
   ctx.globalAlpha = opts.alpha ?? 1;
@@ -1434,29 +1493,49 @@ export function drawTower(ctx, x, y, size, h, opts = {}) {
   const top = y - shown * fh;
   ctx.fillStyle = '#ddd1b5';
   for (let i = 0; i < 3; i++) ctx.fillRect(x - w / 2 + i * w * 0.4, top - fh * 0.45, w * 0.2, fh * 0.45);
-  if (h > shown || opts.badge) {
-    const r = size * 0.075;
-    ctx.fillStyle = 'rgba(30,18,8,0.88)'; ctx.beginPath(); ctx.arc(x + w * 0.75, top + r * 0.4, r, 0, 7); ctx.fill();
-    ctx.fillStyle = '#ffe7a6'; ctx.font = `900 ${Math.round(r * 1.3)}px Nunito, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(h), x + w * 0.75, top + r * 0.45);
-  }
+  if (opts.badge) drawTowerBadge(ctx, x, y, size, h, fh);
   ctx.restore();
   return top - fh * 0.45;
 }
 
+// The tower's height, on a dark disc beside its upper floors (clear of a figure on top).
+export function drawTowerBadge(ctx, x, y, size, h, fh = size * 0.075, color = '#ffe7a6') {
+  const w = size * 0.24;
+  const r = Math.max(size * 0.075, 7);
+  const bx = x + w * 0.5 + r * 0.8;
+  const by = Math.min(y - r, y - Math.min(h, 7) * fh + r * 1.2);
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,18,8,0.88)'; ctx.beginPath(); ctx.arc(bx, by, r, 0, 7); ctx.fill();
+  ctx.fillStyle = color; ctx.font = `900 ${Math.round(r * 1.3)}px Nunito, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(h), bx, by + r * 0.05);
+  ctx.restore();
+}
+
 // ---------- tile back & table ----------
-export function getTileBack() {
-  if (cache.has('_back')) return cache.get('_back');
+// The back of a tile: green, or blue with a stream for The River's tiles (they are kept
+// apart from the others and come first).
+export function getTileBack(kind = 'base') {
+  const id = `_back:${kind}`;
+  if (cache.has(id)) return cache.get(id);
+  const river = kind === 'river';
   const S = 256; const c = canvas(S); const ctx = c.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, S, S);
-  g.addColorStop(0, '#5a7d3a'); g.addColorStop(1, '#2e4a1c');
+  g.addColorStop(0, river ? '#4f7f9a' : '#5a7d3a'); g.addColorStop(1, river ? '#22465c' : '#2e4a1c');
   ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
   const rnd = mulberry(11);
   for (let i = 0; i < 900; i++) { ctx.fillStyle = `rgba(255,255,255,${rnd() * 0.05})`; ctx.fillRect(rnd() * S, rnd() * S, 2, 2); }
   ctx.strokeStyle = 'rgba(240,220,160,0.5)'; ctx.lineWidth = 6; ctx.strokeRect(14, 14, S - 28, S - 28);
+  if (river) {
+    ctx.strokeStyle = 'rgba(200,232,250,0.45)'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+    for (const y of [60, 196]) {
+      ctx.beginPath(); ctx.moveTo(44, y);
+      for (let x = 44; x <= 212; x += 4) ctx.lineTo(x, y + Math.sin((x - 44) / 14) * 7);
+      ctx.stroke();
+    }
+  }
   ctx.fillStyle = '#f2dc9a'; ctx.font = 'bold 150px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 8; ctx.fillText('C', S / 2, S / 2 + 8);
-  cache.set('_back', c);
+  cache.set(id, c);
   return c;
 }
 

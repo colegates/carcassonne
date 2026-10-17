@@ -74,6 +74,13 @@ phones show exactly the same game. A phone that reconnects gets the starting
 position plus the action list and catches up. Computer players run on one phone
 (handed over automatically if that phone leaves).
 
+Every move carries the number of moves before it and a fingerprint of the last
+one, so the room only accepts moves made on the latest game; a phone whose move
+is refused gets the room's list and rebuilds from it. Phones ping every 10 s and
+count as away after 45 s of silence. When a player's phone has been away for a
+while, any other phone can let a bot play that seat; the player can take it back
+when they return.
+
 ## Layout
 
 | File | What |

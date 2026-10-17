@@ -882,8 +882,10 @@ export function applyAction(state, a) {
     events = payRansom(state, a.from, a.k);
   } else if (a.t === 'kind') {
     const p = state.players[a.seat];
-    p.kind = a.kind;
-    if (a.level) p.level = a.level;
+    if (p && (a.kind === 'ai' || a.kind === 'human')) {
+      p.kind = a.kind;
+      if (a.level) p.level = a.level;
+    }
   } else {
     throw new Error(`Unknown action ${a.t}`);
   }

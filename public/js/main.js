@@ -78,10 +78,10 @@ $('btn-continue').addEventListener('click', () => {
   const s = store.get('carc-save');
   if (s) C.startGame(s);
 });
-$('btn-rejoin').addEventListener('click', () => {
+$('btn-rejoin').addEventListener('click', async () => {
   sfx.tap();
   const code = hasOnlineSave();
-  if (code) rejoin(code);
+  if (code && !(await rejoin(code))) drawHome();
 });
 
 function openRules(section = null) {

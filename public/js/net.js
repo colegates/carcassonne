@@ -10,14 +10,26 @@ export function clientId() {
   return id;
 }
 
+// Short fingerprint of a move (the same as the server's), so the room can tell
+// whether a move was made on the latest game.
+export function fingerprint(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36);
+}
+
+async function get(url, opts) {
+  try { return await fetch(url, opts); } catch { throw new Error('No connection to the game server — check your internet'); }
+}
+
 export async function createRoom() {
-  const res = await fetch('/api/rooms', { method: 'POST' });
+  const res = await get('/api/rooms', { method: 'POST' });
   if (!res.ok) throw new Error(res.status === 404 ? 'Online play needs the Cloudflare Worker version of the app' : 'Could not create a game');
   return (await res.json()).code;
 }
 
 export async function roomInfo(code) {
-  const res = await fetch(`/api/rooms/${code}`);
+  const res = await get(`/api/rooms/${code}`);
   if (!res.ok) throw new Error('Online play is not available on this server');
   return res.json();
 }
@@ -52,7 +64,8 @@ export class Net {
       const q = this.queue; this.queue = [];
       for (const m of q) ws.send(JSON.stringify(m));
       clearInterval(this.pinger);
-      this.pinger = setInterval(() => { if (this.isOpen()) ws.send('{"type":"ping"}'); }, 25000);
+      // the room counts a phone as away after 45 s of silence (a locked phone can keep its socket)
+      this.pinger = setInterval(() => { if (this.isOpen()) ws.send('{"type":"ping"}'); }, 10000);
       this.handlers.onStatus?.('online');
     };
     ws.onmessage = (e) => {

@@ -6,6 +6,14 @@ import { DurableObject } from 'cloudflare:workers';
 
 const MAX_SEATS = 6;
 const ROOM_TTL_MS = 1000 * 60 * 60 * 24 * 14; // forget rooms after two weeks idle
+const STALE_MS = 45000; // a phone that has said nothing for this long counts as away (phones ping every 10 s)
+
+// Short fingerprint of a move, so a phone can prove it has seen the latest one.
+export function fingerprint(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36);
+}
 
 export class GameRoom extends DurableObject {
   constructor(ctx, env) {
@@ -62,13 +70,25 @@ export class GameRoom extends DurableObject {
 
   // ---------- helpers ----------
   sockets() { return this.ctx.getWebSockets().filter((ws) => ws !== this.closing && ws.readyState === 1); }
+  // phones that are connected and have been heard from lately (a frozen phone keeps its socket open)
   onlineIds() {
     const ids = new Set();
+    const now = Date.now();
     for (const ws of this.sockets()) {
       const a = ws.deserializeAttachment();
-      if (a && a.clientId) ids.add(a.clientId);
+      if (a && a.clientId && now - (a.seen || 0) < STALE_MS) ids.add(a.clientId);
     }
     return ids;
+  }
+  // If the host has gone, the longest-standing phone still here takes over (lobby, play again).
+  ensureHost(online = this.onlineIds()) {
+    const r = this.room;
+    if (r.hostId && online.has(r.hostId)) return false;
+    const order = Object.entries(r.clients).sort((a, b) => a[1].joined - b[1].joined);
+    const found = order.find(([id]) => online.has(id));
+    if (!found || found[0] === r.hostId) return false;
+    r.hostId = found[0];
+    return true;
   }
   // The phone that runs the computer players: the host if online, otherwise
   // the earliest-joined phone that is still connected.
@@ -103,16 +123,31 @@ export class GameRoom extends DurableObject {
     const att = ws.deserializeAttachment() || {};
     const r = this.room;
 
-    if (msg.type === 'ping') { this.send(ws, { type: 'pong' }); return; }
+    if (att.clientId) ws.serializeAttachment({ ...att, seen: Date.now() });
+
+    if (msg.type === 'ping') {
+      this.send(ws, { type: 'pong' });
+      // pings are also when we notice a phone that went quiet: hand its jobs to another phone
+      const online = this.onlineIds();
+      const runner = this.botRunner(online);
+      const hostMoved = this.ensureHost(online);
+      if (hostMoved) await this.save();
+      if (runner !== this.lastRunner || hostMoved || online.size !== this.lastOnline) {
+        this.lastRunner = runner; this.lastOnline = online.size;
+        this.broadcastRoom();
+      }
+      return;
+    }
 
     if (msg.type === 'hello') {
       const clientId = String(msg.clientId || '').slice(0, 40);
       if (!clientId) return;
-      ws.serializeAttachment({ clientId });
+      ws.serializeAttachment({ clientId, seen: Date.now() });
       const name = String(msg.name || 'Player').slice(0, 14);
       if (!r.clients[clientId]) r.clients[clientId] = { name, joined: Date.now() };
       else if (msg.name) r.clients[clientId].name = name;
       if (!r.hostId) r.hostId = clientId;
+      this.ensureHost();
       await this.save();
       this.send(ws, {
         type: 'welcome', you: clientId, room: this.publicRoom(),
@@ -206,8 +241,9 @@ export class GameRoom extends DurableObject {
 
     if (msg.type === 'action') {
       if (r.phase !== 'playing') return;
-      if (msg.seq !== r.actions.length) {
-        // someone else got there first: tell the sender to resync
+      const prevOk = msg.prev === undefined || msg.prev === fingerprint(msg.seq > 0 ? JSON.stringify(r.actions[msg.seq - 1]) : '');
+      if (msg.seq !== r.actions.length || !prevOk) {
+        // someone else got there first, or the move was made on an out-of-date game: resync the sender
         this.send(ws, { type: 'resync', init: r.init, actions: r.actions, room: this.publicRoom() });
         return;
       }
@@ -239,7 +275,10 @@ export class GameRoom extends DurableObject {
   async webSocketClose(ws) {
     this.closing = ws;
     try { ws.close(); } catch { /* already closed */ }
-    if (this.room) this.broadcastRoom();
+    if (this.room) {
+      if (this.ensureHost()) await this.save();
+      this.broadcastRoom();
+    }
     this.closing = null;
   }
 

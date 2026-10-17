@@ -185,6 +185,13 @@ export function buildRules(root) {
      <p>• Watch out: a tile that fits nowhere is thrown out and you draw again.</p>
      <p>• Some tiles show a little flower garden. It only matters if you play with <b>The Abbot</b>.</p>`);
 
+  add('📱', 'Playing on Separate Phones',
+    `<p><b>One phone, pass it round:</b> choose <b>📱 One phone</b> when you start a new game.</p>
+     <p><b>A phone each:</b> one player chooses <b>📲 Everyone on their own phone</b> and taps <b>Create Online Game</b>. Everyone else taps <b>Join a Game</b> and types the 4-letter code — or scans the QR code or opens the invite link. The host picks the expansions, can add computer players, and presses <b>Start</b>. Two people can share a phone too: tap <b>+ Player on this phone</b> in the lobby.</p>
+     <p>Every phone shows the whole map and the scores. You play on your own turn; your name on the player cards has a gold dot •.</p>
+     <p><b>Phone went to sleep?</b> Just open the game again — it catches up by itself. From the home screen, <b>Rejoin</b> takes you back in.</p>
+     <p><b>Someone's phone stays offline?</b> After a few seconds anyone can tap <b>Let a bot play</b> so the game goes on. When they're back they tap <b>Take back</b> and play on.</p>`);
+
   // Tile gallery
   const gallery = document.createElement('div');
   gallery.className = 'tile-strip';
@@ -279,10 +286,15 @@ export function buildRules(root) {
 
   addExp('🏰', 'The Tower',
     `<p>Tower tiles have a stone <b>foundation</b>, and everyone gets tower floors (2 players 10 each, 3: 9, 4: 7, 5: 6, 6: 5).</p>
-     <p>After placing your tile, do <b>one</b> of these: place a follower normally, <b>or</b> add a floor to <b>any</b> foundation or open tower, <b>or</b> put a meeple on top of any tower to close it for good.</p>
-     <p>Each time you add a floor you may <b>capture one figure</b> on the tower's tile or up to as many tiles away as the tower is tall — straight up, down, left or right (gaps count, no diagonals). Your own figure goes home; someone else's becomes your <b>prisoner</b>.</p>
-     <p>If two players hold each other's figures they swap them back at once. Once per turn you may <b>buy back</b> a prisoner for <span class="pts">3 points</span> paid to its holder (tap ⛓️). Builders, pigs, the fairy and the dragon can't be captured. Towers score nothing.</p>`,
-    () => [[renderMini([[0, 0, 'TO/C', 2], [0, -1, 'D', 0, ['blue', 0]], [1, 0, 'B', 0], [0, -2, 'E', 2]], { px: 66, extras: [{ kind: 'tower', x: 0, y: 0, h: 2 }], marks: [[0, -1, '⚔', '#ff7b6b'], [1, 0, '⚔', '#ff7b6b'], [0, -2, '⚔', '#ff7b6b']] }), 'A tower 2 floors tall reaches 2 tiles in a straight line: Blue\'s knight can be captured.']], 'tower');
+     <p>After placing your tile, do <b>one</b> of these: place a follower normally (or any other expansion's choice), <b>or</b> add a floor to <b>any</b> foundation or open tower on the map, <b>or</b> close a tower that has at least one floor by putting a meeple or big meeple on top. Nobody can build a closed tower higher; the figure up there scores nothing and stays until another tower captures it (or the dragon eats it) — then the tower is open again.</p>
+      <p>Each time you add a floor you may <b>capture one figure</b> on the tower's tile or up to as many tiles away as the tower is tall, counting the floor you just added — straight up, down, left or right (gaps count, no diagonals). Your own figure goes home; someone else's becomes your <b>prisoner</b>.</p>
+      <p>If two players hold each other's figures they swap them back at once, one for one (if you could get back different figures, you choose which). Once per turn you may <b>buy back</b> one of your figures for <span class="pts">3 points</span> paid to whoever holds it (tap ⛓️) — you need at least 3 points. Builders, pigs, the fairy and the dragon can't be captured. Towers score nothing, and prisoners still held at the end are worth nothing.</p>`,
+    () => [[renderMini([[0, 0, 'TO/C', 2], [0, -1, 'D', 0, ['blue', 0]], [1, 0, 'B', 0], [0, -2, 'E', 2]], { px: 66, extras: [{ kind: 'tower', x: 0, y: 0, h: 2 }], marks: [[0, -1, '⚔', '#ff7b6b', 0.82, 0.18], [1, 0, '⚔', '#ff7b6b', 0.82, 0.18], [0, -2, '⚔', '#ff7b6b', 0.82, 0.18]] }), 'A tower 2 floors tall reaches 2 tiles in a straight line: Blue\'s knight can be captured.']], 'tower');
+
+  add('🧩', 'Mixing Expansions',
+    `<p>After placing your tile you do <b>one</b> thing: place a figure (meeple, big meeple, abbot, builder or pig), <b>or</b> call your abbot home, <b>or</b> move the fairy, <b>or</b> use the magic portal or the princess, <b>or</b> add a tower floor, <b>or</b> put a meeple on top of a tower.</p>
+     <p>The dragon always flies <b>before</b> anything is scored, and tower captures happen before the dragon flies.</p>
+     <p>The fairy's +1 and buying back a prisoner happen at most <b>once per turn</b> — even when the builder gives you a bonus tile.</p>`);
 
   add('📱', 'Using the App',
     `<p>• <b>Drag</b> to move around the map, <b>pinch</b> to zoom. ⌖ shows the whole map.</p>

@@ -1,6 +1,6 @@
 // Board renderer: camera, pan/pinch-zoom, tiles, meeples, overlays & effects.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawPiece, drawTower, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
+import { getTileArt, drawPiece, drawTower, drawTowerBadge, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
 import { parseKey, PLAYER_COLORS } from './game.js';
 
 const HIT = 96;
@@ -101,12 +101,12 @@ export class BoardView {
   }
 
   // Frame a set of tiles (world coordinates) in the free part of the screen.
-  frameTiles(points, maxZ = 150) {
+  frameTiles(points, maxZ = 150, minZ = 36) {
     if (!points.length) return;
     const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
     const minX = Math.min(...xs) - 0.75, maxX = Math.max(...xs) + 0.75, minY = Math.min(...ys) - 0.75, maxY = Math.max(...ys) + 0.75;
     const { vh } = this.viewport();
-    const z = Math.max(36, Math.min(maxZ, this.w / (maxX - minX), vh / (maxY - minY)));
+    const z = Math.max(minZ, Math.min(maxZ, this.w / (maxX - minX), vh / (maxY - minY)));
     this.animateCam({ x: (minX + maxX) / 2, y: (minY + maxY) / 2, z });
   }
 
@@ -175,7 +175,7 @@ export class BoardView {
         tapStart = null;
       }
       if (tapStart && !tapStart.moved && e.type === 'pointerup' && performance.now() - tapStart.t < 600) {
-        const arrow = this.vm.candidates && (this.arrows || []).find((a) => Math.hypot(a.ex - e.clientX, a.ey - e.clientY) < 24);
+        const arrow = (this.vm.candidates || this.vm.ghosts) && (this.arrows || []).find((a) => Math.hypot(a.ex - e.clientX, a.ey - e.clientY) < 24);
         if (arrow) { this.animateCam({ x: arrow.wx, y: arrow.wy, z: Math.max(this.cam.z, 70) }); return; }
         const [wx, wy] = this.toWorld(e.clientX, e.clientY);
         this.onTap?.(wx, wy, e.clientX, e.clientY);
@@ -272,7 +272,10 @@ export class BoardView {
     // feature glows
     for (const e of this.effects) if (e.type === 'glow') this.drawGlow(e, now);
     if (this.vm.highlight) this.drawHighlight(this.vm.highlight, now);
+    // The Tower: how far the tower being built reaches (a plus shape)
+    if (this.vm.reach && this.vm.ghosts) this.drawReach(this.vm.reach);
     // candidate spots
+    this.arrows = [];
     if (this.vm.candidates) this.drawCandidates(now);
     // tentative tile
     if (this.vm.tentative) this.drawTentative(now);
@@ -294,14 +297,18 @@ export class BoardView {
     // The Tower: floors and the meeple on top
     const towers = Object.entries(this.state.towers || {}).filter(([k, tw]) => board[k] && (tw.h > 0 || tw.top));
     towers.sort((a, b) => parseKey(a[0])[1] - parseKey(b[0])[1]);
+    // (a tower that may get a floor now shows its new height on the choice instead)
+    const growing = new Set((this.vm.ghosts || []).filter((g) => g.type === 'floor').map((g) => g.key));
     for (const [k, tw] of towers) {
       const [bx, by] = this.towerBase(k);
       if (bx < -z || by < -z || bx > this.w + z || by > this.h + z) continue;
-      const top = drawTower(this.ctx, bx, by, z, tw.h, { badge: tw.h >= 2 });
+      const fh = this.towerFloorH(k, growing.has(k) ? tw.h + 1 : tw.h); // (the same floors as the choice drawn over it)
+      const top = drawTower(this.ctx, bx, by, z, tw.h, { fh });
       if (tw.top && !hidden.has(k)) {
         const p = this.state.players[tw.top.p];
-        drawPiece(this.ctx, tw.top.k, bx, top - z * 0.15, z * 0.3, PLAYER_COLORS[p.color] || PLAYER_COLORS.red);
+        drawPiece(this.ctx, tw.top.k, bx, top - z * 0.13, z * 0.26, PLAYER_COLORS[p.color] || PLAYER_COLORS.red);
       }
+      if (tw.h >= 2 && !growing.has(k)) drawTowerBadge(this.ctx, bx, by, z, tw.h, fh);
     }
     for (const m of this.vm.extraMeeples || []) {
       const tile = board[m.key]; if (!tile) continue;
@@ -415,7 +422,6 @@ export class BoardView {
     const z = this.cam.z;
     const pulse = 0.5 + 0.5 * Math.sin(now / 260);
     const offscreen = [];
-    this.arrows = [];
     for (const c of this.vm.candidates) {
       const [sx, sy] = this.toScreen(c.x, c.y);
       const inset = z * 0.06;
@@ -436,16 +442,23 @@ export class BoardView {
         ctx.fillText('💡', sx, sy);
       }
     }
-    // arrows at the screen edge pointing to spots you can't see
+    this.drawEdgeArrows(offscreen, pulse);
+  }
+
+  // Arrows at the screen edge pointing to choices you can't see (the nearest few);
+  // offscreen holds [screen x, screen y, world x, world y]. Tapping one goes there.
+  drawEdgeArrows(offscreen, pulse, keepClear = []) {
+    const { ctx } = this;
     const vp = this.viewport();
     const seen = new Set();
-    for (const [px, py, wx, wy] of offscreen) {
+    offscreen.sort((a, b) => Math.hypot(a[0] - this.w / 2, a[1] - vp.cy) - Math.hypot(b[0] - this.w / 2, b[1] - vp.cy));
+    for (const [px, py, wx, wy] of offscreen.slice(0, 6)) {
       const cx = this.w / 2, cy = vp.cy;
       const ang = Math.atan2(py - cy, px - cx);
       const m = 26;
       const ex = Math.max(m, Math.min(this.w - m, px)), ey = Math.max(vp.top + m, Math.min(vp.top + vp.vh - m, py));
       const keyp = `${Math.round(ex / 40)},${Math.round(ey / 40)}`;
-      if (seen.has(keyp)) continue;
+      if (seen.has(keyp) || keepClear.some(([qx, qy]) => Math.hypot(qx - ex, qy - ey) < 34)) continue; // never on top of a choice you can see
       seen.add(keyp);
       this.arrows.push({ ex, ey, wx, wy });
       ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang);
@@ -504,14 +517,26 @@ export class BoardView {
     return [sx + (rx - 0.5) * z, sy + (ry - 0.5) * z + z * 0.06];
   }
 
+  // Height of one floor of the tower on tile k: thinner when there is little room above
+  // the foundation, so a tall tower and the figure on top stay on their own tile.
+  towerFloorH(k, h) {
+    const z = this.cam.z;
+    const [, by] = this.towerBase(k);
+    const [x, y] = parseKey(k);
+    const tileTop = this.toScreen(x, y)[1] - z / 2;
+    const room = by - tileTop - z * 0.27; // leave room for a figure on top
+    return Math.max(z * 0.032, Math.min(z * 0.075, room / (Math.min(h, 7) + 0.45)));
+  }
+
   // Where the figure on feature f of tile k stands (f 'top' = on the tower).
   figurePos(k, f, who = null) {
     const tile = this.state.board[k];
     const z = this.cam.z;
     if (f === 'top') {
       const [bx, by] = this.towerBase(k);
-      const h = Math.min(7, this.state.towers?.[k]?.h || 0);
-      return [bx, by - h * z * 0.075 - z * 0.034 - z * 0.15];
+      const h = this.state.towers?.[k]?.h || 0;
+      const fh = this.towerFloorH(k, h);
+      return [bx, by - Math.min(h, 7) * fh - fh * 0.45 - z * 0.13];
     }
     const [x, y] = parseKey(k);
     const [sx, sy] = this.toScreen(x, y);
@@ -536,7 +561,10 @@ export class BoardView {
     const type = g.type || 'follower';
     if (type === 'fairy') return this.fairyPos(g.key, g.fi);
     if (type === 'princess' || type === 'capture' || type === 'recall') return this.figurePos(g.key, g.fi, g);
-    if (type === 'floor') { const [bx, by] = this.towerBase(g.key); const h = Math.min(7, this.state.towers[g.key].h); return [bx, by - (h + 0.5) * z * 0.075]; }
+    if (type === 'floor') {
+      const [bx, by] = this.towerBase(g.key); const h = this.state.towers[g.key].h;
+      return [bx, by - (Math.min(h, 6) + 0.5) * this.towerFloorH(g.key, h + 1)];
+    }
     if (type === 'towerTop') return this.figurePos(g.key, 'top');
     const tile = this.state.board[g.key];
     const [x, y] = parseKey(g.key);
@@ -549,14 +577,18 @@ export class BoardView {
     const z = this.cam.z;
     const ctx = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(now / 230);
+    const vp = this.viewport();
+    const offscreen = [], onscreen = [];
+    const labels = [];
     for (const g of this.vm.ghosts) {
       const type = g.type || 'follower';
       const [mx, my] = this.ghostScreenPos(g);
       const [x, y] = parseKey(g.key);
-      const [sx, sy] = this.toScreen(x, y);
+      if (mx < 0 || mx > this.w || my < vp.top || my > vp.top + vp.vh) offscreen.push([mx, my, x, y]);
+      else onscreen.push([mx, my]);
       if (type === 'princess' || type === 'capture' || type === 'recall') {
         // a target ring around a figure that can be sent away (gold: your abbot coming home)
-        const r = z * (g.selected ? 0.2 : 0.17);
+        const r = Math.max(z * (g.selected ? 0.2 : 0.17), g.selected ? 14 : 12);
         const rgb = type === 'recall' ? '255,205,60' : '255,70,50';
         ctx.save();
         ctx.lineWidth = Math.max(2, z * 0.03);
@@ -575,24 +607,57 @@ export class BoardView {
         const [bx, by] = this.towerBase(g.key);
         const h = this.state.towers[g.key].h;
         if (!g.selected) { ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`; ctx.beginPath(); ctx.arc(bx, by - z * 0.08, z * 0.2, 0, 7); ctx.fill(); }
-        drawTower(ctx, bx, by, z, h + 1, { alpha: g.selected ? 1 : 0.5 + 0.3 * pulse, badge: true });
+        drawTower(ctx, bx, by, z, h + 1, { alpha: g.selected ? 1 : 0.5 + 0.3 * pulse, fh: this.towerFloorH(g.key, h + 1), badge: true });
       } else {
         const tile = this.state.board[g.key];
         const lying = type === 'follower' && TILE_TYPES[tile.t].features[g.fi]?.type === 'field';
         const kind = g.k || 'meeple';
         const k = kind === 'large' ? 1 / 1.2 : 1; // big meeple ghosts stay about the size of the others
+        if (g.act?.portal) {
+          // magic portal choices glow purple, so they don't look like figures already placed
+          ctx.save();
+          ctx.strokeStyle = `rgba(170,110,255,${0.6 + 0.35 * pulse})`; ctx.lineWidth = Math.max(2, z * 0.03);
+          ctx.setLineDash([z * 0.05, z * 0.035]);
+          ctx.beginPath(); ctx.arc(mx, my, z * 0.21, now / 600, now / 600 + 6.283); ctx.stroke();
+          ctx.restore();
+        }
         if (g.selected) {
           drawPiece(ctx, kind, mx, my - z * 0.04 * pulse, z * 0.32 * k, this.vm.ghostColor, { lying });
         } else {
-          ctx.fillStyle = `rgba(255,240,170,${0.25 + 0.25 * pulse})`;
+          ctx.fillStyle = g.act?.portal ? `rgba(220,190,255,${0.2 + 0.2 * pulse})` : `rgba(255,240,170,${0.25 + 0.25 * pulse})`;
           ctx.beginPath(); ctx.arc(mx, my, z * 0.19, 0, 7); ctx.fill();
           drawPiece(ctx, kind, mx, my, z * 0.26 * k, this.vm.ghostColor, { lying, alpha: 0.55 + 0.25 * pulse });
         }
       }
+      // the name of the choice: above a tower, below anything else (clear of the rings next door)
       if (g.label && (g.selected || this.vm.showLabels)) {
-        this.label(sx, sy + z * 0.5 + Math.max(12, z * 0.12), g.label);
+        const lh = Math.max(16, z * 0.18);
+        labels.push(type === 'floor' ? [mx, my - (Math.min(this.state.towers[g.key].h + 1, 7) + 1) * this.towerFloorH(g.key, this.state.towers[g.key].h + 1) - lh * 0.6, g.label]
+          : [mx, my + z * 0.22 + lh * 0.6, g.label]);
       }
     }
+    for (const [lx, ly, text] of labels) this.label(lx, ly, text);
+    this.drawEdgeArrows(offscreen, pulse, onscreen);
+  }
+
+  drawReach({ key: k, h }) {
+    const { ctx } = this;
+    const z = this.cam.z;
+    const [tx, ty] = parseKey(k);
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,90,60,0.13)';
+    ctx.strokeStyle = 'rgba(255,110,80,0.5)';
+    ctx.lineWidth = Math.max(1, z * 0.015);
+    for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (let i = dx || dy ? 1 : 0; i <= (dx || dy ? h : 0); i++) {
+        const x = tx + dx * i, y = ty + dy * i;
+        if (!this.state.board[`${x},${y}`]) continue;
+        const [sx, sy] = this.toScreen(x, y);
+        ctx.fillRect(sx - z / 2, sy - z / 2, z, z);
+        ctx.strokeRect(sx - z / 2 + 1, sy - z / 2 + 1, z - 2, z - 2);
+      }
+    }
+    ctx.restore();
   }
 
   drawDragonPath(path) {

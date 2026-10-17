@@ -242,19 +242,39 @@ function connect(code, hosting) {
   show('lobby');
 }
 
-export function rejoin(code) { connect(code, false); }
+// Back to the online game saved on this phone (if the room still exists).
+export async function rejoin(code) {
+  try {
+    const info = await roomInfo(code);
+    if (!info.exists) { store.del('carc-online'); toast(`Game ${code} has ended`); return false; }
+  } catch (e) { toast(e.message); return false; }
+  connect(code, false);
+  return true;
+}
 export function hasOnlineSave() { return store.get('carc-online')?.code || null; }
 
 function onMessage(msg) {
   if (!session) return;
-  if (msg.type === 'error') { toast(msg.error); return; }
+  if (msg.type === 'error') {
+    toast(msg.error);
+    if (/exist/.test(msg.error)) {
+      // the room has gone (games are forgotten after two weeks): back to the home screen
+      store.del('carc-online');
+      leaveOnline();
+      C.stopGame();
+      show('home');
+    }
+    return;
+  }
   if (msg.type === 'welcome') {
     session.room = msg.room;
     if (msg.room.phase !== 'lobby' && msg.init) {
-      C.resyncFrom(msg.init, msg.actions || []);
+      C.resyncFrom(msg.init, msg.actions || [], session);
       ensureGameSession();
       return;
     }
+    // (a game this phone was showing has ended and the host started a new one meanwhile)
+    if ($('game').classList.contains('active')) C.stopGame();
     ensureSeat();
     renderLobby();
     if (!$('lobby').classList.contains('active')) show('lobby');

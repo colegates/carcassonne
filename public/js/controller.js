@@ -4,15 +4,16 @@ import { TILE_TYPES, isRiverTile } from './tiles.js';
 import * as G from './game.js';
 import { chooseMove, suggestMove, chooseDragonMove, chooseRansom } from './ai.js';
 import { BoardView } from './board.js';
-import { getTileArt, rotUnit } from './art.js';
+import { getTileArt, getTileBack, rotUnit } from './art.js';
 import { sfx } from './sound.js';
+import { fingerprint } from './net.js';
 import { $, sleep, store, escapeHtml, show, pieceIcon, banner, toast, ask } from './ui.js';
 
 export const TYPE_LABEL = { road: 'Road', city: 'City', monastery: 'Monastery', field: 'Farm', garden: 'Garden' };
 const TYPE_ICON = { road: '🛣️', city: '🏯', monastery: '⛪', field: '🌾', garden: '🌳' };
 const PIECE_LABEL = {
   meeple: 'Meeple', large: 'Big meeple', abbot: 'Abbot', builder: 'Builder', pig: 'Pig', recall: 'Abbot home',
-  fairy: 'Fairy', princess: 'Princess', floor: 'Tower floor', 'towerTop:meeple': 'Top a tower', 'towerTop:large': 'Big on tower',
+  fairy: 'Fairy', princess: 'Princess', floor: 'Tower floor', 'towerTop:meeple': 'Close a tower', 'towerTop:large': 'Close · big',
   'portal:meeple': 'Portal', 'portal:large': 'Portal · big', 'portal:abbot': 'Portal · abbot',
 };
 const GROUP_ICON = { recall: '⤴️', princess: '👸', floor: '🏰' };
@@ -28,8 +29,11 @@ const sent = new Set(); // seq numbers of actions this phone sent (ignore their 
 let cursor = 0; // seq of the next action we expect from the server (applied + queued + in flight)
 let applied = []; // online: every action applied to our copy, in order (JSON), to check against the room's list
 const record = (action) => { if (session.online) applied.push(JSON.stringify(action)); };
+// our copy has every move the room has sent us, so a move made now is a move on the latest game
+const caughtUp = () => !pending.length && cursor === applied.length;
 let forceRebuild = false; // set when a move from the room could not be applied
 let pumping = false;
+const offlineSince = {}; // online: phone id -> when we saw it go offline
 export const hooks = { onLeave: null, onRematch: null };
 
 export const getState = () => state;
@@ -60,6 +64,7 @@ export function startGame(s, sess = { online: false }, log = []) {
   sent.clear();
   applied = log.map((a) => JSON.stringify(a));
   cursor = state.seq || 0;
+  if (session.online) noteOnline();
   $('btn-confirm').textContent = '✓';
   ui = { shown: state.players.map((p) => p.score), previewRot: 0, previewRotDeg: 0, discardSeen: state.discarded.length };
   view.setState(state);
@@ -103,13 +108,17 @@ export function renderPlayers() {
     const p = state.players[i];
     chip.querySelector('.pname').textContent = p.name;
     chip.querySelector('.pscore').textContent = ui.shown[i];
-    chip.querySelector('.pmeeples').textContent = compact ? '' : supplyText(p);
-    chip.querySelector('.pextra').textContent = compact ? `${supplyText(p)} ${extraText(p, i)}`.trim() : extraText(p, i);
+    chip.querySelector('.pmeeples').textContent = '';
+    const extra = `${supplyText(p)} ${extraText(p, i)}`.trim();
+    const ex = chip.querySelector('.pextra');
+    if (ex.dataset.html !== extra) { ex.dataset.html = extra; ex.innerHTML = extra; }
     chip.classList.toggle('active', state.phase !== 'over' && i === (state.phase === 'dragon' ? G.dragonMover(state) : state.current));
     chip.classList.toggle('me', session.online && controlOf(i) === 'local');
-    const off = online && p.kind !== 'ai' && p.owner && !online[p.owner]?.online;
+    // (while our own connection is down we can't tell who else is there)
+    const off = online && session.net?.isOpen() && p.kind !== 'ai' && p.owner && !online[p.owner]?.online;
     chip.classList.toggle('offline', !!off);
   });
+  renderSeatBack();
   // keep the player whose turn it is in view when the cards don't all fit
   const active = box.children[state.phase === 'dragon' ? G.dragonMover(state) : state.current];
   if (active && box.scrollWidth > box.clientWidth + 2) {
@@ -117,26 +126,38 @@ export function renderPlayers() {
     if (r.left < br.left || r.right > br.right) active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   }
   $('deck-count').textContent = state.deck.length + (state.drawn ? 1 : 0) + (state.setAside?.length || 0);
+  // the pile shows the back of the next tile: The River's tiles come first, with a blue back
+  const back = state.deck.length && isRiverTile(state.deck[state.deck.length - 1]) ? 'river' : 'base';
+  const stack = document.querySelector('#deck .stack');
+  if (stack.dataset.back !== back) { stack.dataset.back = back; stack.style.backgroundImage = `url(${getTileBack(back).toDataURL()})`; }
 }
 
 function supplyText(p) {
   return `♟${p.supply.meeple}`;
 }
 
-// Expansion counters under the score: goods, tower floors, prisoners, the fairy.
+// Expansion counters under the score (HTML): tower floors, prisoners (a dot in each
+// prisoner's colour), the fairy, goods, and the big meeple and abbot while still at home.
 function extraText(p, i) {
   const ex = state.options.expansions || {};
   const parts = [];
-  if (p.supply.large) parts.push('+big');
-  if (ex.abbot && p.supply.abbot) parts.push('+abbot');
+  if (ex.tower) parts.push(`🏰${p.floors}`);
+  if (p.prisoners?.length) parts.push(`⛓${p.prisoners.map((q) => `<i class="dot" style="background:${colorOf(state.players[q.p]).main}"></i>`).join('')}`);
+  if (state.fairy?.p === i) parts.push('🧚');
   if (ex.traders && p.goods) {
     const g = [['🍷', p.goods.wine], ['🌾', p.goods.grain], ['🧵', p.goods.cloth]].filter(([, n]) => n > 0);
     if (g.length) parts.push(g.map(([icon, n]) => `${icon}${n}`).join(''));
   }
-  if (ex.tower) parts.push(`🏰${p.floors}`);
-  if (p.prisoners?.length) parts.push(`⛓${p.prisoners.length}`);
-  if (state.fairy?.p === i) parts.push('🧚');
+  const figs = [p.supply.large ? 'large' : null, ex.abbot && p.supply.abbot ? 'abbot' : null].filter(Boolean);
+  if (figs.length) parts.push(figs.map((k) => miniIcon(p.color, k)).join(''));
   return parts.join(' ');
+}
+
+const miniIcons = new Map();
+function miniIcon(color, kind) {
+  const id = `${color}:${kind}`;
+  if (!miniIcons.has(id)) miniIcons.set(id, pieceIcon(color, 16, kind).toDataURL());
+  return `<img class="mini" src="${miniIcons.get(id)}" alt="+${KIND_NAME[kind]}">`;
 }
 
 function bumpChip(i) {
@@ -205,6 +226,12 @@ export async function startTurn() {
   save();
   renderPlayers();
   if (state.phase === 'over') { await endGame(); return; }
+  if (session.online && pending.length) {
+    // moves from the room are still to be shown: play them first
+    setDock({ instruction: 'Catching up…' });
+    pump();
+    return;
+  }
   if (state.discarded.length > (ui.discardSeen ?? state.discarded.length)) {
     const gone = state.discarded.slice(ui.discardSeen).map((t) => TILE_TYPES[t].name);
     toast(`Fits nowhere, put aside: ${gone.join(', ')}`);
@@ -261,14 +288,17 @@ async function dragonPhase() {
     setDock({ instruction: `🐉 Move the dragon, step <b>${step} of ${G.DRAGON_STEPS}</b>: tap a <b style="color:#c62b1d">red</b> tile. It eats every figure there!`, seat: mover });
   } else if (control === 'bot') {
     setDock({ instruction: `🐉 ${escapeHtml(p.name)} is moving the dragon (${step}/${G.DRAGON_STEPS})…`, seat: mover });
+    ui.busy = true;
     await sleep(ui.fast ? 0 : 650);
-    if (token !== turnToken || state.phase !== 'dragon') return;
+    if (token !== turnToken) return;
+    ui.busy = false;
+    // another phone runs the computer players now, or the room has moved on: catch up instead
+    if (state.phase !== 'dragon' || controlOf(mover) !== 'bot' || !caughtUp()) { catchUp(); return; }
     const k = chooseDragonMove(state, p.level);
-    if (controlOf(mover) !== 'bot') return; // another phone runs the computer players now
-    if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action: { t: 'dragon', key: k }, over: false }); }
+    sendMove({ t: 'dragon', key: k });
     await playDragonMove(k, token);
   } else {
-    setDock({ instruction: `🐉 Waiting for <b>${escapeHtml(p.name)}</b> to move the dragon (${step}/${G.DRAGON_STEPS})…`, seat: mover });
+    remoteWaiting(mover);
     pump();
   }
 }
@@ -308,17 +338,19 @@ $('btn-ransom').addEventListener('click', async () => {
   const opts = G.ransomOptions(state);
   if (!opts.length) return;
   sfx.tap();
+  const token = turnToken;
   const choice = await ask('Buy back a prisoner', `Pay <b>3 points</b> to the player holding your figure and it comes straight back to you. You may do this once per turn.`, [
     ...opts.map((o) => ({ label: `Pay ${state.players[o.from].name} for your ${KIND_NAME[o.k]}`, value: o, cls: 'red' })),
     { label: 'Not now', value: null },
   ]);
-  if (!choice || !G.ransomOptions(state).some((o) => o.from === choice.from && o.k === choice.k)) return;
+  if (!choice || token !== turnToken || ui.busy || !isLocal()) return;
+  if (!G.ransomOptions(state).some((o) => o.from === choice.from && o.k === choice.k)) return;
   const action = { t: 'ransom', from: choice.from, k: choice.k };
+  sendMove(action);
   const events = G.applyAction(state, action);
   record(action);
   // keep the ransom if the tile placement is undone
   if (ui.snapshot) { G.payRansom(ui.snapshot.state, choice.from, choice.k); ui.snapshot.state.seq = state.seq; }
-  if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
   showRansom(events[0]);
   if (state.phase === 'action') beginActionPhase();
   else setDock({ instruction: $('instruction').innerHTML, rotate: true, confirm: !!ui.tentative });
@@ -332,15 +364,47 @@ function showRansom(e) {
   renderPlayers();
 }
 
-function remoteWaiting() {
-  const p = cur();
-  const offline = session.online && p.kind !== 'ai' && p.owner && !session.room?.clients?.[p.owner]?.online;
-  const isHost = session.online && session.room?.hostId === session.net.id;
-  let txt = p.kind === 'ai' ? `${escapeHtml(p.name)} is thinking…` : `Waiting for <b>${escapeHtml(p.name)}</b>…`;
-  if (offline) txt = `<b>${escapeHtml(p.name)}</b>'s phone is offline.${isHost ? ' <a href="#" id="take-over">Let a bot play</a>' : ' Waiting…'}`;
-  setDock({ instruction: txt });
-  const link = document.getElementById('take-over');
-  if (link) link.onclick = (e) => { e.preventDefault(); sendAction({ t: 'kind', seat: state.current, kind: 'ai', level: 'medium' }, true); };
+// The dock while another phone (or a bot run on another phone) decides. When that
+// phone has been offline for a while, anyone may let a bot play the seat so the game goes on.
+const TAKEOVER_AFTER_MS = 15000;
+let waitTimer = null;
+function remoteWaiting(seat = actingSeat()) {
+  clearTimeout(waitTimer);
+  const p = state.players[seat];
+  const dragon = state.phase === 'dragon';
+  const step = dragon ? ` (${state.flight.moves + 1}/${G.DRAGON_STEPS})` : '';
+  let txt = p.kind === 'ai' ? `${dragon ? '🐉 ' : ''}${escapeHtml(p.name)} is ${dragon ? 'moving the dragon' : 'thinking'}${step}…`
+    : `${dragon ? '🐉 ' : ''}Waiting for <b>${escapeHtml(p.name)}</b>${dragon ? ' to move the dragon' : ''}${step}…`;
+  if (session.online && !session.net?.isOpen()) txt = '📡 Connection lost — reconnecting…';
+  else if (session.online && p.kind !== 'ai' && p.owner && !session.room?.clients?.[p.owner]?.online) {
+    const gone = Date.now() - (offlineSince[p.owner] ?? Date.now());
+    if (gone >= TAKEOVER_AFTER_MS) txt = `<b>${escapeHtml(p.name)}</b>'s phone is offline. <button class="inline-btn" id="take-over">🤖 Let a bot play</button>`;
+    else {
+      txt = `<b>${escapeHtml(p.name)}</b>'s phone is offline. Waiting…`;
+      waitTimer = setTimeout(() => {
+        if (state && !ui.busy && state.phase !== 'over' && actingSeat() === seat && controlOf(seat) === 'remote') remoteWaiting(seat);
+      }, TAKEOVER_AFTER_MS - gone + 200);
+    }
+  }
+  setDock({ instruction: txt, seat });
+  const btn = document.getElementById('take-over');
+  if (btn) btn.onclick = () => { sfx.tap(); btn.disabled = true; sendKind({ t: 'kind', seat, kind: 'ai', level: 'medium' }); };
+}
+
+// A seat of this phone that a bot is playing (another phone let a bot play while we were away).
+function renderSeatBack() {
+  const b = $('seat-back');
+  if (!b) return;
+  const mine = session.online && state && state.phase !== 'over'
+    ? state.players.map((p, i) => i).filter((i) => state.players[i].kind === 'ai' && state.players[i].owner === session.net.id) : [];
+  b.hidden = !mine.length;
+  if (!mine.length) return;
+  b.textContent = `🤖 A bot is playing for ${state.players[mine[0]].name} · Take back`;
+  b.onclick = () => {
+    sfx.tap();
+    for (const seat of mine) sendKind({ t: 'kind', seat, kind: 'human' });
+    b.hidden = true;
+  };
 }
 
 function humanPlacePhase() {
@@ -429,13 +493,13 @@ function rotateTentative() {
 
 view.onTap = (wx, wy, sx, sy) => {
   if (ui.skippable) { ui.fast = true; return; }
-  if (!state || state.phase === 'over' || !isLocal() || ui.busy) return;
+  if (!state || state.phase === 'over' || !isLocal() || ui.busy || pending.length) return; // (not while catching up)
   const x = Math.round(wx), y = Math.round(wy);
   if (state.phase === 'dragon') {
     const k = G.key(x, y);
     if (!ui.dragonMoves?.includes(k)) { if (state.board[k]) { sfx.error(); toast('The dragon can only fly to a red tile'); } return; }
     sfx.tap();
-    sendAction({ t: 'dragon', key: k });
+    sendMove({ t: 'dragon', key: k });
     playDragonMove(k, turnToken);
     return;
   }
@@ -476,7 +540,8 @@ view.onTap = (wx, wy, sx, sy) => {
       showGhosts();
       return;
     }
-    if (ui.selected && sameOpt(best.act, ui.selected)) { onConfirm(); return; } // second tap = place it
+    // second tap = place it (but a tower floor waits for a capture choice or ✓)
+    if (ui.selected && sameOpt(best.act, ui.selected)) { if (!ui.capturing) onConfirm(); return; }
     selectOption(best.act);
   }
 };
@@ -498,7 +563,7 @@ $('btn-hint').addEventListener('click', () => onHint());
 
 async function onConfirm() {
   if (state?.phase === 'over' && !ui.busy) { showScores(); return; }
-  if (!state || ui.busy || !isLocal()) return;
+  if (!state || ui.busy || !isLocal() || pending.length) return;
   if (state.phase === 'place' && ui.tentative) {
     const { x, y, r } = ui.tentative;
     ui.snapshot = { state: G.cloneState(state), tentative: { ...ui.tentative } };
@@ -514,9 +579,30 @@ async function onConfirm() {
     drawPreview();
     beginActionPhase();
   } else if (state.phase === 'action') {
-    const act = ui.selected && ui.selected.kind === 'floor' ? { ...ui.selected, capture: ui.capture || null } : ui.selected;
+    let act = ui.selected && ui.selected.kind === 'floor' ? { ...ui.selected, capture: ui.capture || null } : ui.selected;
+    if (act?.capture) {
+      const token = turnToken;
+      const swap = await exchangeChoice(act.capture);
+      if (token !== turnToken || state.phase !== 'action') return; // the room moved on meanwhile
+      if (swap) act = { ...act, swap };
+    }
     await completeTurn(act, ui.placedAt);
   }
+}
+
+// The Tower: capturing a figure of someone who holds more than one kind of yours. They
+// are swapped back at once, and you choose which of yours comes home.
+async function exchangeChoice(c) {
+  if (c.p === state.current) return null;
+  const order = ['large', 'abbot', 'meeple'];
+  const kinds = [...new Set(state.players[c.p].prisoners.filter((q) => q.p === state.current).map((q) => q.k))]
+    .sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  if (kinds.length < 2) return null;
+  ui.busy = true;
+  const k = await ask('Prisoner exchange', `${escapeHtml(state.players[c.p].name)} holds more than one kind of your figures and swaps one back at once. Which one do you want?`,
+    kinds.map((q) => ({ label: `My ${KIND_NAME[q]}`, value: q, cls: q === kinds[0] ? 'red' : 'parchment' })));
+  ui.busy = false;
+  return k;
 }
 
 // ---------- follower phase ----------
@@ -630,7 +716,8 @@ function showGhosts() {
   if (ui.selected?.kind === 'floor' && ui.group === 'floor') {
     const targets = G.captureTargets(state, ui.selected.key, state.towers[ui.selected.key].h + 1);
     if (targets.length) {
-      if (!wasCapturing) view.frameTiles([G.parseKey(ui.selected.key), ...targets.map((c) => G.parseKey(c.key))]);
+      // close enough to tap the rings; arrows at the screen edge point to any out of view
+      if (!wasCapturing) view.frameTiles([G.parseKey(ui.selected.key), ...targets.map((c) => G.parseKey(c.key))], 150, 50);
       ui.capturing = true;
       for (const c of targets) {
         ui.ghosts.push({ key: c.key, fi: c.fi, k: c.k, p: c.p, type: 'capture', act: c, selected: !!ui.capture && sameCapture(ui.capture, c),
@@ -638,7 +725,8 @@ function showGhosts() {
       }
     }
   }
-  view.setVM({ ghosts: ui.ghosts, ghostColor: colorOf(cur()), showLabels: false });
+  view.setVM({ ghosts: ui.ghosts, ghostColor: colorOf(cur()), showLabels: false,
+    reach: ui.capturing ? { key: ui.selected.key, h: state.towers[ui.selected.key].h + 1 } : null });
   updateActionDock();
 }
 
@@ -646,7 +734,8 @@ function showGhosts() {
 function frameGhosts() {
   const pts = (ui.ghosts || []).map((g) => G.parseKey(g.key));
   if (state.last) pts.push(G.parseKey(state.last));
-  if (pts.length) view.frameTiles(pts);
+  // with lots of portal choices keep the tiles big enough to tap; drag to see the rest
+  if (pts.length) view.frameTiles(pts, 150, pts.length > 14 ? 58 : 36);
 }
 
 function recallLabel() {
@@ -674,8 +763,8 @@ const GROUP_HELP = {
   princess: '👸 Tap a knight to send it home (you place nothing else this turn)',
   recall: '⤴️ Tap your abbot to bring him home and score his monastery or garden now',
   floor: '🏰 Tap a tower to add a floor, then you may capture one figure in range',
-  'towerTop:meeple': '🏰 Tap a tower to put your meeple on top: nobody can build it higher',
-  'towerTop:large': '🏰 Tap a tower to put your big meeple on top',
+  'towerTop:meeple': '🏰 Tap a tower to close it with your meeple on top: nobody can build it higher',
+  'towerTop:large': '🏰 Tap a tower to close it with your big meeple on top: nobody can build it higher',
 };
 
 function updateActionDock(info = '') {
@@ -685,7 +774,9 @@ function updateActionDock(info = '') {
   const volcano = state.dragon === state.last ? '🌋 No figures on the volcano tile this turn. ' : '';
   if (ui.capturing) {
     const c = ui.capture;
-    instruction = c ? `${c.p === state.current ? `Your ${KIND_NAME[c.k]} goes home` : `Capture ${escapeHtml(state.players[c.p].name)}'s ${KIND_NAME[c.k]}`}. Press ✓` : '🏰 Tap a <b style="color:#c62b1d">red</b> ring to capture that figure, or ✓ to build without capturing';
+    const reach = state.towers[ui.selected.key].h + 1;
+    instruction = c ? `${c.p === state.current ? `Your ${KIND_NAME[c.k]} goes home` : `Capture ${escapeHtml(state.players[c.p].name)}'s ${KIND_NAME[c.k]}`}. Press ✓`
+      : `🏰 Reaches ${reach} tile${reach === 1 ? '' : 's'} straight out: tap a <b style="color:#c62b1d">red</b> ring to capture, or ✓ to just build`;
   } else if (ui.selected) instruction = `${info}. Tap again or ✓`;
   else if (GROUP_HELP[ui.group]) instruction = `${GROUP_HELP[ui.group]}, or ✓ to skip`;
   else if (ui.group?.startsWith('portal')) instruction = '🌀 Magic portal: tap a ghost <b>anywhere on the map</b> to place there, or ✓ to skip';
@@ -731,7 +822,7 @@ function selectOption(opt) {
   } else if (opt && opt.kind === 'recall') {
     info = '⤴️ Your abbot comes home and scores now';
   } else if (opt && opt.kind === 'towerTop') {
-    info = '🏰 Your figure stays on top for good: the tower is closed';
+    info = '🏰 Closed: nobody can build this tower higher while your figure is on top (another tower can still capture it)';
   } else if (opt && opt.kind === 'floor') {
     info = `🏰 Tower goes up to ${state.towers[opt.key].h + 1}`;
   }
@@ -743,6 +834,12 @@ function selectOption(opt) {
 function onUndo() {
   if (!ui.snapshot || ui.busy || state.phase !== 'action') return;
   sfx.tap();
+  const snap = restoreSnapshot();
+  setTentative(snap.tentative.x, snap.tentative.y, snap.tentative.r, false);
+}
+
+// Take back the tile placed this turn (not yet confirmed).
+function restoreSnapshot() {
   const snap = ui.snapshot;
   for (const k of Object.keys(state)) delete state[k];
   Object.assign(state, snap.state);
@@ -750,7 +847,7 @@ function onUndo() {
   view.setState(state);
   view.setVM({ ghosts: null, highlight: null, lastKey: state.last });
   drawPreview();
-  setTentative(snap.tentative.x, snap.tentative.y, snap.tentative.r, false);
+  return snap;
 }
 
 function onHint() {
@@ -773,12 +870,34 @@ function onHint() {
 }
 
 // ---------- committing a turn ----------
-function sendAction(action, applyNow = false) {
+// Send a move made on this phone (by a person here or a bot run here), just before it is
+// recorded. It is a move on our copy as it stands, so it carries the number of moves
+// before it and a fingerprint of the last one: the room refuses it if its list has
+// moved on, and sends us its copy instead.
+function sendMove(action, over = false) {
+  if (!session.online) return;
+  const seq = applied.length;
+  sent.add(seq);
+  cursor = Math.max(cursor, seq + 1);
+  session.net.send({ type: 'action', seq, prev: fingerprint(seq ? applied[seq - 1] : ''), action, over });
+}
+
+// Switch a seat between person and bot. It doesn't depend on the board, so it goes
+// after every move we know of, and is played here in that order.
+function sendKind(action) {
   if (!session.online) return;
   const seq = cursor++;
+  const last = pending.length ? JSON.stringify(pending[pending.length - 1]) : applied[applied.length - 1] ?? '';
   sent.add(seq);
-  session.net.send({ type: 'action', seq, action, over: state.phase === 'over' });
-  if (applyNow) { pending.push(action); pump(); }
+  session.net.send({ type: 'action', seq, prev: fingerprint(seq ? last : ''), action, over: false });
+  pending.push(action);
+  pump();
+}
+
+// A bot here found the room had moved on while it was thinking: catch up first.
+function catchUp() {
+  if (!pending.length && cursor !== applied.length) { cursor = applied.length; session.net?.send({ type: 'resync' }); }
+  startTurn();
 }
 
 // The local player (or a bot on this phone) finishes the turn.
@@ -792,8 +911,8 @@ async function completeTurn(act, placedAt) {
   const events = G.finishTurn(state, act, noBonus);
   ui.noBonus = false; ui.bonusTold = false;
   state.seq = (state.seq || 0) + 1;
+  if (!placedAt.resumed) sendMove(action, state.phase === 'over');
   record(action);
-  if (session.online && !placedAt.resumed) sendAction(action);
   await afterTurnAnimation(events, act, k, placer, token);
 }
 
@@ -811,7 +930,14 @@ async function afterTurnAnimation(events, act, k, placer, token) {
   } else if (act && (act.kind === 'floor' || act.kind === 'towerTop')) {
     view.ensureVisible(...G.parseKey(act.key));
     sfx.place();
-    await sleep(ui.fast ? 0 : 380);
+    // say what a bot or another player did to a tower (a capture has its own banner)
+    const told = !(session.online && controlOf(placer) === 'local') && !act.capture;
+    if (told) {
+      const who = escapeHtml(state.players[placer].name);
+      const h = state.towers?.[act.key]?.h || 0;
+      banner(act.kind === 'floor' ? `🏰 ${who} builds a tower up to ${h} floor${h === 1 ? '' : 's'}` : `🏰 ${who} closes a tower with a ${KIND_NAME[act.k] || 'figure'} on top`, 1700);
+    }
+    await sleep(ui.fast ? 0 : told ? 1100 : 380);
   }
   if (token !== turnToken) return;
   renderPlayers();
@@ -853,22 +979,27 @@ async function aiTurn(token) {
   ui.busy = true;
   const p = cur();
   await sleep(350);
+  if (token !== turnToken) return;
+  // another phone runs the computer players now, or the room has moved on: catch up instead
+  const stale = () => controlOf(state.current) !== 'bot' || !caughtUp();
+  if (stale()) { ui.busy = false; catchUp(); return; }
   const ro = chooseRansom(state, p.level);
-  if (ro && token === turnToken && controlOf(state.current) === 'bot') {
+  if (ro) {
     const action = { t: 'ransom', from: ro.from, k: ro.k };
+    sendMove(action);
     const events = G.applyAction(state, action);
     record(action);
-    if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
     showRansom(events[0]);
     await sleep(900);
+    if (token !== turnToken) return;
   }
   const t0 = performance.now();
   const mv = chooseMove(state, p.level);
   await sleep(Math.max(0, 450 - (performance.now() - t0)));
   if (token !== turnToken) return;
-  if (controlOf(state.current) !== 'bot') { ui.busy = false; startTurn(); return; } // another phone took over the computer players
+  if (stale()) { ui.busy = false; catchUp(); return; }
   const action = { t: 'turn', x: mv.x, y: mv.y, r: mv.r, act: mv.act || null };
-  if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
+  sendMove(action);
   await playTurnAction(action, token);
 }
 
@@ -894,15 +1025,18 @@ async function pumpLoop() {
   while (pending.length && state && state.phase !== 'over') {
     if (ui.busy) break;
     const a = pending[0];
-    // the room's list is the truth: a move for a seat played on this phone can only
-    // arrive here if this phone's own attempt was beaten to it (it waits until we're idle)
+    // the room's list is the truth: its next move comes before a tile placed here but not
+    // yet confirmed (a seat here can only meet one if another phone let a bot play it)
+    if (state.phase === 'action') {
+      if (!ui.snapshot) throw new Error('A move arrived in the middle of a turn');
+      restoreSnapshot();
+    }
     if (a.t === 'turn') {
-      if (state.phase !== 'place') break;
-      if (controlOf(state.current) !== 'remote' && (ui.tentative || ui.placedAt)) break;
+      if (state.phase !== 'place') throw new Error(`A tile move arrived in the ${state.phase} phase`);
       pending.shift();
       await playTurnAction(a, turnToken);
     } else if (a.t === 'dragon') {
-      if (state.phase !== 'dragon') break;
+      if (state.phase !== 'dragon') throw new Error(`A dragon move arrived in the ${state.phase} phase`);
       pending.shift();
       await playDragonMove(a.key, turnToken);
     } else if (a.t === 'ransom') {
@@ -910,7 +1044,9 @@ async function pumpLoop() {
       const events = G.applyAction(state, a);
       record(a);
       showRansom(events[0]);
-      if (controlOf(state.current) === 'remote') remoteWaiting();
+      const c = controlOf(state.current);
+      if (c === 'remote') remoteWaiting();
+      else if (c === 'bot') startTurn();
     } else {
       pending.shift();
       G.applyAction(state, a);
@@ -924,16 +1060,12 @@ async function pumpLoop() {
 export function onNetMessage(msg) {
   if (!session.online) return;
   if (msg.type === 'room') {
-    const prevRunner = session.room?.botRunner;
     session.room = msg.room;
+    noteOnline();
     if (!state) return;
     renderPlayers();
     updateNetBadge();
-    if (state.phase !== 'over' && !ui.busy && !pumping) {
-      const c = controlOf(actingSeat());
-      if (c === 'bot' && prevRunner !== msg.room.botRunner) startTurn();
-      else if (c === 'remote' && state.phase !== 'dragon') remoteWaiting();
-    }
+    kick();
     return;
   }
   if (msg.type === 'action') {
@@ -948,6 +1080,7 @@ export function onNetMessage(msg) {
   }
   if (msg.type === 'resync' || msg.type === 'welcome') {
     if (!msg.init) return;
+    if (msg.room) { session.room = msg.room; noteOnline(); }
     resyncFrom(msg.init, msg.actions || []);
     return;
   }
@@ -958,10 +1091,12 @@ export function onNetMessage(msg) {
 }
 
 // Bring this phone in line with the server's list of actions.
-export function resyncFrom(init, actions) {
+export function resyncFrom(init, actions, sess = session) {
   const keys = actions.map((a) => JSON.stringify(a));
-  let agree = !forceRebuild && !!state && state.gameId === init.gameId;
+  // a new connection to the room (rejoining after a reload or after leaving): start from its copy
+  let agree = !forceRebuild && !!state && state.gameId === init.gameId && sess === session;
   forceRebuild = false;
+  session = sess;
   for (let i = 0; agree && i < Math.min(applied.length, keys.length); i++) if (applied[i] !== keys[i]) agree = false;
   if (agree && keys.length >= applied.length) {
     // the room is ahead of us (or level): play the moves we haven't seen yet
@@ -969,7 +1104,8 @@ export function resyncFrom(init, actions) {
     for (let i = applied.length; i < actions.length; i++) pending.push(actions[i]);
     cursor = actions.length;
     sent.clear();
-    if (!ui.busy) pump();
+    renderPlayers();
+    kick();
     return;
   }
   if (agree) {
@@ -978,9 +1114,9 @@ export function resyncFrom(init, actions) {
     pending.length = 0;
     for (let i = keys.length; i < applied.length; i++) {
       sent.add(i);
-      session.net.send({ type: 'action', seq: i, action: JSON.parse(applied[i]), over: i === applied.length - 1 && state.phase === 'over' });
+      session.net.send({ type: 'action', seq: i, prev: fingerprint(i ? applied[i - 1] : ''), action: JSON.parse(applied[i]), over: i === applied.length - 1 && state.phase === 'over' });
     }
-    cursor = Math.max(cursor, applied.length);
+    cursor = applied.length;
     return;
   }
   // our copy went its own way (a move the room never accepted): rebuild from the room's list
@@ -996,6 +1132,27 @@ export function resyncFrom(init, actions) {
   startGame(s, session, actions);
 }
 
+// When we are idle, get going again: play the room's moves we haven't shown yet, start
+// a computer player this phone now runs (the job moves between phones as they come and
+// go), or show who we are waiting for.
+function kick() {
+  if (!state || state.phase === 'over' || ui.busy || pumping) return;
+  if (pending.length) { pump(); return; }
+  if (state.phase === 'action') return; // a person here is in the middle of their turn
+  const c = controlOf(actingSeat());
+  if (c === 'bot') startTurn();
+  else if (c === 'remote') remoteWaiting();
+}
+
+// remember when each phone went offline (a bot may take its seat after a while)
+function noteOnline() {
+  const now = Date.now();
+  for (const [id, c] of Object.entries(session.room?.clients || {})) {
+    if (c.online) delete offlineSince[id];
+    else if (!(id in offlineSince)) offlineSince[id] = now;
+  }
+}
+
 function updateNetBadge() {
   const b = $('net-badge');
   if (!b) return;
@@ -1005,7 +1162,13 @@ function updateNetBadge() {
   b.textContent = up ? `● ${session.code}` : '○ reconnecting…';
   b.classList.toggle('down', !up);
 }
-export function netStatus() { updateNetBadge(); if (state) renderPlayers(); }
+export function netStatus() {
+  updateNetBadge();
+  if (!state) return;
+  renderPlayers();
+  // show "reconnecting…" (or the usual waiting line again) while another phone decides
+  if (session.online && state.phase !== 'over' && !ui.busy && controlOf(actingSeat()) === 'remote') remoteWaiting();
+}
 
 // ---------- scoring animations ----------
 async function animateEvents(events, placer, final = false, token = turnToken) {
@@ -1129,7 +1292,7 @@ async function animateSpecial(e, wait) {
       else if (e.exchange) banner(`🏰 ${name(e.captor)} captures ${name(c.p)}'s ${KIND_NAME[c.k]}: prisoners swapped straight back!`, 2200);
       else banner(`🏰 ${name(e.captor)} captures ${name(c.p)}'s ${KIND_NAME[c.k]}!`, 1900);
       flyHome(c, e.own || e.exchange ? c.p : e.captor);
-      await wait(900);
+      await wait(1300);
       renderPlayers();
       return true;
     }
@@ -1206,7 +1369,7 @@ async function endGame() {
       const sec = SECTION[e.kind] || e.kind;
       if (sec !== lastKind && e.kind !== 'fairy' && !ui.fast) {
         lastKind = sec;
-        const title = e.section || { road: '🛣️ Unfinished roads', city: '🏯 Unfinished cities', monastery: '⛪ Monasteries & gardens', field: '🌾 Farms', goods: '📦 Trade goods' }[e.kind];
+        const title = e.section || { road: '🛣️ Unfinished roads', city: '🏯 Unfinished cities', monastery: '⛪ Monasteries & gardens', field: '🌾 Farms', goods: '📦 Trade goods' }[sec];
         if (title) banner(title, 1500);
         await sleep(600);
       }
@@ -1248,7 +1411,9 @@ export function showScores() {
       ${cols.map(([k]) => `<td>${p.breakdown[k] || 0}</td>`).join('')}<td class="total">${p.score}</td></tr>`;
   }
   html += '</table>';
-  if (!isFinal) html += `<p style="text-align:center;margin:0 0 6px;font-size:13px">${state.deck.length + (state.drawn ? 1 : 0)} tiles left · ${state.discarded.length} put aside</p>`;
+  const legend = { road: 'roads', city: 'cities', monastery: 'monasteries & gardens', field: 'farms', goods: 'goods', fairy: 'fairy', tower: 'tower ransom' };
+  html += `<p class="score-legend">${cols.map(([k, icon]) => `${icon} ${legend[k]}`).join(' · ')}</p>`;
+  if (!isFinal) html += `<p style="text-align:center;margin:0 0 6px;font-size:13px">${state.deck.length + (state.drawn ? 1 : 0) + (state.setAside?.length || 0)} tiles left${state.discarded.length ? ` · ${state.discarded.length} thrown out (fitted nowhere)` : ''}</p>`;
   $('scores-table').innerHTML = html;
   const actions = $('scores-actions');
   actions.innerHTML = '';
@@ -1277,11 +1442,21 @@ export function leaveGame() {
   ui.busy = false;
   save();
   pending.length = 0;
+  clearTimeout(waitTimer);
+  $('seat-back').hidden = true;
   hooks.onLeave?.();
   show('home');
 }
 
-export function stopGame() { turnToken++; state = null; }
+export function stopGame() {
+  turnToken++;
+  state = null;
+  ui.busy = false;
+  pending.length = 0;
+  clearTimeout(waitTimer);
+  $('scores-modal').hidden = true;
+  $('seat-back').hidden = true;
+}
 
 export function emote(emoji) {
   if (session.online) session.net.send({ type: 'emote', emoji });
