@@ -1,6 +1,8 @@
 // Offline support: stale-while-revalidate for app files and Google Fonts.
-const CACHE = 'carcassonne-v4';
-const CORE = ['./', 'index.html', 'css/style.css', 'js/main.js', 'js/game.js', 'js/tiles.js', 'js/art.js', 'js/board.js', 'js/ai.js', 'js/rules.js', 'js/sound.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
+const CACHE = 'carcassonne-v5';
+const JS = ['main', 'game', 'tiles', 'art', 'layout', 'board', 'ai', 'rules', 'sound', 'ui', 'controller', 'lobby', 'net', 'expansions',
+  'data/river', 'data/abbot', 'data/inns', 'data/traders', 'data/dragon', 'data/tower'].map((f) => `js/${f}.js`);
+const CORE = ['./', 'index.html', 'css/style.css', ...JS, 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

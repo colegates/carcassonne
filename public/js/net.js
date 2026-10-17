@@ -77,6 +77,9 @@ export class Net {
     else { this.queue.push(msg); this.connect(); }
   }
 
+  // Forget game moves still waiting to be sent (after rebuilding from the room's copy).
+  dropActions() { this.queue = this.queue.filter((m) => m.type !== 'action'); }
+
   close() {
     this.closed = true;
     clearInterval(this.pinger);

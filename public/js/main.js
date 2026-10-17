@@ -84,12 +84,16 @@ $('btn-rejoin').addEventListener('click', () => {
   if (code) rejoin(code);
 });
 
-function openRules() {
+function openRules(section = null) {
   const body = $('rules-body');
   if (!body.childElementCount) buildRules(body);
   show('rules');
   body.parentElement.scrollTop = 0;
+  const el = section && document.getElementById(`rules-${section}`);
+  if (el) requestAnimationFrame(() => { body.parentElement.scrollTop = el.offsetTop - 8; });
 }
+// "Rules ›" next to an expansion on the setup screens
+window.addEventListener('open-rules', (e) => openRules(e.detail));
 
 // ---------------- menu ----------------
 $('btn-menu').addEventListener('click', () => {

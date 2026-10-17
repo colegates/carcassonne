@@ -280,6 +280,22 @@ function evaluate(state, k, act, me, lvl, extra = 0) {
 // towers) are only tried for the most promising placements.
 const isGlobal = (o) => o.portal || o.kind === 'fairy' || o.kind === 'floor' || o.kind === 'towerTop';
 
+// The magic portal can reach every open feature on the map: keep the ones
+// that look most promising at a glance (big cities, busy monasteries, rich fields).
+function portalShortlist(state, opts, n = 12) {
+  const portal = opts.filter((o) => o.portal);
+  if (portal.length <= n) return opts;
+  const score = (o) => {
+    const f = TILE_TYPES[state.board[o.key].t].features[o.fi];
+    if (f.type === 'monastery' || f.type === 'garden') { const [x, y] = parseKey(o.key); return 1.2 * monasteryNeighbours(state.board, x, y); }
+    const g = grp(state.board, o.key, o.fi);
+    if (g.type === 'field') return 3 * fcities(state.board, g).filter((c) => c.complete).length;
+    return (g.type === 'city' ? 2 : 1) * (g.tiles.size + g.pennants) / (1 + 0.5 * g.openEdges);
+  };
+  const keep = new Set(portal.map((o) => [o, score(o)]).sort((a, b) => b[1] - a[1]).slice(0, n).map(([o]) => o));
+  return opts.filter((o) => !o.portal || keep.has(o));
+}
+
 export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
   const lvl = LEVELS[levelName] || LEVELS.medium;
   const me = state.current;
@@ -292,10 +308,11 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
       const k = key(x, y);
       for (const r of rots) {
         withTile(state, k, t, r, () => {
+          setDirty(k); // groups around the trial tile must not be taken from the memo
           const options = [null];
           const global = [];
           if (rnd() < lvl.lookMeeple + 0.0001) {
-            for (const o of expandOptions(state, followerOptions(state))) {
+            for (const o of portalShortlist(state, expandOptions(state, followerOptions(state)))) {
               if (o.kind === 'follower' && !lvl.farmers && TILE_TYPES[state.board[o.key].t].features[o.fi].type === 'field') continue;
               if (!lvl.smart && o.kind !== 'follower' && o.kind !== 'recall') continue;
               if (o.portal && !lvl.portal) continue;

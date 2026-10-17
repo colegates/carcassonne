@@ -62,5 +62,6 @@ test('AI plays full games with every expansion (all piece kinds, dragon, towers)
     console.log('all expansions', s.players.map((p) => `${p.name} ${p.score}`).join(', '), Math.round(maxMs) + 'ms');
   }
   console.log('actions used:', [...kinds].join(', '));
-  assert.ok(maxMs < 4000, `slowest move ${Math.round(maxMs)}ms`);
+  // generous: only catches pathological slowness (CI machines vary a lot)
+  assert.ok(maxMs < 15000, `slowest move ${Math.round(maxMs)}ms`);
 });

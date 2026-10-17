@@ -78,14 +78,50 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
   return c;
 }
 
-function section(icon, title, html, figs = []) {
-  const el = document.createElement('div');
-  el.className = 'rule';
-  el.innerHTML = `<h3><span>${icon}</span>${title}</h3>${html}`;
+// Tile pictures in the galleries are painted only when scrolled into view,
+// a few per frame, so the rules open instantly.
+let observer = null;
+const paintQueue = [];
+let painting = false;
+function paintSome() {
+  const t0 = performance.now();
+  while (paintQueue.length && performance.now() - t0 < 14) {
+    const c = paintQueue.shift();
+    c.getContext('2d').drawImage(getTileArt(c.dataset.tile).canvas, 0, 0, c.width, c.height);
+  }
+  if (paintQueue.length) requestAnimationFrame(paintSome); else painting = false;
+}
+function lazyTile(id, size = 124) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  c.dataset.tile = id;
+  if (!('IntersectionObserver' in window)) { paintQueue.push(c); if (!painting) { painting = true; requestAnimationFrame(paintSome); } return c; }
+  if (!observer) {
+    observer = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        observer.unobserve(e.target);
+        paintQueue.push(e.target);
+        if (!painting) { painting = true; requestAnimationFrame(paintSome); }
+      }
+    }, { rootMargin: '300px' });
+  }
+  observer.observe(c);
+  return c;
+}
+
+function appendFigs(el, figs) {
   for (const [canvas, cap] of figs) {
     const f = document.createElement('div'); f.className = 'fig'; f.appendChild(canvas); el.appendChild(f);
     if (cap) { const c = document.createElement('div'); c.className = 'cap'; c.innerHTML = cap; el.appendChild(c); }
   }
+}
+
+function section(icon, title, html, figs = []) {
+  const el = document.createElement('div');
+  el.className = 'rule';
+  el.innerHTML = `<h3><span>${icon}</span>${title}</h3>${html}`;
+  appendFigs(el, figs);
   return el;
 }
 
@@ -152,9 +188,7 @@ export function buildRules(root) {
   for (const [id, t] of Object.entries(TILE_TYPES)) {
     if (t.exp !== 'base' || t.replaces) continue;
     const fig = document.createElement('figure');
-    const c = document.createElement('canvas'); c.width = c.height = 124;
-    c.getContext('2d').drawImage(getTileArt(id).canvas, 0, 0, 124, 124);
-    fig.appendChild(c);
+    fig.appendChild(lazyTile(id));
     fig.appendChild(document.createTextNode(`×${t.count}${id === 'D' ? ' ★' : ''}`));
     gallery.appendChild(fig);
   }
@@ -172,38 +206,44 @@ export function buildRules(root) {
     for (const [id, t] of Object.entries(TILE_TYPES)) {
       if (t.exp !== exp && !(exp === 'abbot' && t.replaces) || !filter(id, t)) continue;
       const fig = document.createElement('figure');
-      const c = document.createElement('canvas'); c.width = c.height = 124;
-      c.getContext('2d').drawImage(getTileArt(id).canvas, 0, 0, 124, 124);
-      fig.appendChild(c);
+      fig.appendChild(lazyTile(id));
       fig.appendChild(document.createTextNode(`×${t.count}`));
       strip.appendChild(fig);
     }
     return strip;
   };
+  // the expansion pictures are drawn just after the page opens, one section at a time
+  const later = [];
   const addExp = (icon, title, html, figs, exp) => {
-    const el = section(icon, title, html, figs);
-    if (exp) el.appendChild(expGallery(exp));
+    const el = section(icon, title, html);
+    el.id = `rules-${exp}`;
     root.appendChild(el);
+    later.push(() => {
+      appendFigs(el, figs());
+      if (exp) el.appendChild(expGallery(exp));
+    });
   };
+  const runLater = () => { const f = later.shift(); if (!f) return; f(); setTimeout(runLater, 30); };
+  setTimeout(runLater, 60);
   const riverTiles = [[0, 0, 'RI/s', 1], [0, 1, 'RI.1/IFI', 1], [0, 2, 'RI.1/IIG', 2], [1, 2, 'RI.1/LIRI', 0], [2, 2, 'RI.1/CcII', 1], [2, 3, 'RI.1/RIrI', 0], [2, 4, 'RI.1/II', 1], [1, 4, 'RI.1/CICI', 0], [0, 4, 'RI.1/RrII', 3], [0, 5, 'RI.1/IFI', 1], [0, 6, 'RI.1/CIRI', 1], [0, 7, 'RI.1/I.e', 1]];
 
   addExp('🌊', 'The River',
     `<p>The game starts with a river instead of the normal start tile. The <b>spring</b> goes in the middle; then everyone plays <b>river tiles</b> first, one per turn, until the <b>lake</b> (always last) ends the river. After that the normal tiles follow.</p>
      <p>Each river tile must <b>make the river longer</b>, and all its other edges must match too. Two bends in a row may not turn the <b>same way</b> (that would be a U-turn).</p>
      <p>You may put a follower on the river tile as usual — but <b>never in the water</b>. The river splits the meadows into separate fields.</p>`,
-    [[renderMini(riverTiles, { px: 44 }), 'A whole river from spring to lake.']], 'river');
+    () => [[renderMini(riverTiles, { px: 44 }), 'A whole river from spring to lake.']], 'river');
 
-  addExp('🧑‍🌾', 'The Abbot',
+  addExp('⛪', 'The Abbot',
     `<p>Everyone gets an <b>abbot</b>. Some tiles show a colourful <b>garden</b>. Instead of a meeple you may put your abbot on the new tile's <b>garden or monastery</b> (only there — gardens are for abbots only).</p>
      <p>A garden scores like a monastery: <span class="pts">9 points</span> when all 8 tiles around it are filled.</p>
      <p><b>Abbot's trick:</b> instead of placing a figure, call your abbot home from an unfinished garden or monastery and score <span class="pts">1 + 1 per neighbour</span> straight away.</p>`,
-    [[renderMini([[0, 0, 'BA/CG', 0, ['red', 2, 'abbot']], [1, 0, 'B', 0, ['blue', 0, 'abbot']]], { px: 80 }), 'Abbots on a garden and on a monastery.']], 'abbot');
+    () => [[renderMini([[0, 0, 'BA/CG', 0, ['red', 2, 'abbot']], [1, 0, 'B', 0, ['blue', 0, 'abbot']]], { px: 80 }), 'Abbots on a garden and on a monastery.']], 'abbot');
 
   addExp('🍺', 'Inns &amp; Cathedrals',
     `<p><b>Inns:</b> a finished road with an inn scores <span class="pts">2 per tile</span>, but <b>0</b> if it is unfinished at the end.</p>
      <p><b>Cathedrals:</b> a finished city with a cathedral scores <span class="pts">3 per tile and shield</span>, but <b>0</b> if unfinished at the end.</p>
      <p><b>Big meeple:</b> everyone gets one. It counts as <b>two</b> meeples when deciding who has the most in a road, city or field (it does not double the points). Pink figures let a <b>6th player</b> join.</p>`,
-    [[renderMini([[-1, 0, 'X', 0], [0, 0, 'IC/RFr.iG', 0, ['yellow', 0]], [1, 0, 'L', 0]], { px: 76, highlight: [0, 0, 0] }), 'A finished road with an inn: 3 tiles × 2 = <b>6 points</b>.'],
+    () => [[renderMini([[-1, 0, 'X', 0], [0, 0, 'IC/RFr.iG', 0, ['yellow', 0]], [1, 0, 'L', 0]], { px: 76, highlight: [0, 0, 0] }), 'A finished road with an inn: 3 tiles × 2 = <b>6 points</b>.'],
      [renderMini([[0, 0, 'IC/Cccc.c', 0, ['blue', 0, 'large']], [0, -1, 'E', 2], [1, 0, 'E', 3], [0, 1, 'E', 0], [-1, 0, 'E', 1]], { px: 60, highlight: [0, 0, 0] }), 'A finished cathedral city: 5 tiles × 3 = <b>15 points</b> for Blue\'s big meeple.']], 'inns');
 
   addExp('🔨', 'Traders &amp; Builders',
@@ -211,7 +251,7 @@ export function buildRules(root) {
      <p><b>Builder:</b> put it on the new tile's road or city where you already have a meeple. Each time you later extend that road or city, you play a <b>second tile</b> straight away (once per turn).</p>
      <p><b>Pig:</b> put it in a field where you have a farmer. If you win that field at the end, each finished city gives <span class="pts">4</span> instead of 3.</p>
      <p>Builder and pig go home when your last meeple in their road, city or field leaves.</p>`,
-    [[renderMini([[0, 0, 'TB/RCc.g', 0, ['green', 0]], [0, -1, 'E', 2], [-1, 0, 'E', 1]], { px: 76, highlight: [0, 0, 0] }), 'Finishing this city earns its 🌾 grain token.'],
+    () => [[renderMini([[0, 0, 'TB/RCc.g', 0, ['green', 0]], [0, -1, 'E', 2], [-1, 0, 'E', 1]], { px: 76, highlight: [0, 0, 0] }), 'Finishing this city earns its 🌾 grain token.'],
      [renderMini([[0, 0, 'U', 1, ['red', 0]], [1, 0, 'U', 1, ['red', 0, 'builder']], [2, 0, 'V', 1]], { px: 70, highlight: [0, 0, 0] }), 'Red\'s builder waits on the road: extend it to play two tiles in one turn.']], 'traders');
 
   addExp('🐉', 'The Princess &amp; the Dragon',
@@ -221,7 +261,7 @@ export function buildRules(root) {
      <p>👸 <b>Princess:</b> if her city joins a city with knights, you may send <b>one</b> knight home — but then you place nothing else this turn.</p>
      <p>🌀 <b>Magic portal:</b> put your follower on <b>any</b> empty, unfinished road, city, field or monastery on the map (not with builder or pig).</p>
      <p>🧚 <b>Fairy:</b> instead of placing, move her next to one of your followers. She keeps the dragon off her tile, gives <span class="pts">+1</span> at the start of each of your turns, and <span class="pts">+3</span> when that follower's feature scores.</p>`,
-    [[renderMini([[0, 0, 'DG/RFr.v', 0], [1, 0, 'U', 1, ['blue', 0]], [2, 0, 'DG/Rr.d', 2], [2, 1, 'U', 0], [-1, 0, 'U', 1, ['red', 0]]], { px: 64, extras: [{ kind: 'dragon', x: 0, y: 0 }], marks: [[1, 0, '1', '#ff7b6b'], [2, 0, '2', '#ff7b6b'], [2, 1, '3', '#ff7b6b']] }), 'The dragon leaves the volcano and flies 1 → 2 → 3, eating Blue\'s meeple on the way.'],
+    () => [[renderMini([[0, 0, 'DG/RFr.v', 0], [1, 0, 'U', 1, ['blue', 0]], [2, 0, 'DG/Rr.d', 0], [2, 1, 'U', 0], [-1, 0, 'U', 1, ['red', 0]]], { px: 64, extras: [{ kind: 'dragon', x: 0, y: 0 }], marks: [[1, 0, '1', '#ff7b6b'], [2, 0, '2', '#ff7b6b'], [2, 1, '3', '#ff7b6b']] }), 'The dragon leaves the volcano and flies 1 → 2 → 3, eating Blue\'s meeple on the way.'],
      [renderMini([[0, 0, 'E', 0, ['green', 0]], [0, -1, 'DG/Ccc.p', 2]], { px: 76, extras: [{ kind: 'fairy', x: 0, y: 0, u: 0.72, v: 0.3 }] }), 'The fairy stands by Green\'s knight: +1 every turn and safe from the dragon.']], 'dragon');
 
   addExp('🏰', 'The Tower',
@@ -229,7 +269,7 @@ export function buildRules(root) {
      <p>After placing your tile, do <b>one</b> of these: place a follower normally, <b>or</b> add a floor to <b>any</b> foundation or open tower, <b>or</b> put a meeple on top of any tower to close it for good.</p>
      <p>Each time you add a floor you may <b>capture one figure</b> on the tower's tile or up to as many tiles away as the tower is tall — straight up, down, left or right (gaps count, no diagonals). Your own figure goes home; someone else's becomes your <b>prisoner</b>.</p>
      <p>If two players hold each other's figures they swap them back at once. Once per turn you may <b>buy back</b> a prisoner for <span class="pts">3 points</span> paid to its holder (tap ⛓️). Builders, pigs, the fairy and the dragon can't be captured. Towers score nothing.</p>`,
-    [[renderMini([[0, 0, 'TO/C', 2], [0, -1, 'D', 0, ['blue', 0]], [1, 0, 'V', 0], [0, -2, 'U', 0]], { px: 66, extras: [{ kind: 'tower', x: 0, y: 0, h: 2 }], marks: [[0, -1, '⚔', '#ff7b6b'], [1, 0, '⚔', '#ff7b6b'], [0, -2, '⚔', '#ff7b6b']] }), 'A tower 2 floors tall reaches 2 tiles in a straight line: Blue\'s knight can be captured.']], 'tower');
+    () => [[renderMini([[0, 0, 'TO/C', 2], [0, -1, 'D', 0, ['blue', 0]], [1, 0, 'B', 0], [0, -2, 'E', 2]], { px: 66, extras: [{ kind: 'tower', x: 0, y: 0, h: 2 }], marks: [[0, -1, '⚔', '#ff7b6b'], [1, 0, '⚔', '#ff7b6b'], [0, -2, '⚔', '#ff7b6b']] }), 'A tower 2 floors tall reaches 2 tiles in a straight line: Blue\'s knight can be captured.']], 'tower');
 
   add('📱', 'Using the App',
     `<p>• <b>Drag</b> to move around the map, <b>pinch</b> to zoom. ⌖ shows the whole map.</p>

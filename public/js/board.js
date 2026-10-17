@@ -97,6 +97,16 @@ export class BoardView {
     if (animate) this.animateCam(target); else { this.cam = target; this.dirty = true; }
   }
 
+  // Frame a set of tiles (world coordinates) in the free part of the screen.
+  frame(points, maxZ = 150) {
+    if (!points.length) return;
+    const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+    const minX = Math.min(...xs) - 0.75, maxX = Math.max(...xs) + 0.75, minY = Math.min(...ys) - 0.75, maxY = Math.max(...ys) + 0.75;
+    const { vh } = this.viewport();
+    const z = Math.max(36, Math.min(maxZ, this.w / (maxX - minX), vh / (maxY - minY)));
+    this.animateCam({ x: (minX + maxX) / 2, y: (minY + maxY) / 2, z });
+  }
+
   // Make sure a world point is comfortably visible
   ensureVisible(x, y, minZ = 0) {
     const [sx, sy] = this.toScreen(x, y);
@@ -501,14 +511,14 @@ export class BoardView {
       return [sx - z * 0.22, sy + z * 0.22];
     }
     const [mx, my] = this.figurePos(k, f);
-    return [mx + z * 0.16, my + z * 0.04];
+    return [mx + z * 0.2, my + z * 0.05];
   }
 
   ghostScreenPos(g) {
     const z = this.cam.z;
     const type = g.type || 'follower';
     if (type === 'fairy') return this.fairyPos(g.key, g.fi);
-    if (type === 'princess' || type === 'capture') return this.figurePos(g.key, g.fi, g);
+    if (type === 'princess' || type === 'capture' || type === 'recall') return this.figurePos(g.key, g.fi, g);
     if (type === 'floor') { const [bx, by] = this.towerBase(g.key); const h = Math.min(7, this.state.towers[g.key].h); return [bx, by - (h + 0.5) * z * 0.075]; }
     if (type === 'towerTop') return this.figurePos(g.key, 'top');
     const tile = this.state.board[g.key];
@@ -527,13 +537,14 @@ export class BoardView {
       const [mx, my] = this.ghostScreenPos(g);
       const [x, y] = parseKey(g.key);
       const [sx, sy] = this.toScreen(x, y);
-      if (type === 'princess' || type === 'capture') {
-        // a target ring around a figure that can be sent away
+      if (type === 'princess' || type === 'capture' || type === 'recall') {
+        // a target ring around a figure that can be sent away (gold: your abbot coming home)
         const r = z * (g.selected ? 0.2 : 0.17);
+        const rgb = type === 'recall' ? '255,205,60' : '255,70,50';
         ctx.save();
         ctx.lineWidth = Math.max(2, z * 0.03);
-        ctx.strokeStyle = g.selected ? '#ff3b2f' : `rgba(255,70,50,${0.55 + 0.4 * pulse})`;
-        ctx.fillStyle = g.selected ? 'rgba(255,60,40,0.3)' : 'rgba(255,60,40,0.12)';
+        ctx.strokeStyle = g.selected ? `rgb(${rgb})` : `rgba(${rgb},${0.55 + 0.4 * pulse})`;
+        ctx.fillStyle = g.selected ? `rgba(${rgb},0.3)` : `rgba(${rgb},0.12)`;
         ctx.beginPath(); ctx.arc(mx, my, r, 0, 7); ctx.fill(); ctx.stroke();
         for (let a = 0; a < 4; a++) {
           const ang = (a * Math.PI) / 2;

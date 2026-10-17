@@ -59,8 +59,13 @@ export function renderExpansionToggles(box, values, onChange, readOnly = false) 
     const row = document.createElement('label');
     row.className = 'toggle exp';
     row.innerHTML = `<input type="checkbox" ${values[e.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}><span class="slider"></span>
-      <span class="tlabel"><b>${e.icon} ${escapeHtml(e.name)}</b><small>${escapeHtml(e.blurb)}</small></span>`;
+      <span class="tlabel"><b>${e.icon} ${escapeHtml(e.name)}</b><small>${escapeHtml(e.blurb)} <button type="button" class="exp-info">Rules ›</button></small></span>`;
     row.querySelector('input').addEventListener('change', (ev) => { sfx.tap(); onChange(e.id, ev.target.checked); });
+    row.querySelector('.exp-info').addEventListener('click', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      sfx.tap();
+      window.dispatchEvent(new CustomEvent('open-rules', { detail: e.id }));
+    });
     box.appendChild(row);
   }
 }
@@ -361,10 +366,11 @@ function renderLobby() {
   if (isHost() && (!r.options || !Object.keys(r.options).length)) session.net.send({ type: 'lobby', op: 'options', options: opts });
   const hostName = r.clients[r.hostId]?.name || 'the host';
   $('lobby-start').hidden = !isHost();
-  $('lobby-start').disabled = r.seats.length < 2;
+  $('lobby-start').disabled = r.seats.length < 2 || r.seats.length > max;
   $('lobby-wait').hidden = isHost();
   $('lobby-wait').textContent = `Waiting for ${hostName} to start the game…`;
-  $('lobby-hint').textContent = r.seats.length < 2 ? 'Share the code, or add a computer player, to start.' : '';
+  $('lobby-hint').textContent = r.seats.length < 2 ? 'Share the code, or add a computer player, to start.'
+    : r.seats.length > max ? `${r.seats.length} players need Inns & Cathedrals (it adds the 6th colour).` : '';
 }
 
 $('lobby-farmers').addEventListener('change', (e) => sendOpt({ farmers: e.target.checked }));
@@ -396,6 +402,7 @@ $('lobby-start').addEventListener('click', () => {
   sfx.tap();
   const r = session.room;
   if (!r || r.seats.length < 2) return;
+  if (r.seats.length > maxPlayers(activeExpansionsFrom(r.options?.expansions))) { toast('6 players need Inns & Cathedrals'); return; }
   const opts = { ...gameOptions(), ...r.options };
   opts.expansions = activeExpansionsFrom(opts.expansions);
   const init = G.newGame(r.seats.map((s) => ({ name: s.name, color: s.color, kind: s.kind, level: s.level })), opts);

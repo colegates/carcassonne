@@ -26,6 +26,8 @@ let turnToken = 0;
 const pending = [];
 const sent = new Set(); // seq numbers of actions this phone sent (ignore their echo)
 let cursor = 0; // seq of the next action we expect from the server (applied + queued + in flight)
+let applied = []; // online: every action applied to our copy, in order (JSON), to check against the room's list
+const record = (action) => { if (session.online) applied.push(JSON.stringify(action)); };
 let pumping = false;
 export const hooks = { onLeave: null, onRematch: null };
 
@@ -50,11 +52,12 @@ const actingSeat = () => (state.phase === 'dragon' ? G.dragonMover(state) : stat
 const isLocal = () => controlOf(actingSeat()) === 'local';
 const localSeats = () => state.players.map((p, i) => i).filter((i) => controlOf(i) === 'local');
 
-export function startGame(s, sess = { online: false }) {
+export function startGame(s, sess = { online: false }, log = []) {
   state = G.migrate(s);
   session = sess;
   pending.length = 0;
   sent.clear();
+  applied = log.map((a) => JSON.stringify(a));
   cursor = state.seq || 0;
   $('btn-confirm').textContent = '✓';
   ui = { shown: state.players.map((p) => p.score), previewRot: 0, previewRotDeg: 0, discardSeen: state.discarded.length };
@@ -86,7 +89,7 @@ export function renderPlayers() {
     state.players.forEach((p) => {
       const chip = document.createElement('div'); chip.className = 'pchip';
       chip.append(pieceIcon(p.color, 30));
-      chip.insertAdjacentHTML('beforeend', '<div class="pname"></div><div class="pscore"></div><div class="pmeeples"></div>');
+      chip.insertAdjacentHTML('beforeend', '<div class="pname"></div><div class="pscore"></div><div class="pmeeples"></div><div class="pextra"></div>');
       chip.addEventListener('click', () => showScores());
       box.appendChild(chip);
     });
@@ -97,6 +100,7 @@ export function renderPlayers() {
     chip.querySelector('.pname').textContent = p.name;
     chip.querySelector('.pscore').textContent = ui.shown[i];
     chip.querySelector('.pmeeples').textContent = supplyText(p);
+    chip.querySelector('.pextra').textContent = extraText(p, i);
     chip.classList.toggle('active', state.phase !== 'over' && i === state.current);
     chip.classList.toggle('me', session.online && controlOf(i) === 'local');
     const off = online && p.kind !== 'ai' && p.owner && !online[p.owner]?.online;
@@ -106,11 +110,21 @@ export function renderPlayers() {
 }
 
 function supplyText(p) {
-  let t = `♟${p.supply.meeple}`;
-  if (p.supply.large) t += '+';
-  if (state.options.expansions?.tower) t += ` 🏰${p.floors}`;
-  if (p.prisoners?.length) t += ` ⛓${p.prisoners.length}`;
-  return t;
+  return `♟${p.supply.meeple}${p.supply.large ? '+' : ''}`;
+}
+
+// Expansion counters under the score: goods, tower floors, prisoners, the fairy.
+function extraText(p, i) {
+  const ex = state.options.expansions || {};
+  const parts = [];
+  if (ex.traders && p.goods) {
+    const g = [['🍷', p.goods.wine], ['🌾', p.goods.grain], ['🧵', p.goods.cloth]].filter(([, n]) => n > 0);
+    if (g.length) parts.push(g.map(([icon, n]) => `${icon}${n}`).join(''));
+  }
+  if (ex.tower) parts.push(`🏰${p.floors}`);
+  if (p.prisoners?.length) parts.push(`⛓${p.prisoners.length}`);
+  if (state.fairy?.p === i) parts.push('🧚');
+  return parts.join(' ');
 }
 
 function bumpChip(i) {
@@ -233,6 +247,7 @@ async function dragonPhase() {
     await sleep(ui.fast ? 0 : 650);
     if (token !== turnToken || state.phase !== 'dragon') return;
     const k = chooseDragonMove(state, p.level);
+    if (controlOf(mover) !== 'bot') return; // another phone runs the computer players now
     if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action: { t: 'dragon', key: k }, over: false }); }
     await playDragonMove(k, token);
   } else {
@@ -249,6 +264,7 @@ async function playDragonMove(k, token) {
   view.setVM({ dragonMoves: null, dragonPath: path });
   const events = G.moveDragon(state, k);
   state.seq = (state.seq || 0) + 1;
+  record({ t: 'dragon', key: k });
   view.setVM({ dragonHop: performance.now() });
   sfx.place();
   await sleep(ui.fast ? 0 : 430);
@@ -282,6 +298,7 @@ $('btn-ransom').addEventListener('click', async () => {
   if (!choice || !G.ransomOptions(state).some((o) => o.from === choice.from && o.k === choice.k)) return;
   const action = { t: 'ransom', from: choice.from, k: choice.k };
   const events = G.applyAction(state, action);
+  record(action);
   // keep the ransom if the tile placement is undone
   if (ui.snapshot) { G.payRansom(ui.snapshot.state, choice.from, choice.k); ui.snapshot.state.seq = state.seq; }
   if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
@@ -537,10 +554,12 @@ function showGhosts() {
     type: ghostType(o), act: o, label: ghostLabel(o), selected: sameOpt(o, ui.selected),
   }));
   // The Tower: after choosing a floor, the figures it can capture
+  const wasCapturing = ui.capturing;
   ui.capturing = false;
   if (ui.selected?.kind === 'floor' && ui.group === 'floor') {
     const targets = G.captureTargets(state, ui.selected.key, state.towers[ui.selected.key].h + 1);
     if (targets.length) {
+      if (!wasCapturing) view.frame([G.parseKey(ui.selected.key), ...targets.map((c) => G.parseKey(c.key))]);
       ui.capturing = true;
       for (const c of targets) {
         ui.ghosts.push({ key: c.key, fi: c.fi, k: c.k, p: c.p, type: 'capture', act: c, selected: !!ui.capture && sameCapture(ui.capture, c),
@@ -552,12 +571,19 @@ function showGhosts() {
   updateActionDock();
 }
 
+// Bring the choices on screen (the portal, fairy and towers can be anywhere).
+function frameGhosts() {
+  const pts = (ui.ghosts || []).map((g) => G.parseKey(g.key));
+  if (state.last) pts.push(G.parseKey(state.last));
+  if (pts.length) view.frame(pts);
+}
+
 function pickerFor() {
   const groups = [...new Set(ui.options.map(optGroup))].sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
   return {
     active: ui.group,
     items: groups.map((g) => ({ id: g, kind: groupKind(g), icon: GROUP_ICON[g] || (g.startsWith('portal') ? '🌀' : g.startsWith('towerTop') ? '🏰' : ''), label: PIECE_LABEL[g] || g })),
-    onPick: (g) => { ui.group = g; ui.selected = null; ui.capture = null; view.setVM({ highlight: null }); showGhosts(); },
+    onPick: (g) => { ui.group = g; ui.selected = null; ui.capture = null; view.setVM({ highlight: null }); showGhosts(); frameGhosts(); },
   };
 }
 
@@ -682,6 +708,7 @@ async function completeTurn(act, placedAt) {
   const events = G.finishTurn(state, act, noBonus);
   ui.noBonus = false; ui.bonusTold = false;
   state.seq = (state.seq || 0) + 1;
+  record(action);
   if (session.online && !placedAt.resumed) sendAction(action);
   await afterTurnAnimation(events, act, k, placer, token);
 }
@@ -731,6 +758,7 @@ async function playTurnAction(a, token) {
   const k = state.last;
   const events = G.finishTurn(state, a.act || null, !!a.noBonus);
   state.seq = (state.seq || 0) + 1;
+  record(a);
   await afterTurnAnimation(events, a.act, k, placer, token);
 }
 
@@ -739,9 +767,10 @@ async function aiTurn(token) {
   const p = cur();
   await sleep(350);
   const ro = chooseRansom(state, p.level);
-  if (ro && token === turnToken) {
+  if (ro && token === turnToken && controlOf(state.current) === 'bot') {
     const action = { t: 'ransom', from: ro.from, k: ro.k };
     const events = G.applyAction(state, action);
+    record(action);
     if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
     showRansom(events[0]);
     await sleep(900);
@@ -750,6 +779,7 @@ async function aiTurn(token) {
   const mv = chooseMove(state, p.level);
   await sleep(Math.max(0, 450 - (performance.now() - t0)));
   if (token !== turnToken) return;
+  if (controlOf(state.current) !== 'bot') { ui.busy = false; startTurn(); return; } // another phone took over the computer players
   const action = { t: 'turn', x: mv.x, y: mv.y, r: mv.r, act: mv.act || null };
   if (session.online) { const seq = cursor++; sent.add(seq); session.net.send({ type: 'action', seq, action, over: false }); }
   await playTurnAction(action, token);
@@ -763,22 +793,27 @@ async function pump() {
     while (pending.length && state && state.phase !== 'over') {
       if (ui.busy) break;
       const a = pending[0];
+      // the room's list is the truth: a move for a seat played on this phone can only
+      // arrive here if this phone's own attempt was beaten to it (it waits until we're idle)
       if (a.t === 'turn') {
-        if (state.phase !== 'place' || controlOf(state.current) !== 'remote') break; // it's not their turn on this phone
+        if (state.phase !== 'place') break;
+        if (controlOf(state.current) !== 'remote' && (ui.tentative || ui.placedAt)) break;
         pending.shift();
         await playTurnAction(a, turnToken);
       } else if (a.t === 'dragon') {
-        if (state.phase !== 'dragon' || controlOf(G.dragonMover(state)) !== 'remote') break;
+        if (state.phase !== 'dragon') break;
         pending.shift();
         await playDragonMove(a.key, turnToken);
       } else if (a.t === 'ransom') {
         pending.shift();
         const events = G.applyAction(state, a);
+        record(a);
         showRansom(events[0]);
         if (controlOf(state.current) === 'remote') remoteWaiting();
       } else {
         pending.shift();
         G.applyAction(state, a);
+        record(a);
         renderPlayers();
         startTurn();
       }
@@ -797,9 +832,9 @@ export function onNetMessage(msg) {
     renderPlayers();
     updateNetBadge();
     if (state.phase !== 'over' && !ui.busy && !pumping) {
-      const c = controlOf(state.current);
+      const c = controlOf(actingSeat());
       if (c === 'bot' && prevRunner !== msg.room.botRunner) startTurn();
-      else if (c === 'remote') remoteWaiting();
+      else if (c === 'remote' && state.phase !== 'dragon') remoteWaiting();
     }
     return;
   }
@@ -826,15 +861,22 @@ export function onNetMessage(msg) {
 
 // Bring this phone in line with the server's list of actions.
 export function resyncFrom(init, actions) {
-  if (state && state.gameId === init.gameId && state.seq <= actions.length && cursor <= actions.length) {
-    for (let i = cursor; i < actions.length; i++) pending.push(actions[i]);
+  const keys = actions.map((a) => JSON.stringify(a));
+  const prefix = state && state.gameId === init.gameId && applied.length <= keys.length && applied.every((a, i) => a === keys[i]);
+  if (prefix) {
+    // our copy is behind but on track: queue whatever we have not applied yet
+    pending.length = 0;
+    for (let i = applied.length; i < actions.length; i++) pending.push(actions[i]);
     cursor = actions.length;
+    sent.clear();
     if (!ui.busy) pump();
     return;
   }
+  // our copy went its own way (a move the room never accepted): rebuild from the room's list
+  session.net?.dropActions?.();
   const s = G.cloneState(init);
   for (const a of actions) G.applyAction(s, a);
-  startGame(s, session);
+  startGame(s, session, actions);
 }
 
 function updateNetBadge() {
