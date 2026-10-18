@@ -35,7 +35,7 @@ export const BAZAAR_MAX_BID = 99;
 const FOLLOWER_KINDS = ['meeple', 'large', 'abbot'];
 
 export const key = (x, y) => `${x},${y}`;
-export const parseKey = (k) => k.split(',').map(Number);
+export const parseKey = (k) => { const i = k.indexOf(','); return [+k.slice(0, i), +k.slice(i + 1)]; };
 export const hasExp = (state, id) => !!state.options?.expansions?.[id];
 export const bcbOn = (state, part) => hasExp(state, 'bridges') && state.options.bcb?.[part] !== false;
 const auctionOn = (state) => state.options.bcb?.auction !== false;
@@ -359,7 +359,7 @@ export function getGroup(board, k, fi) {
   while (stack.length) {
     const [ck, cf] = stack.pop();
     const tile = board[ck];
-    const feat = featuresOf(tile)[cf];
+    const feat = typeOf(tile).features[cf];
     nodes.push([ck, cf]);
     tiles.add(ck);
     if (feat.pennants) pennants += feat.pennants;
@@ -368,16 +368,18 @@ export function getGroup(board, k, fi) {
     if (feat.goods) goods[feat.goods] = (goods[feat.goods] || 0) + 1;
     for (const pc of tile.pieces) if (pc.f === cf) meeples.push({ key: ck, p: pc.p, f: cf, k: pc.k, w: weightOf(pc.k) });
     const [x, y] = parseKey(ck);
-    for (const wp of worldPorts(tile, cf)) {
-      const s = Math.floor(wp / 3);
-      const [dx, dy] = SIDE_DELTA[s];
+    // (the hot loop of the AI: ports rotated inline, no temporary arrays)
+    const rot = 3 * tile.r;
+    for (const lp of feat.ports) {
+      const wp = (lp + rot) % 12;
+      const [dx, dy] = SIDE_DELTA[(wp / 3) | 0];
       const nk = key(x + dx, y + dy);
       const nb = board[nk];
       if (!nb) {
         if (wp % 3 === 1) openEdges++;
         continue;
       }
-      const nf = featureAtPort(nb, oppositePort(wp));
+      const nf = typeOf(nb).portFeature[(oppositePort(wp) - 3 * nb.r + 12) % 12];
       const id = `${nk}#${nf}`;
       if (!seen.has(id)) { seen.add(id); stack.push([nk, nf]); }
     }

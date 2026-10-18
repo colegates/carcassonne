@@ -5,6 +5,7 @@ import {
   key, parseKey, validPlacements, getGroup, owners, groupPoints, monasteryNeighbours,
   scoreAfterPlacement, fieldCities, followerOptions, captureTargets, dragonMoves, dragonMover,
   ransomOptions, hasExp, DRAGON_STEPS, PIECES, featuresOf,
+  canDiscard, castleArea, castleAt, drawableCount, bazaarOptions, actingSeat, BAZAAR_MAX_BID,
 } from './game.js';
 
 const LEVELS = {
@@ -40,6 +41,12 @@ function grp(board, k, fi) {
   return g;
 }
 function fcities(board, g) {
+  // (a big field borders many cities: reuse the list while neither changes around the trial tile)
+  const dirty = (grpTiles) => [...grpTiles].some((t) => memo.dirty.has(t));
+  if (memo) {
+    const hit = memo.fc.get(g);
+    if (hit && !hit.some((c) => dirty(c.tiles))) return hit;
+  }
   const out = new Map();
   for (const [k, fi] of g.nodes) {
     for (const ci of featuresOf(board[k])[fi].cities || []) {
@@ -47,7 +54,9 @@ function fcities(board, g) {
       if (!out.has(cg.id)) out.set(cg.id, cg);
     }
   }
-  return [...out.values()];
+  const list = [...out.values()];
+  if (memo && !dirty(g.tiles) && !list.some((c) => dirty(c.tiles))) memo.fc.set(g, list);
+  return list;
 }
 function setDirty(k, extra = []) {
   if (!memo) return;
@@ -89,7 +98,8 @@ function estimate(state, adjust) {
       if (g.type === 'field') {
         const cities = fcities(board, g);
         v = 0;
-        for (const c of cities) v += c.complete ? 3 : 3 * completionChance(c.openEdges, remaining) * P.fieldOpen;
+        // (Bridges, Castles & Bazaars: a castle is worth 4 to farmers)
+        for (const c of cities) v += c.complete ? (castleAt(state, c.nodes[0]) ? 4 : 3) : 3 * completionChance(c.openEdges, remaining) * P.fieldOpen;
         if (g.meeples.some((m) => m.k === 'pig' && win.includes(m.p))) v *= 4 / 3;
       } else {
         const pc2 = completionChance(g.openEdges, remaining);
@@ -105,6 +115,14 @@ function estimate(state, adjust) {
       for (const p of win) est[p] += v;
       for (const m of g.meeples) if (win.includes(m.p) && isFollowerKind(m.k)) pieceVal.push([m.key, m.p, v / Math.max(1, win.length)]);
     }
+  }
+  // Bridges, Castles & Bazaars: a castle waiting for the first completion in its area
+  for (const c of state.castles || []) {
+    if (!c.k || adjust.returned.has(pieceId({ key: c.key, f: 'castle', k: c.k, p: c.owner }))) continue;
+    // (worked out once per move search: only the trial tile changes the board meanwhile)
+    let target = memo?.castles?.get(c.id);
+    if (target === undefined) { target = castleTarget(state, c); memo?.castles?.set(c.id, target); }
+    est[c.owner] += 0.7 * Math.max(4, target) * Math.min(1, 2 * remaining);
   }
   // figures in hand are valuable while there are tiles left to play
   for (let i = 0; i < n; i++) {
@@ -162,7 +180,8 @@ function valueFor(est, me, oppWeight) {
 // Pretend the drawn tile lies at k (with its volcano / tower effects) while fn runs.
 function withTile(state, k, t, r, fn, bridge = null) {
   const saved = { dragon: state.dragon, phase: state.phase, last: state.last, tower: state.towers?.[k] };
-  state.board[k] = { t, r, pieces: [], n: 999 };
+  state.board[k] = { t, r, pieces: [], n: 1e6 };
+  if (!hasExp(state, 'inns') && TILE_INN(t)) state.board[k].noInn = true; // (BB inns count only with I&C)
   if (hasExp(state, 'dragon') && hasTag(t, 'volcano')) state.dragon = k;
   if (hasExp(state, 'tower') && hasTag(t, 'tower')) state.towers[k] = { h: 0, top: null };
   if (bridge) state.board[bridge.key].bridge = bridge.axis;
@@ -245,7 +264,7 @@ function evaluate(state, k, act, me, lvl, extra = 0) {
   const touched = [];
   if (act?.key && act.kind !== 'fairy' && act.kind !== 'floor' && act.kind !== 'towerTop') touched.push(act.key);
   if (act?.capture) touched.push(act.capture.key);
-  setDirty(k, touched);
+  setDirty(k, touched.concat(memo?.bridge || []));
   if (act) {
     if (act.kind === 'follower') {
       const tile = state.board[act.key];
@@ -340,14 +359,31 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
   const t = state.drawn;
   const moves = [];
   const later = [];
-  memo = { groups: new Map(), dirty: new Set() };
+  memo = { groups: new Map(), dirty: new Set(), castles: new Map(), fc: new Map() };
   try {
-    for (const { x, y, rots, needsBridge } of validPlacements(state, t)) {
+    const placements = validPlacements(state, t);
+    // Bridges, Castles & Bazaars: with many spots that only fit with a bridge, try the
+    // 40 that score the most straight away (a bridge is rarely worth spending otherwise)
+    const bridgeOnly = [];
+    for (const pl of placements) for (const r of Object.keys(pl.needsBridge || {})) bridgeOnly.push([pl, +r]);
+    let skip = null;
+    if (bridgeOnly.length > 40) {
+      const quick = bridgeOnly.map(([pl, r]) => {
+        const k = key(pl.x, pl.y);
+        const b = pl.needsBridge[r][0];
+        const v = withTile(state, k, t, r, () => scoreAfterPlacement(state, k, false).reduce((a, e) => a + (e.winners.includes(me) ? e.points : 0), 0), b);
+        return [pl, r, v];
+      }).sort((a, b) => b[2] - a[2]);
+      skip = new Set(quick.slice(40).map(([pl, r]) => `${pl.x},${pl.y},${r}`));
+    }
+    for (const { x, y, rots, needsBridge } of placements) {
       const k = key(x, y);
       // (a turn that only fits with a bridge tries each place the bridge could go)
       for (const r of rots) for (const bridge of needsBridge?.[r] || [null]) {
+        if (bridge && skip?.has(`${x},${y},${r}`)) continue;
         withTile(state, k, t, r, () => {
-          setDirty(k, bridgeDirty(bridge)); // groups around the trial tile must not be taken from the memo
+          memo.bridge = bridgeDirty(bridge);
+          setDirty(k, memo.bridge); // groups around the trial tile must not be taken from the memo
           const options = [null];
           const global = [];
           if (rnd() < lvl.lookMeeple + 0.0001) {
@@ -361,7 +397,7 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
           }
           let best = -Infinity;
           // a bridge is worth keeping for later
-          const extra = builderBonus(state, k, me) - (bridge ? P.bridge : 0);
+          const extra = builderBonus(state, k, me) - (bridge ? bridgeCost(state, me) : 0);
           setDirty(k, bridgeDirty(bridge));
           const completes = scoreAfterPlacement(state, k, false).some((e) => e.winners.length);
           for (const act of options) {
@@ -379,7 +415,8 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
     let completing = 0;
     for (const pl of later.filter((l, i) => i < top || (l.completes && completing++ < 4))) {
       withTile(state, pl.k, t, pl.r, () => {
-        setDirty(pl.k, bridgeDirty(pl.bridge));
+        memo.bridge = bridgeDirty(pl.bridge);
+        setDirty(pl.k, memo.bridge);
         for (const act of expandOptions(state, pl.global)) {
           const v = evaluate(state, pl.k, act, me, lvl, pl.extra) + (rnd() - 0.5) * lvl.noise;
           moves.push({ x: pl.x, y: pl.y, r: pl.r, bridge: pl.bridge, act, v, meeple: null });
@@ -390,6 +427,12 @@ export function chooseMove(state, levelName = 'medium', rnd = Math.random) {
     memo = null;
   }
   moves.sort((a, b) => b.v - a.v);
+  // Bridges, Castles & Bazaars: a tile that only fits with a bridge may be thrown away
+  // instead, when it helps the others more than it helps me
+  if (levelName !== 'easy' && canDiscard(state) && moves.length) {
+    const v0 = valueFor(estimate(state, { points: {}, meeples: {}, large: {}, abbot: {}, returned: new Set(), fairy: null, me }), me, lvl.opp);
+    if (moves[0].v < v0 - 0.5) return { discard: true };
+  }
   return moves[0];
 }
 
@@ -463,6 +506,185 @@ export function chooseDragonMove(state, levelName = 'medium', rnd = Math.random)
     if (u > bestU) { bestU = u; pick = m; }
   }
   return pick;
+}
+
+// ---------- Bridges, Castles & Bazaars ----------
+// The best value an unfinished feature in a castle's area would pay if finished now.
+function castleTarget(state, c) {
+  const board = state.board;
+  let best = 0;
+  const seen = new Set();
+  for (const k of c.area) {
+    const tile = board[k];
+    if (!tile) continue;
+    featuresOf(tile).forEach((f, fi) => {
+      if (f.type === 'monastery' || f.type === 'garden') { best = Math.max(best, 9); return; }
+      if (f.type !== 'road' && f.type !== 'city') return;
+      const g = grp(board, k, fi);
+      if (seen.has(g.id) || g.complete) return;
+      seen.add(g.id);
+      const mult = f.type === 'city' ? (g.cathedral ? 3 : 2) : (g.inn ? 2 : 1);
+      best = Math.max(best, (g.tiles.size + (f.type === 'city' ? g.pennants : 0)) * mult);
+    });
+  }
+  return best;
+}
+
+// A bridge is scarce: dearer early in the game and when it is your last one.
+function bridgeCost(state, p) {
+  return P.bridge * (state.players[p].bridges === 1 ? 1.6 : 1) * (0.5 + state.deck.length / Math.max(1, state.deckSize || 71));
+}
+
+// The small city's owner decides: build a castle or take the 4 points.
+export function chooseCastle(state, levelName = 'medium', rnd = Math.random) {
+  const ask = state.castleAsk[0];
+  const me = ask.p;
+  const left = drawableCount(state);
+  const act = (build) => ({ t: 'castle', fi: ask.fi, build });
+  if (levelName === 'easy') return act(left >= 20 && rnd() < 0.5);
+  if (left < Math.max(10, 3 * state.players.length)) return act(false);
+  const board = state.board;
+  const g = getGroup(board, state.last, ask.fi);
+  const area = castleArea([...g.tiles]);
+  const remaining = Math.min(1.2, state.deck.length / 71);
+  const cand = [];
+  const seen = new Set([g.id]);
+  for (const k of area) {
+    const tile = board[k];
+    if (!tile) { cand.push({ v: 3, p: 0.35 }); continue; }
+    const [x, y] = parseKey(k);
+    featuresOf(tile).forEach((f, fi) => {
+      if (f.type === 'monastery' || f.type === 'garden') {
+        const nb = monasteryNeighbours(board, x, y);
+        if (nb < 8) cand.push({ v: 9, p: nb >= 6 ? 0.8 : nb >= 4 ? 0.5 : 0.25 });
+        return;
+      }
+      if (f.type !== 'road' && f.type !== 'city') return;
+      const fg = getGroup(board, k, fi);
+      if (seen.has(fg.id) || fg.complete) return;
+      seen.add(fg.id);
+      const mult = f.type === 'city' ? (fg.cathedral ? 3 : 2) : (fg.inn ? 2 : 1);
+      cand.push({ v: (fg.tiles.size + (f.type === 'city' ? fg.pennants : 0)) * mult, p: completionChance(fg.openEdges, remaining) });
+    });
+  }
+  // the FIRST completion pays: expected value over the likeliest order
+  cand.sort((a, b) => b.p - a.p);
+  let ev = 0, none = 1;
+  for (const c of cand) { ev += none * c.p * c.v; none *= 1 - c.p; }
+  const cheap = cand.some((c) => c.v <= 4 && c.p >= 0.5);
+  // fields bordering the city that I win now are worth 1 more with a castle (4 instead of 3)
+  let farm = 0;
+  for (const [k, fi] of g.nodes) {
+    for (const [ff, f] of featuresOf(board[k]).entries()) {
+      if (f.type !== 'field' || !(f.cities || []).includes(fi)) continue;
+      if (owners(getGroup(board, k, ff).meeples).includes(me)) farm++;
+    }
+  }
+  const keep = state.players[me].supply.meeple <= 1 ? 2.5 : 1; // the castellan is tied up
+  return act(ev + farm - keep > 4 + (levelName === 'hard' ? 0.3 : 1) && !(cheap && ev < 6));
+}
+
+// What a tile is worth to player p right now (light: best placement's immediate
+// points, minus half what it gives rivals, plus the best simple follower spot).
+function quickValue(state, t, p) {
+  const saved = { current: state.current, phase: state.phase, last: state.last, drawn: state.drawn, lastBridge: state.lastBridge };
+  state.current = p; state.drawn = t;
+  let best = 0;
+  try {
+    for (const pl of validPlacements(state, t)) for (const r of pl.rots) {
+      const k = key(pl.x, pl.y);
+      const bridge = pl.needsBridge?.[r]?.[0] || null;
+      state.board[k] = { t, r, pieces: [], n: 1e6 };
+      if (!hasExp(state, 'inns') && TILE_INN(t)) state.board[k].noInn = true;
+      if (bridge) state.board[bridge.key].bridge = bridge.axis;
+      state.phase = 'action'; state.last = k; state.lastBridge = bridge ? bridge.key : null;
+      try {
+        let v = 0;
+        for (const e of scoreAfterPlacement(state, k, false)) {
+          if (e.winners?.includes(p)) v += e.points; else if (e.winners?.length) v -= 0.5 * e.points;
+        }
+        // the best free spot for a follower on the new tile (just this tile: no portals or towers)
+        let fol = 0;
+        const pl = state.players[p].supply;
+        if ((pl.meeple || pl.large) && state.dragon !== k) {
+          featuresOf(state.board[k]).forEach((f, fi) => {
+            if (f.type === 'monastery') { const [x, y] = parseKey(k); fol = Math.max(fol, 1 + monasteryNeighbours(state.board, x, y)); return; }
+            if (f.type !== 'road' && f.type !== 'city' && f.type !== 'field') return;
+            if (f.type === 'field' && state.options.farmers === false) return;
+            const g = getGroup(state.board, k, fi);
+            if (g.complete || g.meeples.some((m) => (PIECES[m.k]?.weight ?? 0) > 0)) return;
+            const w = f.type === 'city' ? 1.6 * (g.tiles.size + g.pennants) : f.type === 'road' ? 0.8 * g.tiles.size : 1.5 * fieldCities(state.board, g).filter((c) => c.complete).length;
+            fol = Math.max(fol, w * Math.pow(0.6, Math.max(0, g.openEdges - 1)));
+          });
+        }
+        best = Math.max(best, v + fol - (bridge ? bridgeCost(state, p) : 0));
+      } finally {
+        if (bridge && bridge.key !== k) delete state.board[bridge.key].bridge;
+        delete state.board[k];
+      }
+    }
+  } finally { Object.assign(state, saved); }
+  return best;
+}
+const TILE_INN = (t) => featuresOf({ t, r: 0 }).some((f) => f.inn);
+
+// values of the revealed tiles, worked out once per auction and only when needed
+let bazaarCache = { id: null, vals: new Map() };
+function bazaarValue(state, i, p) {
+  const bz = state.bazaar;
+  const id = `${state.placed}|${bz.host}|${bz.tiles.map((x) => x.t).join(',')}`;
+  if (bazaarCache.id !== id) bazaarCache = { id, vals: new Map() };
+  const ck = `${i}|${p}`;
+  if (!bazaarCache.vals.has(ck)) bazaarCache.vals.set(ck, quickValue(state, bz.tiles[i].t, p));
+  return bazaarCache.vals.get(ck);
+}
+
+// One bazaar decision for the seat whose turn it is in the auction.
+export function chooseBazaarAction(state, levelName = 'medium', rnd = Math.random) {
+  const o = bazaarOptions(state);
+  const bz = state.bazaar;
+  const me = actingSeat(state);
+  const n = state.players.length;
+  const free = bz.tiles.map((x, i) => (x.owner === null ? i : -1)).filter((i) => i >= 0);
+  const waiting = state.players.map((_, i) => i).filter((p) => !bz.tiles.some((x) => x.owner === p));
+  // what each player expects to get otherwise: the median of their values
+  const fallback = (p) => {
+    const vs = free.map((i) => bazaarValue(state, i, p)).sort((a, b) => a - b);
+    return vs.length ? vs[Math.floor(vs.length / 2)] : 0;
+  };
+  if (o.stage === 'take') {
+    let best = free[0], bv = -Infinity;
+    for (const i of free) { const v = bazaarValue(state, i, me); if (v > bv) { bv = v; best = i; } }
+    return { t: 'bazaar', take: best };
+  }
+  if (o.stage === 'pick') {
+    // the tile best for me; hard bots also weigh, for their two best tiles, how much a rival wants it
+    const fMe = fallback(me);
+    const mine = free.map((i) => [i, bazaarValue(state, i, me) - fMe + (levelName === 'easy' ? rnd() * 3 : 0)]).sort((a, b) => b[1] - a[1]);
+    let best = mine[0][0];
+    if (levelName === 'hard' && mine.length > 1) {
+      const rivals = waiting.filter((p) => p !== me);
+      let bv = -Infinity;
+      for (const [i, v] of mine.slice(0, 2)) {
+        let rival = 0;
+        for (const p of rivals) rival = Math.max(rival, bazaarValue(state, i, p));
+        if (v + 0.3 * rival > bv) { bv = v + 0.3 * rival; best = i; }
+      }
+    }
+    return { t: 'bazaar', pick: best, bid: 0 };
+  }
+  if (o.stage === 'bid') {
+    const surplus = bazaarValue(state, bz.item, me) - fallback(me);
+    const next = bz.high.bid + 1;
+    if (levelName === 'easy') return surplus > 0 && rnd() < 0.3 && next <= BAZAAR_MAX_BID ? { t: 'bazaar', bid: next } : { t: 'bazaar', pass: true };
+    const share = levelName === 'hard' ? 0.9 : 0.7;
+    return next <= surplus * share && next <= BAZAAR_MAX_BID ? { t: 'bazaar', bid: next } : { t: 'bazaar', pass: true };
+  }
+  // decide: keep it (pay the bidder) or let the bidder have it (they pay me)
+  const q = bz.high.p, b = bz.high.bid;
+  const swing = (bazaarValue(state, bz.item, me) - fallback(me)) + (bazaarValue(state, bz.item, q) - fallback(q));
+  void n;
+  return { t: 'bazaar', sell: !(swing > 4 * b) };
 }
 
 // ---------- The Tower: buying a prisoner back ----------

@@ -481,7 +481,8 @@ function setTentative(x, y, r, animate = true) {
 // What a placement would complete right now (helper mode)
 function previewPoints(x, y, r, bridge = null) {
   const k = G.key(x, y);
-  state.board[k] = { t: state.drawn, r, pieces: [], n: 0 };
+  state.board[k] = { t: state.drawn, r, pieces: [], n: 1e6 };
+  if (!state.options.expansions?.inns && G.featuresOf({ t: state.drawn, r: 0 }).some((f) => f.inn)) state.board[k].noInn = true;
   if (bridge) state.board[bridge.key].bridge = bridge.axis;
   const lastBridge = state.lastBridge;
   state.lastBridge = bridge ? bridge.key : null;
