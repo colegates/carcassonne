@@ -3,7 +3,7 @@
 import { TILE_TYPES, isRiverTile } from './tiles.js';
 import * as G from './game.js';
 import { chooseMove, suggestMove, chooseDragonMove, chooseRansom, chooseCastle, chooseBazaarAction } from './ai.js';
-import { BoardView } from './board.js';
+import { BoardView, besideBridge } from './board.js';
 import { getTileArt, getTileBack, rotUnit, drawCastle } from './art.js';
 import { sfx } from './sound.js';
 import { fingerprint } from './net.js';
@@ -210,16 +210,27 @@ function setDock({ instruction, rotate = false, confirm = false, undo = false, p
   $('btn-confirm').classList.toggle('pulse', pulse);
   $('btn-undo').disabled = !undo;
   $('btn-undo').hidden = !undo;
-  $('btn-rotate').hidden = !rotate && undo;
+  const decision = state.phase === 'castle' || state.phase === 'bazaar'; // (the choices are elsewhere)
+  $('btn-rotate').hidden = decision || (!rotate && undo);
+  $('btn-confirm').hidden = decision;
   $('btn-hint').hidden = !helper() || !isLocal() || !['place', 'action'].includes(state.phase);
   $('btn-ransom').hidden = !(isLocal() && !ui.busy && G.ransomOptions(state).length);
   renderPicker(picker);
   renderDockExtra();
-  requestAnimationFrame(() => {
-    const h = $('dock').offsetHeight;
-    $('side-tools').style.bottom = `${h + 14}px`;
-    $('bazaar').style.bottom = `${h + 8}px`;
-  });
+  requestAnimationFrame(placeOverlays);
+}
+
+// The buttons and badges over the map sit above the dock, and above the bazaar round's
+// strip while it is shown (Bridges, Castles & Bazaars).
+function placeOverlays() {
+  const h = $('dock').offsetHeight;
+  const bz = $('bazaar');
+  bz.style.bottom = `${h + 8}px`;
+  const over = bz.hidden ? 0 : bz.offsetHeight + 8; // the auction sheet or the round's strip
+  const strip = bz.classList.contains('strip') ? over : 0;
+  $('side-tools').style.bottom = `${h + 14 + strip}px`;
+  $('seat-back').style.bottom = `${h + 12 + over}px`;
+  $('net-badge').style.bottom = `${h + 16 + over}px`;
 }
 
 // Row of piece/action choices in the dock (only shown when there is a choice).
@@ -363,9 +374,12 @@ async function playDragonMove(k, token) {
 async function playSimple(action, token, send = false) {
   ui.busy = true;
   const placer = state.current;
+  const thrown = state.discarded.length;
   const events = G.applyAction(state, action);
+  if (action.t === 'discard') ui.discardSeen = thrown + 1; // (told by its own message, not as "fits nowhere")
   if (send) sendMove(action, state.phase === 'over');
   record(action);
+  setDock({ instruction: '…', seat: G.actingSeat(state) ?? state.current });
   view.setVM({ highlight: null, castleArea: null });
   renderBazaar();
   renderPlayers();
@@ -394,7 +408,7 @@ function castleReach(area) {
     if (!tile) continue;
     G.featuresOf(tile).forEach((f, fi) => {
       if (f.type === 'monastery' || f.type === 'garden') {
-        if (tile.pieces.some((pc) => pc.f === fi) || seen.has(k)) return;
+        if (seen.has(k)) return; // (occupied or not: either sets the castle off)
         seen.add(k);
         const [x, y] = G.parseKey(k);
         const n = G.monasteryNeighbours(state.board, x, y);
@@ -405,7 +419,8 @@ function castleReach(area) {
       const g = G.getGroup(state.board, k, fi);
       if (seen.has(g.id) || g.complete) return;
       seen.add(g.id);
-      parts.push(`a ${g.tiles.size}-tile ${f.type}`);
+      const open = g.openEdges ?? 0;
+      parts.push(`a ${g.tiles.size}-tile ${f.type}${open ? ` (${open} open end${open === 1 ? '' : 's'})` : ''}`);
     });
   }
   return parts.length ? parts.slice(0, 4).join(', ') : 'nothing open yet (tiles laid there later count too)';
@@ -419,14 +434,18 @@ async function castlePhase() {
   const control = controlOf(seat);
   view.setVM({ highlight: { nodes: o.nodes, color: '#ffd84a' }, castleArea: o.area, candidates: null, ghosts: null, tentative: null });
   const pts = o.area.map(G.parseKey);
-  view.frameTiles(pts, 120);
+  requestAnimationFrame(() => { if (token === turnToken) view.frameTiles(pts, 120); });
   drawPreview();
   renderPlayers();
   const who = `<span style="color:${colorOf(p).dark}">●</span> ${escapeHtml(p.name)}`;
   if (control === 'local') {
     // the buttons are in the dock (renderDockExtra), so the map stays in view
     setDock({ instruction: '🏰 Small city finished! A <b>castle</b> scores the next road, city or monastery finished in the gold squares.', seat });
-    if (!session.online && localSeats().length > 1 && seat !== state.current) banner(`👉 ${escapeHtml(p.name)}: decide about your castle`, 1500);
+    if (seat !== state.current) {
+      // somebody else's tile finished this player's small city
+      sfx.tap();
+      banner(`👉 ${escapeHtml(p.name)}: your small city is finished — castle or points?`, 1800);
+    }
   } else if (control === 'bot') {
     setDock({ instruction: `🏰 ${who} is deciding about a castle…`, seat });
     ui.busy = true;
@@ -484,18 +503,28 @@ function bazaarMove(action) {
   localMove(action);
 }
 
+// Whether anybody could place tile t now (with a bridge if someone has one left).
+function fitsForSomeone(t) {
+  const seat = state.players.findIndex((p) => p.bridges > 0);
+  const current = state.current;
+  if (seat >= 0) state.current = seat;
+  try { return G.validPlacements(state, t).length > 0; } finally { state.current = current; }
+}
+
 // The bazaar sheet (auction) or strip (bazaar round), drawn from the state.
 function renderBazaar() {
   const box = $('bazaar');
   const bz = state?.bazaar;
   view.dirty = true; // (the strip changes the map's visible area)
-  if (!bz) { box.hidden = true; box.innerHTML = ''; ui.bazaarPick = null; return; }
+  if (!bz) { box.hidden = true; box.innerHTML = ''; ui.bazaarPick = null; ui.bazaarReady = null; requestAnimationFrame(placeOverlays); return; }
   box.hidden = false;
   const n = state.players.length;
   const sheet = state.phase === 'bazaar';
   box.classList.toggle('strip', !sheet);
   const o = sheet ? G.bazaarOptions(state) : null;
   const mine = sheet && isLocal() && !ui.busy;
+  // several people on this phone: the next one takes the phone before their controls show
+  const handOver = mine && localSeats().length > 1 && ui.bazaarReady !== o.seat;
   if (!o?.pick?.includes(ui.bazaarPick) || o.stage !== 'pick') ui.bazaarPick = null;
   const nm = (i) => escapeHtml(state.players[i].name);
   const dot = (i) => `<span style="color:${colorOf(state.players[i]).main}">●</span>`;
@@ -509,29 +538,35 @@ function renderBazaar() {
     let who;
     if (x.owner !== null) {
       const how = x.how === 'take' ? '' : x.price ? ` · paid ${x.price}` : ' · free';
-      who = `${dot(x.owner)} ${nm(x.owner)}${sheet ? how : ''}${x.played && !sheet ? ' ✓' : ''}`;
+      const mark = sheet || !x.played ? '' : x.owner === state.current && state.phase !== 'over' ? '▶ ' : '✓ ';
+      who = `${mark}${dot(x.owner)} ${nm(x.owner)}${sheet ? how : ''}`;
     } else if (bz.item === i && bz.high) who = `<b>Bid ${bz.high.bid}</b> · ${dot(bz.high.p)} ${nm(bz.high.p)}`;
-    else who = G.validPlacements(state, x.t).length ? '' : '<span class="bz-warn">⚠ fits nowhere now</span>';
+    else who = fitsForSomeone(x.t) ? '' : '<span class="bz-warn">⚠ fits nowhere now</span>';
     const sel = sheet ? ui.bazaarPick === i || bz.item === i : x.owner === state.current && x.played;
-    const can = mine && o.pick?.includes(i);
+    const can = mine && !handOver && o.pick?.includes(i);
     html += `<div class="bz-card${sel ? ' sel' : ''}${x.owner !== null && sheet ? ' owned' : ''}${can ? ' can' : ''}" data-i="${i}"><canvas width="128" height="128"></canvas><div class="bz-who">${who}</div></div>`;
   }
   html += '</div>';
   if (sheet) {
     const seat = o.seat;
+    const capped = o.stage === 'bid' && o.minBid > o.maxBid;
     const status = o.stage === 'pick' ? `${dot(seat)} ${nm(seat)} chooses a tile to auction`
+      : capped ? `${dot(seat)} ${nm(seat)}: nobody can bid more than ${o.maxBid} — pass`
       : o.stage === 'bid' ? `${dot(seat)} ${nm(seat)}: bid more than ${o.high.bid}, or pass`
         : o.stage === 'decide' ? `${dot(seat)} ${nm(seat)}: keep the tile (pay ${nm(o.high.p)} ${o.high.bid}) or sell it to ${nm(o.high.p)}`
           : `${dot(seat)} ${nm(seat)} takes a tile`;
     html += `<div class="bz-status">${status}</div>`;
     const still = [];
     for (let k = 0; k < n; k++) { const q = (bz.chooser + k) % n; if (!bz.tiles.some((x) => x.owner === q)) still.push(q); }
-    if (o.stage !== 'take' && still.length > 1) html += `<div class="bz-order">Still to choose: ${still.map((q) => `${dot(q)} ${nm(q)}`).join(' ▸ ')}</div>`;
-    if (mine) {
+    if (o.stage !== 'take' && still.length > 1) html += `<div class="bz-order">Still without a tile: ${still.map((q) => `${dot(q)} ${nm(q)}`).join(' ▸ ')}</div>`;
+    if (handOver) html += `<div class="bz-ctrl"><button class="btn small red" data-bz="ready">👉 ${nm(seat)}: tap when you have the phone</button></div>`;
+    if (mine && !handOver) {
       const stepper = (label, op) => `<button class="btn small parchment bz-step" data-bz="minus" aria-label="Less">−</button><b class="bz-bid">${ui.bazaarBid}</b><button class="btn small parchment bz-step" data-bz="plus" aria-label="More">+</button><button class="btn small red" data-bz="${op}">${label}</button>`;
       if (o.stage === 'pick') {
         ui.bazaarBid = Math.max(0, ui.bazaarBid ?? 0);
         html += `<div class="bz-ctrl">${ui.bazaarPick === null ? '<span class="bz-tip">👆 Tap the tile you want to auction</span>' : stepper(`Pick &amp; bid ${ui.bazaarBid}`, 'pick')}</div>`;
+      } else if (o.stage === 'bid' && capped) {
+        html += '<div class="bz-ctrl"><button class="btn small parchment" data-bz="pass">Pass</button></div>';
       } else if (o.stage === 'bid') {
         ui.bazaarBid = Math.max(o.minBid, ui.bazaarBid ?? o.minBid);
         html += `<div class="bz-ctrl">${stepper(`Bid ${ui.bazaarBid}`, 'raise')}<button class="btn small parchment" data-bz="pass">Pass</button></div>`;
@@ -543,6 +578,7 @@ function renderBazaar() {
     }
   }
   box.innerHTML = html;
+  requestAnimationFrame(placeOverlays);
   box.querySelectorAll('.bz-card').forEach((card) => {
     const c = card.querySelector('canvas');
     c.getContext('2d').drawImage(getTileArt(bz.tiles[+card.dataset.i].t).canvas, 0, 0, c.width, c.height);
@@ -551,6 +587,8 @@ function renderBazaar() {
 
 $('bazaar').addEventListener('click', (e) => {
   if (!state?.bazaar || state.phase !== 'bazaar' || !isLocal() || ui.busy) return;
+  if (e.target.closest('[data-bz="ready"]')) { ui.bazaarReady = G.actingSeat(state); sfx.tap(); renderBazaar(); return; }
+  if (localSeats().length > 1 && ui.bazaarReady !== G.actingSeat(state)) return;
   const o = G.bazaarOptions(state);
   const card = e.target.closest('.bz-card');
   if (card && o.pick?.includes(+card.dataset.i)) {
@@ -564,7 +602,7 @@ $('bazaar').addEventListener('click', (e) => {
   if (!b) return;
   const op = b.dataset.bz;
   if (op === 'plus' || op === 'minus') {
-    ui.bazaarBid = Math.min(G.BAZAAR_MAX_BID, Math.max(o.minBid ?? 0, (ui.bazaarBid ?? 0) + (op === 'plus' ? 1 : -1)));
+    ui.bazaarBid = Math.min(o.maxBid ?? G.BAZAAR_MAX_BID, Math.max(o.minBid ?? 0, (ui.bazaarBid ?? 0) + (op === 'plus' ? 1 : -1)));
     sfx.tap();
     renderBazaar();
     return;
@@ -671,11 +709,10 @@ function humanPlacePhase() {
   frameCandidates();
   const riverTile = state.drawn && isRiverTile(state.drawn);
   const instruction = riverTile ? '🌊 Make the river longer: its water must join the end of the river (no U-turns)'
-    : state.part === 2 ? '🔨 <b>Bonus tile</b> from your builder: place this one too — gold squares fit as it is turned'
-      : 'Tap a square to place your tile — <b>gold</b> ones fit the way it is turned';
+    : G.canDiscard(state) ? '🌉 This tile only fits with a bridge: tap a square marked 🌉 — or throw the tile away and draw another'
+      : state.part === 2 ? '🔨 <b>Bonus tile</b> from your builder: place this one too — gold squares fit as it is turned'
+        : 'Tap a square to place your tile — <b>gold</b> ones fit the way it is turned';
   setDock({ instruction, rotate: true });
-  // Bridges, Castles & Bazaars: a tile that only fits with a bridge may be thrown away
-  if (G.canDiscard(state)) toast('🌉 This tile only fits with a bridge — or throw it away and draw another');
 }
 
 // Make sure the squares you can play on are on screen (only a few: show them all).
@@ -795,6 +832,16 @@ view.onTap = (wx, wy, sx, sy) => {
     // capture targets and other figure rings first (they sit on top of everything else)
     let best = nearest(ui.ghosts.filter((g) => g.type !== 'follower'));
     if (!best) {
+      // a ghost right under the finger (a monk's or knight's spot can lie under a bridge)
+      let bd = Math.max(18, view.cam.z * 0.13);
+      for (const g of ui.ghosts) {
+        if (g.type !== 'follower') continue;
+        const [gx, gy] = view.ghostScreenPos(g);
+        const d = Math.hypot(gx - sx, gy - sy);
+        if (d < bd) { bd = d; best = g; }
+      }
+    }
+    if (!best) {
       // a bridge is not painted on the tile: a tap on it picks its road
       const tile = state.board[G.key(x, y)];
       const bf = tile ? G.bridgeFeature(tile) : -1;
@@ -885,7 +932,7 @@ async function exchangeChoice(c) {
 }
 
 // ---------- follower phase ----------
-const sameOpt = (a, b) => !!a && !!b && a.kind === b.kind && a.key === b.key && a.fi === b.fi && a.k === b.k;
+const sameOpt = (a, b) => !!a && !!b && a.kind === b.kind && a.key === b.key && a.fi === b.fi && a.k === b.k && (a.c ?? null) === (b.c ?? null);
 const optGroup = (o) => (o.kind === 'follower' ? (o.portal ? `portal:${o.k}` : o.k) : o.kind === 'towerTop' ? `towerTop:${o.k}` : o.kind);
 const sameBridge = (a, b) => !!a && !!b && a.key === b.key && a.axis === b.axis;
 const groupKind = (g) => (g.includes(':') ? g.split(':')[1] : ({ recall: 'abbot', fairy: 'fairy' }[g] || (G.PIECES[g] ? g : null)));
@@ -1088,7 +1135,7 @@ function pickerFor() {
 }
 
 const GROUP_HELP = {
-  bridge: '🌉 Bridge: carries a road over a meadow, on this tile or one next to it. Tap a bridge to build it, tap it again to take it back',
+  bridge: '🌉 Bridge: tap one to build it, tap again to take it back',
   abbot: '⛪ Abbot: only on a monastery or a garden. Later you can call him home early for points. Tap a ghost',
   large: '🍺 Big meeple: it counts as two meeples when deciding who wins. Tap a ghost',
   builder: '🔨 Builder: on a road or city where you have a meeple. Extend it later to play two tiles in one turn. Tap a ghost',
@@ -1190,6 +1237,13 @@ function onHint() {
   if (state.phase === 'place') {
     const mv = suggestMove(state);
     if (!mv) return;
+    if (mv.discard) {
+      // Bridges, Castles & Bazaars: the best thing to do with this tile is throw it away
+      toast('💡 This tile only fits with a bridge: throwing it away (🗑) may be best');
+      const b = document.getElementById('btn-discard');
+      if (b) { b.classList.remove('pulse'); void b.offsetWidth; b.classList.add('pulse'); }
+      return;
+    }
     ui.hint = mv;
     setTentative(mv.x, mv.y, mv.r, false);
     view.ensureVisible(mv.x, mv.y);
@@ -1587,7 +1641,7 @@ function figureWorld(m) {
   if (m.f === 'castle') return castleWorld(state.castles.find((c) => c.id === m.c) || state.castles.find((c) => c.key === m.key)); // on a castle
   if (m.f === G.bridgeFeature(tile)) return tile.bridge === 0 ? [x, y - 0.22] : [x + 0.22, y]; // standing on a bridge
   const [ax, ay] = getTileArt(tile.t).anchors[m.f];
-  const [rx, ry] = rotUnit(ax, ay, tile.r);
+  const [rx, ry] = besideBridge(tile.bridge, ...rotUnit(ax, ay, tile.r));
   return [x + rx - 0.5, y + ry - 0.5];
 }
 
@@ -1729,7 +1783,7 @@ async function animateSpecial(e, wait) {
       const m = e.meeples[0];
       const [wx, wy] = figureWorld(m);
       view.ensureVisible(wx, wy);
-      view.addEffect({ type: 'float', x: wx, y: wy, text: '0', sub: '🏰 Castle never scored', color: '#ffb0a0', dur: 1500 });
+      view.addEffect({ type: 'float', x: wx, y: wy - 0.4, text: '0', sub: '🏰 Castle never scored', color: '#ffb0a0', dur: 1500 });
       await wait(700);
       flyHome(m);
       await wait(450);
@@ -1742,7 +1796,7 @@ async function animateSpecial(e, wait) {
     case 'bazaarOpen':
       sfx.coins();
       renderBazaar();
-      banner(state.phase === 'bazaar' ? `🛒 Bazaar! ${e.tiles.length} tiles go up for auction` : `🛒 Bazaar! Everyone takes one of ${e.tiles.length} tiles`, 1900);
+      banner(state.options.bcb?.auction !== false ? `🛒 Bazaar! ${e.tiles.length} tiles go up for auction` : `🛒 Bazaar! Everyone takes one of ${e.tiles.length} tiles`, 1900);
       await wait(1300);
       return true;
     case 'bazaarPick':
@@ -1760,7 +1814,7 @@ async function animateSpecial(e, wait) {
       return true;
     case 'bazaarDeal': {
       const txt = e.how === 'free' ? `🛒 ${name(e.owner)} gets the last tile for free`
-        : e.how === 'bank' ? `🛒 ${name(e.owner)} pays ${e.price} and keeps the tile`
+        : e.how === 'bank' ? (e.price ? `🛒 ${name(e.owner)} pays ${e.price} and keeps the tile` : `🛒 Nobody bids: ${name(e.owner)} keeps the tile for free`)
           : e.how === 'buy' ? `🛒 ${name(e.owner)} keeps the tile and pays ${name(e.payee)} ${e.price}`
             : `🛒 ${name(e.chooser)} sells the tile to ${name(e.owner)} for ${e.price}`;
       banner(txt, 1900);
@@ -1778,7 +1832,7 @@ async function animateSpecial(e, wait) {
       await wait(1000);
       return true;
     case 'bazaarTurn':
-      if (e.replaced) toast(`🛒 ${name(e.seat)}'s bazaar tile fits nowhere, so they draw another`);
+      if (e.replaced) banner(`🛒 ${name(e.seat)}'s bazaar tile fits nowhere: they draw another`, 1800);
       else banner(`🛒 ${name(e.seat)} plays the tile from the bazaar`, 1500);
       await wait(600);
       return true;
@@ -1854,12 +1908,12 @@ export function showScores() {
   for (const i of order) {
     const p = state.players[i];
     html += `<tr class="${isFinal && p.score === maxScore ? 'winner' : ''}"><td class="n"><span style="color:${colorOf(p).main}">●</span> ${escapeHtml(p.name)}</td>
-      ${cols.map(([k]) => `<td>${String(p.breakdown[k] || 0).replace('-', '−')}</td>`).join('')}<td class="total">${String(p.score).replace('-', '−')}</td></tr>`;
+      ${cols.map(([k]) => `<td${(p.breakdown[k] || 0) < 0 ? ' class="neg"' : ''}>${String(p.breakdown[k] || 0).replace('-', '−')}</td>`).join('')}<td class="total${p.score < 0 ? ' neg' : ''}">${String(p.score).replace('-', '−')}</td></tr>`;
   }
   html += '</table>';
   const legend = { road: 'roads', city: 'cities', monastery: 'monasteries & gardens', field: 'farms', goods: 'goods', fairy: 'fairy', castle: 'castles', bazaar: 'bazaar bids', tower: 'tower ransom' };
   html += `<p class="score-legend">${cols.map(([k, icon]) => `${icon} ${legend[k]}`).join(' · ')}</p>`;
-  if (!isFinal) html += `<p style="text-align:center;margin:0 0 6px;font-size:13px">${$('deck-count').textContent} tiles left${state.discarded.length ? ` · ${state.discarded.length} thrown out (fitted nowhere)` : ''}</p>`;
+  if (!isFinal) html += `<p style="text-align:center;margin:0 0 6px;font-size:13px">${$('deck-count').textContent} tiles left${state.discarded.length ? ` · ${state.discarded.length} thrown out` : ''}</p>`;
   $('scores-table').innerHTML = html;
   const actions = $('scores-actions');
   actions.innerHTML = '';

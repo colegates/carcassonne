@@ -1124,8 +1124,12 @@ function bazaarAction(state, a) {
   if (state.phase !== 'bazaar' || !bz) throw new Error('No bazaar');
   const events = [];
   const intBid = (b, min) => Number.isInteger(b) && b >= min && b <= BAZAAR_MAX_BID;
+  // each stage takes exactly its own kind of action (a move meant for another stage is refused)
+  const fields = Object.keys(a).filter((k) => k !== 't').sort().join();
+  const shape = { pick: ['bid,pick'], bid: ['bid', 'pass'], decide: ['sell'], take: ['take'] }[bz.stage] || [];
+  if (!shape.includes(fields)) throw new Error(`Illegal bazaar action in the ${bz.stage} stage`);
   if (bz.stage === 'pick') {
-    if (!bz.tiles[a.pick] || bz.tiles[a.pick].owner !== null || !intBid(a.bid, 0)) throw new Error('Illegal pick');
+    if (!Number.isInteger(a.pick) || !bz.tiles[a.pick] || bz.tiles[a.pick].owner !== null || !intBid(a.bid, 0)) throw new Error('Illegal pick');
     bz.item = a.pick; bz.high = { p: bz.chooser, bid: a.bid };
     events.push(ev0('bazaarPick', { p: bz.chooser, i: a.pick, bid: a.bid }));
     bz.bidder = nextBidder(state, bz.chooser); bz.stage = 'bid';
@@ -1133,7 +1137,7 @@ function bazaarAction(state, a) {
     return events;
   }
   if (bz.stage === 'bid') {
-    if (a.pass) events.push(ev0('bazaarPass', { p: bz.bidder }));
+    if (a.pass === true) events.push(ev0('bazaarPass', { p: bz.bidder }));
     else if (intBid(a.bid, bz.high.bid + 1)) { bz.high = { p: bz.bidder, bid: a.bid }; events.push(ev0('bazaarBid', { p: bz.bidder, bid: a.bid })); }
     else throw new Error('Illegal bid');
     bz.bidder = nextBidder(state, bz.bidder);
@@ -1151,7 +1155,7 @@ function bazaarAction(state, a) {
     return events;
   }
   if (bz.stage === 'take') {
-    const x = bz.tiles[a.take];
+    const x = Number.isInteger(a.take) ? bz.tiles[a.take] : null;
     if (!x || x.owner !== null) throw new Error('Illegal take');
     x.owner = state.current; x.how = 'take';
     if (!beginBazaarTurn(state, state.current, events)) nextBazaarTurn(state, events);

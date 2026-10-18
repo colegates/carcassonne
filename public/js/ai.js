@@ -292,7 +292,7 @@ function evaluate(state, k, act, me, lvl, extra = 0) {
     } else if (act.kind === 'fairy') {
       // only worth it to guard figures from the dragon, for a +3 coming up, or when nobody can take her back
       bonus -= 0.9;
-      adjust.fairy = { key: act.key, f: act.fi, k: act.k, p: me };
+      adjust.fairy = { key: act.key, f: act.fi, k: act.k, p: me, ...(act.c !== undefined ? { c: act.c } : {}) };
       const saved = state.fairy;
       state.fairy = adjust.fairy;
       undo.push(() => { state.fairy = saved; });
@@ -572,14 +572,17 @@ export function chooseCastle(state, levelName = 'medium', rnd = Math.random) {
   let ev = 0, none = 1;
   for (const c of cand) { ev += none * c.p * c.v; none *= 1 - c.p; }
   const cheap = cand.some((c) => c.v <= 4 && c.p >= 0.5);
-  // fields bordering the city that I win now are worth 1 more with a castle (4 instead of 3)
-  let farm = 0;
+  // fields bordering the city that I win now are worth 1 more with a castle (4 instead of 3),
+  // each field once even when it touches both halves
+  const farms = new Set();
   for (const [k, fi] of g.nodes) {
     for (const [ff, f] of featuresOf(board[k]).entries()) {
       if (f.type !== 'field' || !(f.cities || []).includes(fi)) continue;
-      if (owners(getGroup(board, k, ff).meeples).includes(me)) farm++;
+      const fg = getGroup(board, k, ff);
+      if (owners(fg.meeples).includes(me)) farms.add(fg.id);
     }
   }
+  const farm = farms.size;
   const keep = state.players[me].supply.meeple <= 1 ? 2.5 : 1; // the castellan is tied up
   return act(ev + farm - keep > 4 + (levelName === 'hard' ? 0.3 : 1) && !(cheap && ev < 6));
 }
@@ -647,10 +650,13 @@ export function chooseBazaarAction(state, levelName = 'medium', rnd = Math.rando
   const n = state.players.length;
   const free = bz.tiles.map((x, i) => (x.owner === null ? i : -1)).filter((i) => i >= 0);
   const waiting = state.players.map((_, i) => i).filter((p) => !bz.tiles.some((x) => x.owner === p));
-  // what each player expects to get otherwise: the median of their values
+  // what each player expects to get otherwise: the median of their values (with an even
+  // number of tiles, halfway between the middle two)
   const fallback = (p) => {
     const vs = free.map((i) => bazaarValue(state, i, p)).sort((a, b) => a - b);
-    return vs.length ? vs[Math.floor(vs.length / 2)] : 0;
+    if (!vs.length) return 0;
+    const m = vs.length >> 1;
+    return vs.length % 2 ? vs[m] : (vs[m - 1] + vs[m]) / 2;
   };
   if (o.stage === 'take') {
     let best = free[0], bv = -Infinity;
@@ -676,9 +682,10 @@ export function chooseBazaarAction(state, levelName = 'medium', rnd = Math.rando
   if (o.stage === 'bid') {
     const surplus = bazaarValue(state, bz.item, me) - fallback(me);
     const next = bz.high.bid + 1;
-    if (levelName === 'easy') return surplus > 0 && rnd() < 0.3 && next <= BAZAAR_MAX_BID ? { t: 'bazaar', bid: next } : { t: 'bazaar', pass: true };
-    const share = levelName === 'hard' ? 0.9 : 0.7;
-    return next <= surplus * share && next <= BAZAAR_MAX_BID ? { t: 'bazaar', bid: next } : { t: 'bazaar', pass: true };
+    const share = levelName === 'hard' ? 0.9 : levelName === 'medium' ? 0.7 : 0.5;
+    const worth = next <= surplus * share && next <= BAZAAR_MAX_BID;
+    // easy bots only raise now and then
+    return worth && (levelName !== 'easy' || rnd() < 0.3) ? { t: 'bazaar', bid: next } : { t: 'bazaar', pass: true };
   }
   // decide: keep it (pay the bidder) or let the bidder have it (they pay me)
   const q = bz.high.p, b = bz.high.bid;

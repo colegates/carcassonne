@@ -4,6 +4,15 @@ import { getTileArt, drawPiece, drawTower, drawTowerBadge, drawBridge, drawCastl
 import { parseKey, PLAYER_COLORS, featuresOf, bridgeFeature } from './game.js';
 
 const HIT = 96;
+
+// Bridges, Castles & Bazaars: a figure on a tile with a bridge whose spot lies under the
+// bridge's deck (a monk, a knight in the middle of a city) steps to the side of it, so it
+// never looks as if it stood on the bridge. u, v: the spot on the tile, 0–1.
+export function besideBridge(axis, u, v) {
+  if (axis === 1 && Math.abs(v - 0.5) < 0.16) return [u, v >= 0.5 ? 0.72 : 0.28];
+  if (axis === 0 && Math.abs(u - 0.5) < 0.16) return [u >= 0.5 ? 0.72 : 0.28, v];
+  return [u, v];
+}
 const CASTLE_SIZE = 0.9; // a castle's size on the board, in tiles
 const maskCache = new Map();
 export function featureMask(id, fi, color) {
@@ -306,7 +315,7 @@ export class BoardView {
     for (const c of this.state.castles || []) {
       const [bx, by] = this.castleBase(c);
       if (bx < -z || by < -z || bx > this.w + z || by > this.h + z) continue;
-      drawCastle(this.ctx, bx, by, z * CASTLE_SIZE);
+      drawCastle(this.ctx, bx, by, z * this.castleSize(c));
       if (c.k && !hidden.has(c.key)) {
         const [tx, ty] = this.castleTop(c);
         drawPiece(this.ctx, c.k, tx, ty, z * 0.26, PLAYER_COLORS[this.state.players[c.owner].color] || PLAYER_COLORS.red);
@@ -408,8 +417,10 @@ export class BoardView {
   // Where a figure stands on feature fi of a tile on the board (a bridge's road
   // is not printed on the tile: its figure stands on the bridge, off-centre).
   tileAnchor(tile, fi, sx, sy, z = this.cam.z) {
-    if (fi !== bridgeFeature(tile)) return this.anchorScreen(tile.t, tile.r, fi, sx, sy, z);
-    return tile.bridge === 0 ? [sx, sy - z * 0.22] : [sx + z * 0.22, sy];
+    if (fi === bridgeFeature(tile)) return tile.bridge === 0 ? [sx, sy - z * 0.22] : [sx + z * 0.22, sy];
+    const [ax, ay] = getTileArt(tile.t).anchors[fi];
+    const [rx, ry] = besideBridge(tile.bridge, ...rotUnit(ax, ay, tile.r));
+    return [sx + (rx - 0.5) * z, sy + (ry - 0.5) * z];
   }
 
   // Screen position of the i-th figure standing on a feature (several figures
@@ -464,11 +475,13 @@ export class BoardView {
       if (sx < z * 0.25 || sx > this.w - z * 0.25 || sy < vp0.top + z * 0.25 || sy > vp0.top + vp0.vh - z * 0.25) offscreen.push([sx, sy, c.x, c.y]);
       if (c.hint) {
         ctx.font = `${Math.round(z * 0.38)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
         ctx.fillText('💡', sx, sy);
       }
       // Bridges, Castles & Bazaars: it only fits here (turned this way) with a bridge
       if (c.bridge && good && z > 34) {
         ctx.font = `${Math.round(z * 0.24)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
         ctx.fillText('🌉', sx + z * 0.27, sy - z * 0.27);
       }
     }
@@ -574,7 +587,11 @@ export class BoardView {
   }
   castleTop(c) {
     const [bx, by] = this.castleBase(c);
-    return [bx, by - this.cam.z * CASTLE_SIZE * 0.345 - this.cam.z * 0.12];
+    return [bx, by - this.cam.z * this.castleSize(c) * 0.345 - this.cam.z * 0.12];
+  }
+  // (side by side, the two halves of the city are narrow strips along the seam)
+  castleSize(c) {
+    return parseKey(c.tiles[0])[0] === parseKey(c.tiles[1])[0] ? CASTLE_SIZE : CASTLE_SIZE * 0.72;
   }
   castleOf(k, who) {
     const list = this.state.castles || [];
