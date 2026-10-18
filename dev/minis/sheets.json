@@ -1,0 +1,18 @@
+[
+ {"name": "P01-ground-core_v1", "sheet": "P01-ground-core", "raw": "P01-ground-core_v1.png"},
+ {"name": "P02-town-houses_v1", "sheet": "P02-town-houses", "raw": "P02-town-houses_v1.png"},
+ {"name": "P03-walls-gates_v1", "sheet": "P03-walls-gates", "raw": "P03-walls-gates_v1.png", "boxes": {"merlon_set": [0.49, 0.58, 0.865, 0.68], "turret_small": [0.87, 0.52, 1.0, 0.73]}},
+ {"name": "P04-townsfolk-clergy_v1", "sheet": "P04-townsfolk-clergy", "raw": "P04-townsfolk-clergy_v1.png"},
+ {"name": "P05-field-folk-animals_v1", "sheet": "P05-field-folk-animals", "raw": "P05-field-folk-animals_v1.png"},
+ {"name": "P06-soldiers-siege_v1", "sheet": "P06-soldiers-siege", "raw": "P06-soldiers-siege_v1.png"},
+ {"name": "P07-trees-plants_v1", "sheet": "P07-trees-plants", "raw": "P07-trees-plants_v1.png"},
+ {"name": "P08-landmarks_v1", "sheet": "P08-landmarks", "raw": "P08-landmarks_v1.png"},
+ {"name": "P09-monastery-garden_v1", "sheet": "P09-monastery-garden", "raw": "P09-monastery-garden_v1.png"},
+ {"name": "P10-market-trades_v1", "sheet": "P10-market-trades", "raw": "P10-market-trades_v1.png"},
+ {"name": "P11-river-mill-bridges_v1", "sheet": "P11-river-mill-bridges", "raw": "P11-river-mill-bridges_v1.png"},
+ {"name": "P12-fantasy-tower_v1", "sheet": "P12-fantasy-tower", "raw": "P12-fantasy-tower_v1.png"},
+ {"name": "P13-ground-extra_v1", "sheet": "P13-ground-extra", "raw": "P13-ground-extra_v1.png", "crops": {"garden_path": [0.17, 0.0, 0.85, 1.0]}},
+ {"name": "P14-life-details_v1", "sheet": "P14-life-details", "raw": "P14-life-details_v1.png"},
+ {"name": "R01-fixes_v1", "sheet": "P10-market-trades", "raw": "R01-fixes_v1.png", "grid": "3x3", "items": ["cooper", "wine_stall", "minstrel", "props", "gatehouse_outer", "gatehouse_inner", "gatehouse_side", "turret_small", "mill_wheel"], "sheets": {"props": "P14-life-details", "gatehouse_outer": "P03-walls-gates", "gatehouse_inner": "P03-walls-gates", "gatehouse_side": "P03-walls-gates", "turret_small": "P03-walls-gates", "mill_wheel": "P11-river-mill-bridges"}, "note": "re-roll: wooden (not iron) cask hoops, a proper vielle instead of a violin, shallower tile cones on the gate towers and turret, a paddled undershot wheel"},
+ {"name": "R02-fixes_v1", "sheet": "P12-fantasy-tower", "raw": "R02-fixes_v1.png", "grid": "3x3", "items": ["tower_base", "tower_floor", "tower_top", "laundry_pieces", "donkey_rider", "bishop", "house_shop_gable", "house_shop_eaves", "cottage_small"], "sheets": {"laundry_pieces": "P14-life-details", "donkey_rider": "P05-field-folk-animals", "bishop": "P04-townsfolk-clergy", "house_shop_gable": "P02-town-houses", "house_shop_eaves": "P02-town-houses", "cottage_small": "P02-town-houses"}, "note": "re-roll: tower pieces at one shared drum diameter, laundry shirt without buttons, natural donkey stripe, lower mitre, 17-degree roofs", "strict": ["bishop", "tower_top"]}
+]

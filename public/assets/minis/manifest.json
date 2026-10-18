@@ -1,0 +1,2077 @@
+{
+ "version": 1,
+ "sprites": {
+  "house_shop_gable": {
+   "file": "sprites/house_shop_gable.webp",
+   "w": 446,
+   "h": 648,
+   "foot": [
+    182,
+    630
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "a narrow two-storey town house, gable end towards the camera"
+  },
+  "house_shop_eaves": {
+   "file": "sprites/house_shop_eaves.webp",
+   "w": 703,
+   "h": 542,
+   "foot": [
+    370,
+    526
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "wide two-storey town house, long side front, two shop openings, balcony"
+  },
+  "house_merchant_stone": {
+   "file": "sprites/house_merchant_stone.webp",
+   "w": 564,
+   "h": 767,
+   "foot": [
+    403,
+    747
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "a three-storey Romanesque merchant's house of warm sandstone ashlar"
+  },
+  "row_houses": {
+   "file": "sprites/row_houses.webp",
+   "w": 589,
+   "h": 570,
+   "foot": [
+    407,
+    554
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "a short terrace of three narrow attached houses of different heights and widths"
+  },
+  "house_courtyard": {
+   "file": "sprites/house_courtyard.webp",
+   "w": 722,
+   "h": 635,
+   "foot": [
+    409,
+    617
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "an L-shaped two-storey house wrapped around a tiny courtyard"
+  },
+  "cottage_small": {
+   "file": "sprites/cottage_small.webp",
+   "w": 525,
+   "h": 414,
+   "foot": [
+    309,
+    401
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "small single-storey rubble-stone cottage with patchy lime-wash"
+  },
+  "village_house_tall": {
+   "file": "sprites/village_house_tall.webp",
+   "w": 456,
+   "h": 637,
+   "foot": [
+    313,
+    619
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "a tall narrow village house of three floors"
+  },
+  "bakehouse": {
+   "file": "sprites/bakehouse.webp",
+   "w": 734,
+   "h": 483,
+   "foot": [
+    508,
+    468
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "low stone communal bakehouse with a domed bread oven and faggots"
+  },
+  "smithy": {
+   "file": "sprites/smithy.webp",
+   "w": 645,
+   "h": 553,
+   "foot": [
+    394,
+    537
+   ],
+   "kind": "building",
+   "sheet": "P02-town-houses",
+   "desc": "an open-fronted blacksmith's shed"
+  },
+  "tower_roman_round": {
+   "file": "sprites/tower_roman_round.webp",
+   "w": 442,
+   "h": 703,
+   "foot": [
+    229,
+    684
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "a free-standing round defensive tower of the late-Roman wall of Carcassonne"
+  },
+  "tower_round_hoarding": {
+   "file": "sprites/tower_round_hoarding.webp",
+   "w": 497,
+   "h": 688,
+   "foot": [
+    252,
+    669
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "round late-Roman tower fitted with a timber hoarding gallery"
+  },
+  "tower_square_watch": {
+   "file": "sprites/tower_square_watch.webp",
+   "w": 276,
+   "h": 749,
+   "foot": [
+    141,
+    729
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "a tall slender square watchtower of the 12th century in sandstone ashlar"
+  },
+  "gatehouse_outer": {
+   "file": "sprites/gatehouse_outer.webp",
+   "w": 717,
+   "h": 568,
+   "foot": [
+    360,
+    552
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "city gate between two round towers, outer face, doors open"
+  },
+  "gatehouse_inner": {
+   "file": "sprites/gatehouse_inner.webp",
+   "w": 622,
+   "h": 551,
+   "foot": [
+    397,
+    535
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "city gate seen from inside the town, stair to the wall-walk"
+  },
+  "gatehouse_side": {
+   "file": "sprites/gatehouse_side.webp",
+   "w": 609,
+   "h": 553,
+   "foot": [
+    178,
+    537
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "city gatehouse seen from the side, passage running left to right"
+  },
+  "wall_outer": {
+   "file": "sprites/wall_outer.webp",
+   "w": 693,
+   "h": 428,
+   "foot": [
+    346,
+    414
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "straight curtain wall, outer face, brick-banded base, merlons"
+  },
+  "wall_inner": {
+   "file": "sprites/wall_inner.webp",
+   "w": 657,
+   "h": 555,
+   "foot": [
+    149,
+    539
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "straight curtain wall seen from the town side with wall-walk"
+  },
+  "hoarding_segment": {
+   "file": "sprites/hoarding_segment.webp",
+   "w": 700,
+   "h": 484,
+   "foot": [
+    106,
+    469
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "a straight matching length of wooden hoarding to sit on top of a wall"
+  },
+  "wall_stair_postern": {
+   "file": "sprites/wall_stair_postern.webp",
+   "w": 538,
+   "h": 632,
+   "foot": [
+    140,
+    614
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "a stone stair rising against the inner face of a wall to the wall-walk"
+  },
+  "merlon_set": {
+   "file": "sprites/merlon_set.webp",
+   "w": 768,
+   "h": 148,
+   "foot": [
+    391,
+    141
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "loose parapet pieces: plain merlons, slit merlons, hoarding beam-ends"
+  },
+  "turret_small": {
+   "file": "sprites/turret_small.webp",
+   "w": 335,
+   "h": 573,
+   "foot": [
+    169,
+    557
+   ],
+   "kind": "wall",
+   "sheet": "P03-walls-gates",
+   "desc": "small round corner turret of banded masonry, low tile cone roof"
+  },
+  "treadwheel_crane": {
+   "file": "sprites/treadwheel_crane.webp",
+   "w": 648,
+   "h": 662,
+   "foot": [
+    352,
+    644
+   ],
+   "kind": "siege",
+   "sheet": "P03-walls-gates",
+   "desc": "a timber treadwheel crane of the 1220s from a masons' building site"
+  },
+  "mason": {
+   "file": "sprites/mason.webp",
+   "w": 482,
+   "h": 603,
+   "foot": [
+    188,
+    586
+   ],
+   "kind": "person",
+   "sheet": "P03-walls-gates",
+   "desc": "stonemason in leather apron dressing a block on a trestle"
+  },
+  "carpenter": {
+   "file": "sprites/carpenter.webp",
+   "w": 521,
+   "h": 576,
+   "foot": [
+    141,
+    559
+   ],
+   "kind": "person",
+   "sheet": "P03-walls-gates",
+   "desc": "a carpenter in a short tunic squaring a long oak beam with a broad axe"
+  },
+  "handbarrow_labourers": {
+   "file": "sprites/handbarrow_labourers.webp",
+   "w": 681,
+   "h": 488,
+   "foot": [
+    632,
+    473
+   ],
+   "kind": "person",
+   "sheet": "P03-walls-gates",
+   "desc": "two labourers carrying a handbarrow of squared stones"
+  },
+  "townsman": {
+   "file": "sprites/townsman.webp",
+   "w": 356,
+   "h": 660,
+   "foot": [
+    111,
+    642
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "a townsman in a knee-length belted wool tunic of faded woad blue"
+  },
+  "townswoman": {
+   "file": "sprites/townswoman.webp",
+   "w": 333,
+   "h": 645,
+   "foot": [
+    155,
+    627
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "married townswoman in a madder-red gown and wimple, jug on her hip"
+  },
+  "boy_running": {
+   "file": "sprites/boy_running.webp",
+   "w": 470,
+   "h": 521,
+   "foot": [
+    223,
+    506
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "barefoot boy in a russet tunic running, arms outstretched"
+  },
+  "girl_hoop": {
+   "file": "sprites/girl_hoop.webp",
+   "w": 549,
+   "h": 550,
+   "foot": [
+    189,
+    534
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "barefoot girl with braids driving a wooden hoop with a stick"
+  },
+  "pilgrim": {
+   "file": "sprites/pilgrim.webp",
+   "w": 419,
+   "h": 708,
+   "foot": [
+    135,
+    689
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "a pilgrim to Santiago in a coarse grey-brown wool cloak"
+  },
+  "princess": {
+   "file": "sprites/princess.webp",
+   "w": 402,
+   "h": 691,
+   "foot": [
+    193,
+    672
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "young princess with gold circlet, rose gown and ermine-lined azure mantle"
+  },
+  "merchant": {
+   "file": "sprites/merchant.webp",
+   "w": 283,
+   "h": 692,
+   "foot": [
+    107,
+    673
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "prosperous merchant in green tunic and surcoat with purse and wax tablet"
+  },
+  "noble_lady": {
+   "file": "sprites/noble_lady.webp",
+   "w": 387,
+   "h": 714,
+   "foot": [
+    205,
+    695
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "a noblewoman in a long scarlet gown with tight sleeves and a sleeveless surcoat"
+  },
+  "benedictine_monk": {
+   "file": "sprites/benedictine_monk.webp",
+   "w": 314,
+   "h": 667,
+   "foot": [
+    138,
+    649
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "a Benedictine monk in a black wool habit and cowl"
+  },
+  "water_carrier": {
+   "file": "sprites/water_carrier.webp",
+   "w": 512,
+   "h": 682,
+   "foot": [
+    160,
+    663
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "a water carrier with two wooden buckets hanging from a shoulder yoke"
+  },
+  "old_woman_spinning": {
+   "file": "sprites/old_woman_spinning.webp",
+   "w": 424,
+   "h": 668,
+   "foot": [
+    202,
+    650
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "old woman in a brown gown spinning with distaff and drop spindle"
+  },
+  "nobleman_falcon": {
+   "file": "sprites/nobleman_falcon.webp",
+   "w": 392,
+   "h": 702,
+   "foot": [
+    106,
+    683
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "young nobleman in blue tunic and red surcoat with a hooded falcon"
+  },
+  "dominican_friar": {
+   "file": "sprites/dominican_friar.webp",
+   "w": 370,
+   "h": 656,
+   "foot": [
+    169,
+    638
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "Dominican friar in white habit and black cloak with staff and book"
+  },
+  "nun": {
+   "file": "sprites/nun.webp",
+   "w": 345,
+   "h": 644,
+   "foot": [
+    155,
+    626
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "a nun in a black habit with a black veil over a white wimple"
+  },
+  "bishop": {
+   "file": "sprites/bishop.webp",
+   "w": 267,
+   "h": 627,
+   "foot": [
+    148,
+    609
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "bishop in red chasuble and white mitre with crozier, blessing"
+  },
+  "canon": {
+   "file": "sprites/canon.webp",
+   "w": 306,
+   "h": 719,
+   "foot": [
+    153,
+    700
+   ],
+   "kind": "person",
+   "sheet": "P04-townsfolk-clergy",
+   "desc": "cathedral canon in white surplice and black cloak with processional cross"
+  },
+  "ploughman_oxen_ard": {
+   "file": "sprites/ploughman_oxen_ard.webp",
+   "w": 768,
+   "h": 560,
+   "foot": [
+    231,
+    544
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "ploughman behind two tawny oxen pulling a wooden ard"
+  },
+  "sheep_group": {
+   "file": "sprites/sheep_group.webp",
+   "w": 623,
+   "h": 483,
+   "foot": [
+    217,
+    468
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "three small coarse-wooled sheep: cream ewe, brown ewe, dark ram"
+  },
+  "shepherd": {
+   "file": "sprites/shepherd.webp",
+   "w": 304,
+   "h": 614,
+   "foot": [
+    96,
+    597
+   ],
+   "kind": "person",
+   "sheet": "P05-field-folk-animals",
+   "desc": "shepherd in a hooded cloak with a spade-tipped crook and satchel"
+  },
+  "hay_cart": {
+   "file": "sprites/hay_cart.webp",
+   "w": 768,
+   "h": 611,
+   "foot": [
+    399,
+    594
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "two-wheeled hay cart pulled by a mule, carter walking beside"
+  },
+  "mule_packed": {
+   "file": "sprites/mule_packed.webp",
+   "w": 613,
+   "h": 564,
+   "foot": [
+    181,
+    548
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "dark bay pack mule with panniers, wineskins and a bell"
+  },
+  "reaper": {
+   "file": "sprites/reaper.webp",
+   "w": 548,
+   "h": 624,
+   "foot": [
+    295,
+    607
+   ],
+   "kind": "person",
+   "sheet": "P05-field-folk-animals",
+   "desc": "a reaper bending to cut wheat with a toothed sickle"
+  },
+  "pig_running": {
+   "file": "sprites/pig_running.webp",
+   "w": 718,
+   "h": 475,
+   "foot": [
+    161,
+    460
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "dark bristly long-legged medieval pig trotting"
+  },
+  "chickens": {
+   "file": "sprites/chickens.webp",
+   "w": 569,
+   "h": 578,
+   "foot": [
+    283,
+    561
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "hens, a rooster and three chicks"
+  },
+  "palfrey_rider": {
+   "file": "sprites/palfrey_rider.webp",
+   "w": 639,
+   "h": 688,
+   "foot": [
+    244,
+    669
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "traveller in a hooded cloak riding a bay palfrey"
+  },
+  "sower": {
+   "file": "sprites/sower.webp",
+   "w": 494,
+   "h": 645,
+   "foot": [
+    269,
+    627
+   ],
+   "kind": "person",
+   "sheet": "P05-field-folk-animals",
+   "desc": "sower in a straw hat broadcasting seed from a linen bag"
+  },
+  "sheaf_binder": {
+   "file": "sprites/sheaf_binder.webp",
+   "w": 502,
+   "h": 644,
+   "foot": [
+    275,
+    626
+   ],
+   "kind": "person",
+   "sheet": "P05-field-folk-animals",
+   "desc": "woman in a straw hat tying a wheat sheaf"
+  },
+  "guard_dog": {
+   "file": "sprites/guard_dog.webp",
+   "w": 642,
+   "h": 590,
+   "foot": [
+    350,
+    573
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "a large shaggy white Pyrenean flock-guarding dog wearing a spiked iron collar"
+  },
+  "goose_girl": {
+   "file": "sprites/goose_girl.webp",
+   "w": 640,
+   "h": 550,
+   "foot": [
+    391,
+    534
+   ],
+   "kind": "person",
+   "sheet": "P05-field-folk-animals",
+   "desc": "a girl with a willow switch herding four grey-and-white geese"
+  },
+  "goats": {
+   "file": "sprites/goats.webp",
+   "w": 578,
+   "h": 531,
+   "foot": [
+    277,
+    515
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "two shaggy horned goats"
+  },
+  "sow_piglets": {
+   "file": "sprites/sow_piglets.webp",
+   "w": 683,
+   "h": 527,
+   "foot": [
+    341,
+    511
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "a dark hairy sow standing with four small dark piglets"
+  },
+  "donkey_rider": {
+   "file": "sprites/donkey_rider.webp",
+   "w": 514,
+   "h": 569,
+   "foot": [
+    303,
+    553
+   ],
+   "kind": "animal",
+   "sheet": "P05-field-folk-animals",
+   "desc": "old peasant riding sideways on a grey donkey with a sack"
+  },
+  "sergeant_spear": {
+   "file": "sprites/sergeant_spear.webp",
+   "w": 312,
+   "h": 663,
+   "foot": [
+    126,
+    645
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "a sergeant in a quilted off-white gambeson and a wide-brimmed iron kettle hat"
+  },
+  "crossbowman_shooting": {
+   "file": "sprites/crossbowman_shooting.webp",
+   "w": 505,
+   "h": 576,
+   "foot": [
+    155,
+    559
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "crossbowman in gambeson and kettle hat aiming a crossbow"
+  },
+  "crossbowman_spanning": {
+   "file": "sprites/crossbowman_spanning.webp",
+   "w": 432,
+   "h": 550,
+   "foot": [
+    233,
+    534
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "crossbowman spanning his crossbow with foot in the stirrup"
+  },
+  "rope_haulers": {
+   "file": "sprites/rope_haulers.webp",
+   "w": 647,
+   "h": 526,
+   "foot": [
+    288,
+    510
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "two sergeants in coifs hauling hard on a rope"
+  },
+  "pierriere_frame": {
+   "file": "sprites/pierriere_frame.webp",
+   "w": 607,
+   "h": 591,
+   "foot": [
+    284,
+    574
+   ],
+   "kind": "siege",
+   "sheet": "P06-soldiers-siege",
+   "desc": "timber frame of a traction trebuchet, no arm"
+  },
+  "pierriere_arm": {
+   "file": "sprites/pierriere_arm.webp",
+   "w": 665,
+   "h": 353,
+   "foot": [
+    332,
+    176
+   ],
+   "kind": "siege",
+   "sheet": "P06-soldiers-siege",
+   "flat": true,
+   "desc": "throwing arm of the traction trebuchet with ropes and sling"
+  },
+  "straw_target": {
+   "file": "sprites/straw_target.webp",
+   "w": 506,
+   "h": 589,
+   "foot": [
+    273,
+    572
+   ],
+   "kind": "prop",
+   "sheet": "P06-soldiers-siege",
+   "desc": "straw practice butt on a stand with bolts, heap of round stones"
+  },
+  "knight_mounted": {
+   "file": "sprites/knight_mounted.webp",
+   "w": 619,
+   "h": 692,
+   "foot": [
+    347,
+    673
+   ],
+   "kind": "animal",
+   "sheet": "P06-soldiers-siege",
+   "desc": "mounted knight in mail and great helm, gold shield with red chevron"
+  },
+  "banner_bearer": {
+   "file": "sprites/banner_bearer.webp",
+   "w": 237,
+   "h": 755,
+   "foot": [
+    95,
+    735
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "sergeant carrying a blue banner with gold fleurs-de-lis"
+  },
+  "horn_watchman": {
+   "file": "sprites/horn_watchman.webp",
+   "w": 383,
+   "h": 613,
+   "foot": [
+    97,
+    596
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "watchman in gambeson and nasal helm blowing a curved horn"
+  },
+  "archer": {
+   "file": "sprites/archer.webp",
+   "w": 429,
+   "h": 656,
+   "foot": [
+    219,
+    638
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "archer in a short tunic drawing a wooden self bow"
+  },
+  "engineer": {
+   "file": "sprites/engineer.webp",
+   "w": 410,
+   "h": 611,
+   "foot": [
+    170,
+    594
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "master engineer in a long tunic with a measuring rod, pointing"
+  },
+  "trabuquet_frame": {
+   "file": "sprites/trabuquet_frame.webp",
+   "w": 602,
+   "h": 597,
+   "foot": [
+    410,
+    580
+   ],
+   "kind": "siege",
+   "sheet": "P06-soldiers-siege",
+   "desc": "heavy timber frame of a counterweight trebuchet with winch, no arm"
+  },
+  "trabuquet_arm": {
+   "file": "sprites/trabuquet_arm.webp",
+   "w": 739,
+   "h": 418,
+   "foot": [
+    370,
+    209
+   ],
+   "kind": "siege",
+   "sheet": "P06-soldiers-siege",
+   "flat": true,
+   "desc": "counterweight trebuchet arm with stone-filled box and sling"
+  },
+  "knight_foot": {
+   "file": "sprites/knight_foot.webp",
+   "w": 351,
+   "h": 613,
+   "foot": [
+    126,
+    596
+   ],
+   "kind": "person",
+   "sheet": "P06-soldiers-siege",
+   "desc": "knight on foot in mail hauberk and nasal helm with sword and shield"
+  },
+  "quintain": {
+   "file": "sprites/quintain.webp",
+   "w": 446,
+   "h": 604,
+   "foot": [
+    241,
+    587
+   ],
+   "kind": "prop",
+   "sheet": "P06-soldiers-siege",
+   "desc": "a wooden quintain for lance practice"
+  },
+  "holm_oak": {
+   "file": "sprites/holm_oak.webp",
+   "w": 669,
+   "h": 590,
+   "foot": [
+    333,
+    573
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "holm oak with a dense rounded dark evergreen crown"
+  },
+  "downy_oak": {
+   "file": "sprites/downy_oak.webp",
+   "w": 725,
+   "h": 601,
+   "foot": [
+    397,
+    584
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "downy oak with a broad spreading light green crown"
+  },
+  "black_poplar": {
+   "file": "sprites/black_poplar.webp",
+   "w": 691,
+   "h": 700,
+   "foot": [
+    312,
+    681
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "tall native black poplar with a broad irregular crown"
+  },
+  "pollard_willow": {
+   "file": "sprites/pollard_willow.webp",
+   "w": 678,
+   "h": 652,
+   "foot": [
+    357,
+    634
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "pollarded willow with a knobbly trunk and a ball of shoots"
+  },
+  "goblet_vine": {
+   "file": "sprites/goblet_vine.webp",
+   "w": 624,
+   "h": 551,
+   "foot": [
+    333,
+    535
+   ],
+   "kind": "plant",
+   "sheet": "P07-trees-plants",
+   "desc": "free-standing goblet-trained grapevine on one stake"
+  },
+  "olive": {
+   "file": "sprites/olive.webp",
+   "w": 706,
+   "h": 677,
+   "foot": [
+    374,
+    658
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "old olive tree with a twisted hollow trunk and silver-green crown"
+  },
+  "apple_tree": {
+   "file": "sprites/apple_tree.webp",
+   "w": 678,
+   "h": 684,
+   "foot": [
+    394,
+    665
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "old apple tree with red and green apples and a ladder"
+  },
+  "hedge_segment": {
+   "file": "sprites/hedge_segment.webp",
+   "w": 701,
+   "h": 427,
+   "foot": [
+    379,
+    413
+   ],
+   "kind": "plant",
+   "sheet": "P07-trees-plants",
+   "desc": "a short straight hedge of hawthorn and bramble with pink dog-roses"
+  },
+  "reed_clump": {
+   "file": "sprites/reed_clump.webp",
+   "w": 571,
+   "h": 643,
+   "foot": [
+    290,
+    625
+   ],
+   "kind": "plant",
+   "sheet": "P07-trees-plants",
+   "desc": "a clump of tall common reeds and cattails with brown seed heads"
+  },
+  "white_poplar": {
+   "file": "sprites/white_poplar.webp",
+   "w": 466,
+   "h": 713,
+   "foot": [
+    244,
+    694
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "white poplar with a silvery trunk and two-tone leaves"
+  },
+  "cypress": {
+   "file": "sprites/cypress.webp",
+   "w": 201,
+   "h": 720,
+   "foot": [
+    101,
+    701
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "slim dark green Italian cypress"
+  },
+  "almond": {
+   "file": "sprites/almond.webp",
+   "w": 669,
+   "h": 707,
+   "foot": [
+    310,
+    688
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "young almond tree with an open crown and green fruits"
+  },
+  "fig": {
+   "file": "sprites/fig.webp",
+   "w": 708,
+   "h": 540,
+   "foot": [
+    325,
+    524
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "a low, wide fig tree with smooth grey branches and large lobed leaves"
+  },
+  "walnut": {
+   "file": "sprites/walnut.webp",
+   "w": 674,
+   "h": 663,
+   "foot": [
+    338,
+    645
+   ],
+   "kind": "tree",
+   "sheet": "P07-trees-plants",
+   "desc": "a large walnut tree with a round airy crown and a pale grey trunk"
+  },
+  "broom": {
+   "file": "sprites/broom.webp",
+   "w": 636,
+   "h": 567,
+   "foot": [
+    343,
+    551
+   ],
+   "kind": "plant",
+   "sheet": "P07-trees-plants",
+   "desc": "a bush of Spanish broom covered in bright yellow flowers"
+  },
+  "garrigue_clump": {
+   "file": "sprites/garrigue_clump.webp",
+   "w": 686,
+   "h": 587,
+   "foot": [
+    357,
+    570
+   ],
+   "kind": "plant",
+   "sheet": "P07-trees-plants",
+   "desc": "garrigue scrub: kermes oak, rosemary and thyme among limestone"
+  },
+  "parish_church": {
+   "file": "sprites/parish_church.webp",
+   "w": 545,
+   "h": 502,
+   "foot": [
+    164,
+    487
+   ],
+   "kind": "building",
+   "sheet": "P08-landmarks",
+   "desc": "small Romanesque parish church with apse and bell-gable"
+  },
+  "cathedral": {
+   "file": "sprites/cathedral.webp",
+   "w": 680,
+   "h": 583,
+   "foot": [
+    316,
+    566
+   ],
+   "kind": "building",
+   "sheet": "P08-landmarks",
+   "desc": "Romanesque cathedral of Saint-Nazaire as in 1220, with cloister"
+  },
+  "inn": {
+   "file": "sprites/inn.webp",
+   "w": 622,
+   "h": 543,
+   "foot": [
+    328,
+    527
+   ],
+   "kind": "building",
+   "sheet": "P08-landmarks",
+   "desc": "roadside inn with gallery, stable, well and a pine-bush sign"
+  },
+  "farmhouse": {
+   "file": "sprites/farmhouse.webp",
+   "w": 644,
+   "h": 484,
+   "foot": [
+    352,
+    469
+   ],
+   "kind": "building",
+   "sheet": "P08-landmarks",
+   "desc": "long low farmhouse with thatched barn, walled yard and bread oven"
+  },
+  "castle": {
+   "file": "sprites/castle.webp",
+   "w": 598,
+   "h": 585,
+   "foot": [
+    342,
+    568
+   ],
+   "kind": "building",
+   "sheet": "P08-landmarks",
+   "desc": "compact stone castle: square keep, curtain wall, gate towers, hall"
+  },
+  "village_well": {
+   "file": "sprites/village_well.webp",
+   "w": 463,
+   "h": 460,
+   "foot": [
+    249,
+    446
+   ],
+   "kind": "prop",
+   "sheet": "P08-landmarks",
+   "desc": "village well with pulley frame, bucket and stone trough"
+  },
+  "wayside_cross": {
+   "file": "sprites/wayside_cross.webp",
+   "w": 533,
+   "h": 530,
+   "foot": [
+    277,
+    514
+   ],
+   "kind": "prop",
+   "sheet": "P08-landmarks",
+   "desc": "disc-headed stone wayside cross and a worn Roman milestone"
+  },
+  "threshing_floor": {
+   "file": "sprites/threshing_floor.webp",
+   "w": 643,
+   "h": 569,
+   "foot": [
+    313,
+    553
+   ],
+   "kind": "ground",
+   "sheet": "P08-landmarks",
+   "desc": "round paved threshing floor with straw, sheaves and a rick"
+  },
+  "highwaymen": {
+   "file": "sprites/highwaymen.webp",
+   "w": 623,
+   "h": 500,
+   "foot": [
+    370,
+    485
+   ],
+   "kind": "person",
+   "sheet": "P08-landmarks",
+   "desc": "robbers' hideout: two hooded outlaws behind a bush, lean-to, campfire"
+  },
+  "monastery_complex": {
+   "file": "sprites/monastery_complex.webp",
+   "w": 651,
+   "h": 623,
+   "foot": [
+    405,
+    606
+   ],
+   "kind": "building",
+   "sheet": "P09-monastery-garden",
+   "desc": "Cistercian abbey: church, cloister, ranges and gatehouse"
+  },
+  "priory_small": {
+   "file": "sprites/priory_small.webp",
+   "w": 572,
+   "h": 571,
+   "foot": [
+    376,
+    555
+   ],
+   "kind": "building",
+   "sheet": "P09-monastery-garden",
+   "desc": "small Benedictine priory: chapel, tiny cloister and stone range"
+  },
+  "herb_garden": {
+   "file": "sprites/herb_garden.webp",
+   "w": 646,
+   "h": 581,
+   "foot": [
+    321,
+    564
+   ],
+   "kind": "ground",
+   "sheet": "P09-monastery-garden",
+   "desc": "monastery herb garden of wattle-edged beds around a small well"
+  },
+  "bee_bench": {
+   "file": "sprites/bee_bench.webp",
+   "w": 718,
+   "h": 374,
+   "foot": [
+    339,
+    362
+   ],
+   "kind": "prop",
+   "sheet": "P09-monastery-garden",
+   "desc": "a row of five coiled-straw bee skeps on a wooden bench under a small tiled roof"
+  },
+  "fishpond": {
+   "file": "sprites/fishpond.webp",
+   "w": 634,
+   "h": 537,
+   "foot": [
+    317,
+    268
+   ],
+   "kind": "ground",
+   "sheet": "P09-monastery-garden",
+   "flat": true,
+   "desc": "a rectangular monastery fishpond with stone edges and a wooden sluice gate"
+  },
+  "monk_hoeing": {
+   "file": "sprites/monk_hoeing.webp",
+   "w": 459,
+   "h": 556,
+   "foot": [
+    286,
+    540
+   ],
+   "kind": "person",
+   "sheet": "P09-monastery-garden",
+   "desc": "Cistercian monk in a greyish-white habit hoeing the soil"
+  },
+  "lay_brother_beekeeper": {
+   "file": "sprites/lay_brother_beekeeper.webp",
+   "w": 558,
+   "h": 605,
+   "foot": [
+    231,
+    588
+   ],
+   "kind": "person",
+   "sheet": "P09-monastery-garden",
+   "desc": "bearded lay brother with a smoking pot beside two bee skeps"
+  },
+  "bell": {
+   "file": "sprites/bell.webp",
+   "w": 342,
+   "h": 557,
+   "foot": [
+    171,
+    278
+   ],
+   "kind": "prop",
+   "sheet": "P09-monastery-garden",
+   "flat": true,
+   "desc": "bronze church bell on its wooden headstock, side-on"
+  },
+  "orchard_cluster": {
+   "file": "sprites/orchard_cluster.webp",
+   "w": 717,
+   "h": 578,
+   "foot": [
+    441,
+    561
+   ],
+   "kind": "tree",
+   "sheet": "P09-monastery-garden",
+   "desc": "pear, quince and cherry trees with a ladder and a basket"
+  },
+  "wine_stall": {
+   "file": "sprites/wine_stall.webp",
+   "w": 633,
+   "h": 603,
+   "foot": [
+    320,
+    586
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "wine stall under a linen awning with small casks and jugs"
+  },
+  "cloth_stall": {
+   "file": "sprites/cloth_stall.webp",
+   "w": 601,
+   "h": 662,
+   "foot": [
+    133,
+    644
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "cloth stall under a linen awning with dyed wool bolts"
+  },
+  "grain_stall": {
+   "file": "sprites/grain_stall.webp",
+   "w": 556,
+   "h": 625,
+   "foot": [
+    279,
+    608
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "grain merchant with open sacks of grain and a bushel measure"
+  },
+  "juggler": {
+   "file": "sprites/juggler.webp",
+   "w": 303,
+   "h": 599,
+   "foot": [
+    152,
+    582
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "jongleur in a parti-coloured tunic and striped hose"
+  },
+  "bear_leader": {
+   "file": "sprites/bear_leader.webp",
+   "w": 643,
+   "h": 670,
+   "foot": [
+    252,
+    652
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "bear-leader with a muzzled brown bear on a chain"
+  },
+  "minstrel": {
+   "file": "sprites/minstrel.webp",
+   "w": 448,
+   "h": 634,
+   "foot": [
+    143,
+    616
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "hooded minstrel playing a vielle"
+  },
+  "money_changer": {
+   "file": "sprites/money_changer.webp",
+   "w": 618,
+   "h": 674,
+   "foot": [
+    157,
+    656
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "money changer at a green-covered table with balance and coins"
+  },
+  "blacksmith_up": {
+   "file": "sprites/blacksmith_up.webp",
+   "w": 387,
+   "h": 723,
+   "foot": [
+    224,
+    704
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "blacksmith at the anvil, hammer raised"
+  },
+  "blacksmith_down": {
+   "file": "sprites/blacksmith_down.webp",
+   "w": 368,
+   "h": 672,
+   "foot": [
+    201,
+    654
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "blacksmith at the anvil, hammer striking"
+  },
+  "pottery_stall": {
+   "file": "sprites/pottery_stall.webp",
+   "w": 689,
+   "h": 554,
+   "foot": [
+    388,
+    538
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "pots, jugs and tall storage jars laid out on straw"
+  },
+  "woad_stall": {
+   "file": "sprites/woad_stall.webp",
+   "w": 517,
+   "h": 670,
+   "foot": [
+    220,
+    652
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "baskets of woad balls, a steelyard and skeins of dyed wool"
+  },
+  "spice_salt_stall": {
+   "file": "sprites/spice_salt_stall.webp",
+   "w": 606,
+   "h": 687,
+   "foot": [
+    383,
+    668
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "spice and salt seller at a small table with balance"
+  },
+  "poultry_produce": {
+   "file": "sprites/poultry_produce.webp",
+   "w": 719,
+   "h": 641,
+   "foot": [
+    506,
+    623
+   ],
+   "kind": "prop",
+   "sheet": "P10-market-trades",
+   "desc": "cages of hens and ducks, eggs, garlic, onions and cheeses"
+  },
+  "cooper": {
+   "file": "sprites/cooper.webp",
+   "w": 419,
+   "h": 629,
+   "foot": [
+    210,
+    611
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "cooper driving a hoop onto a wine cask"
+  },
+  "fishwife": {
+   "file": "sprites/fishwife.webp",
+   "w": 402,
+   "h": 682,
+   "foot": [
+    213,
+    663
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "a fishwife with a flat basket of eels and river fish on her hip"
+  },
+  "tumbler": {
+   "file": "sprites/tumbler.webp",
+   "w": 287,
+   "h": 671,
+   "foot": [
+    114,
+    653
+   ],
+   "kind": "person",
+   "sheet": "P10-market-trades",
+   "desc": "a tumbler in a short tunic doing a handstand"
+  },
+  "mill_house": {
+   "file": "sprites/mill_house.webp",
+   "w": 686,
+   "h": 652,
+   "foot": [
+    238,
+    634
+   ],
+   "kind": "building",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "a stone water mill house with a low canal-tile roof straddling a mill race"
+  },
+  "mill_wheel": {
+   "file": "sprites/mill_wheel.webp",
+   "w": 584,
+   "h": 590,
+   "foot": [
+    292,
+    295
+   ],
+   "kind": "prop",
+   "sheet": "P11-river-mill-bridges",
+   "flat": true,
+   "desc": "a wooden undershot water wheel with straight paddles"
+  },
+  "bridge_lr": {
+   "file": "sprites/bridge_lr.webp",
+   "w": 768,
+   "h": 259,
+   "foot": [
+    445,
+    249
+   ],
+   "kind": "building",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "narrow three-arched stone bridge spanning left to right"
+  },
+  "bridge_front": {
+   "file": "sprites/bridge_front.webp",
+   "w": 409,
+   "h": 633,
+   "foot": [
+    203,
+    615
+   ],
+   "kind": "building",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "narrow stone bridge seen end-on with a small wayside cross"
+  },
+  "angler": {
+   "file": "sprites/angler.webp",
+   "w": 635,
+   "h": 527,
+   "foot": [
+    199,
+    511
+   ],
+   "kind": "person",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "angler on a stone with a wooden rod and a creel"
+  },
+  "washerwomen": {
+   "file": "sprites/washerwomen.webp",
+   "w": 698,
+   "h": 478,
+   "foot": [
+    350,
+    463
+   ],
+   "kind": "person",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "two washerwomen kneeling at flat washing stones with sleeves rolled up"
+  },
+  "ducks": {
+   "file": "sprites/ducks.webp",
+   "w": 686,
+   "h": 235,
+   "foot": [
+    385,
+    225
+   ],
+   "kind": "animal",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "a brown mallard-type duck followed by five ducklings"
+  },
+  "punt_fishermen": {
+   "file": "sprites/punt_fishermen.webp",
+   "w": 628,
+   "h": 640,
+   "foot": [
+    441,
+    622
+   ],
+   "kind": "prop",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "punt with two fishermen, one poling and one hauling a net"
+  },
+  "dyer": {
+   "file": "sprites/dyer.webp",
+   "w": 593,
+   "h": 616,
+   "foot": [
+    345,
+    599
+   ],
+   "kind": "person",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "dyer lifting blue wool from a vat, skeins drying on a pole"
+  },
+  "footbridge": {
+   "file": "sprites/footbridge.webp",
+   "w": 677,
+   "h": 526,
+   "foot": [
+    177,
+    510
+   ],
+   "kind": "building",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "timber plank footbridge on trestle legs with a hand rail"
+  },
+  "ferry": {
+   "file": "sprites/ferry.webp",
+   "w": 695,
+   "h": 532,
+   "foot": [
+    345,
+    516
+   ],
+   "kind": "prop",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "flat ferry boat with a mule, its owner and the ferryman poling"
+  },
+  "fish_traps": {
+   "file": "sprites/fish_traps.webp",
+   "w": 619,
+   "h": 498,
+   "foot": [
+    339,
+    483
+   ],
+   "kind": "prop",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "wicker eel and fish traps and a woven fish weir"
+  },
+  "heron": {
+   "file": "sprites/heron.webp",
+   "w": 380,
+   "h": 600,
+   "foot": [
+    159,
+    583
+   ],
+   "kind": "animal",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "a grey heron standing on one leg"
+  },
+  "children_wading": {
+   "file": "sprites/children_wading.webp",
+   "w": 599,
+   "h": 525,
+   "foot": [
+    318,
+    510
+   ],
+   "kind": "person",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "two children in linen shifts wading and splashing"
+  },
+  "laundry_drying": {
+   "file": "sprites/laundry_drying.webp",
+   "w": 648,
+   "h": 592,
+   "foot": [
+    264,
+    575
+   ],
+   "kind": "prop",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "linen spread on a bush and hung from a cord between poles"
+  },
+  "water_life": {
+   "file": "sprites/water_life.webp",
+   "w": 570,
+   "h": 543,
+   "foot": [
+    272,
+    527
+   ],
+   "kind": "detail",
+   "sheet": "P11-river-mill-bridges",
+   "desc": "leaping trout, green frog, dragonfly and kingfisher"
+  },
+  "dragon_wings_up": {
+   "file": "sprites/dragon_wings_up.webp",
+   "w": 558,
+   "h": 676,
+   "foot": [
+    476,
+    657
+   ],
+   "kind": "fantasy",
+   "sheet": "P12-fantasy-tower",
+   "desc": "great red manuscript-style dragon flying, wings raised"
+  },
+  "dragon_wings_down": {
+   "file": "sprites/dragon_wings_down.webp",
+   "w": 573,
+   "h": 468,
+   "foot": [
+    446,
+    454
+   ],
+   "kind": "fantasy",
+   "sheet": "P12-fantasy-tower",
+   "desc": "great red manuscript-style dragon flying, wings down"
+  },
+  "fairy": {
+   "file": "sprites/fairy.webp",
+   "w": 451,
+   "h": 659,
+   "foot": [
+    268,
+    641
+   ],
+   "kind": "fantasy",
+   "sheet": "P12-fantasy-tower",
+   "desc": "fairy lady in a pale-blue gown with hawthorn sprig, softly glowing"
+  },
+  "volcano": {
+   "file": "sprites/volcano.webp",
+   "w": 631,
+   "h": 557,
+   "foot": [
+    339,
+    541
+   ],
+   "kind": "fantasy",
+   "sheet": "P12-fantasy-tower",
+   "desc": "small basalt volcanic cone with a glowing crater and lava cracks"
+  },
+  "dolmen_portal": {
+   "file": "sprites/dolmen_portal.webp",
+   "w": 627,
+   "h": 595,
+   "foot": [
+    333,
+    578
+   ],
+   "kind": "fantasy",
+   "sheet": "P12-fantasy-tower",
+   "desc": "megalithic dolmen with a shimmering pale-blue passage"
+  },
+  "fairy_ring": {
+   "file": "sprites/fairy_ring.webp",
+   "w": 582,
+   "h": 452,
+   "foot": [
+    291,
+    226
+   ],
+   "kind": "fantasy",
+   "sheet": "P12-fantasy-tower",
+   "flat": true,
+   "desc": "faintly glowing ring of pale mushrooms and tiny white flowers"
+  },
+  "tower_base": {
+   "file": "sprites/tower_base.webp",
+   "w": 528,
+   "h": 576,
+   "foot": [
+    266,
+    559
+   ],
+   "kind": "wall",
+   "sheet": "P12-fantasy-tower",
+   "desc": "round tower base storey under construction with scaffold poles"
+  },
+  "tower_floor": {
+   "file": "sprites/tower_floor.webp",
+   "w": 421,
+   "h": 472,
+   "foot": [
+    209,
+    458
+   ],
+   "kind": "wall",
+   "sheet": "P12-fantasy-tower",
+   "desc": "stackable middle storey of the round tower"
+  },
+  "tower_top": {
+   "file": "sprites/tower_top.webp",
+   "w": 494,
+   "h": 628,
+   "foot": [
+    243,
+    610
+   ],
+   "kind": "wall",
+   "sheet": "P12-fantasy-tower",
+   "desc": "top storey of the round tower: merlons, hoarding and banner pole"
+  },
+  "stork_wings_up": {
+   "file": "sprites/stork_wings_up.webp",
+   "w": 620,
+   "h": 600,
+   "foot": [
+    42,
+    583
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "white stork flying, wings raised"
+  },
+  "stork_wings_down": {
+   "file": "sprites/stork_wings_down.webp",
+   "w": 626,
+   "h": 394,
+   "foot": [
+    434,
+    381
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "white stork flying, wings down"
+  },
+  "stork_nest": {
+   "file": "sprites/stork_nest.webp",
+   "w": 576,
+   "h": 693,
+   "foot": [
+    291,
+    674
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "desc": "white stork on a big stick nest"
+  },
+  "doves": {
+   "file": "sprites/doves.webp",
+   "w": 629,
+   "h": 672,
+   "foot": [
+    368,
+    654
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "five grey rock doves, pecking and taking off"
+  },
+  "cat_sitting": {
+   "file": "sprites/cat_sitting.webp",
+   "w": 317,
+   "h": 574,
+   "foot": [
+    149,
+    558
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "a tabby cat sitting"
+  },
+  "cat_stalking": {
+   "file": "sprites/cat_stalking.webp",
+   "w": 693,
+   "h": 372,
+   "foot": [
+    650,
+    360
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "tabby cat crouched and stalking"
+  },
+  "hound_running": {
+   "file": "sprites/hound_running.webp",
+   "w": 678,
+   "h": 427,
+   "foot": [
+    631,
+    413
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "a lean sandy-coloured hunting hound running"
+  },
+  "sparrows_mouse": {
+   "file": "sprites/sparrows_mouse.webp",
+   "w": 666,
+   "h": 483,
+   "foot": [
+    257,
+    468
+   ],
+   "kind": "animal",
+   "sheet": "P14-life-details",
+   "desc": "two house sparrows and a small brown mouse"
+  },
+  "banner_france": {
+   "file": "sprites/banner_france.webp",
+   "w": 473,
+   "h": 664,
+   "foot": [
+    236,
+    332
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "flat": true,
+   "desc": "banner of France: azure with gold fleurs-de-lis"
+  },
+  "banner_toulouse": {
+   "file": "sprites/banner_toulouse.webp",
+   "w": 485,
+   "h": 659,
+   "foot": [
+    242,
+    330
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "flat": true,
+   "desc": "banner of Toulouse: gold cross of Toulouse on red"
+  },
+  "banner_trencavel": {
+   "file": "sprites/banner_trencavel.webp",
+   "w": 484,
+   "h": 660,
+   "foot": [
+    242,
+    330
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "flat": true,
+   "desc": "Trencavel banner: red and ermine-spotted white bands"
+  },
+  "banner_foix": {
+   "file": "sprites/banner_foix.webp",
+   "w": 482,
+   "h": 659,
+   "foot": [
+    241,
+    330
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "flat": true,
+   "desc": "banner of Foix: gold with three red pales"
+  },
+  "pennons": {
+   "file": "sprites/pennons.webp",
+   "w": 618,
+   "h": 480,
+   "foot": [
+    309,
+    240
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "flat": true,
+   "desc": "four small triangular lance pennons"
+  },
+  "laundry_pieces": {
+   "file": "sprites/laundry_pieces.webp",
+   "w": 627,
+   "h": 418,
+   "foot": [
+    314,
+    209
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "flat": true,
+   "desc": "laundry for hanging: linen shirt, braies and a sheet"
+  },
+  "butterflies_bee": {
+   "file": "sprites/butterflies_bee.webp",
+   "w": 580,
+   "h": 560,
+   "foot": [
+    178,
+    544
+   ],
+   "kind": "detail",
+   "sheet": "P14-life-details",
+   "desc": "swallowtail, brimstone butterfly and a bee"
+  },
+  "props": {
+   "file": "sprites/props.webp",
+   "w": 522,
+   "h": 622,
+   "foot": [
+    293,
+    605
+   ],
+   "kind": "prop",
+   "sheet": "P14-life-details",
+   "desc": "small props: wheat sheaf, basket of loaves, cask, sack of grain"
+  }
+ },
+ "textures": {
+  "meadow": {
+   "file": "textures/meadow.webp",
+   "small": "textures/meadow@512.webp",
+   "size": 1024
+  },
+  "meadow_flowers": {
+   "file": "textures/meadow_flowers.webp",
+   "small": "textures/meadow_flowers@512.webp",
+   "size": 1024
+  },
+  "dirt_road": {
+   "file": "textures/dirt_road.webp",
+   "small": "textures/dirt_road@512.webp",
+   "size": 1024
+  },
+  "town_lane": {
+   "file": "textures/town_lane.webp",
+   "small": "textures/town_lane@512.webp",
+   "size": 1024
+  },
+  "wall_walk": {
+   "file": "textures/wall_walk.webp",
+   "small": "textures/wall_walk@512.webp",
+   "size": 1024
+  },
+  "roof_tiles": {
+   "file": "textures/roof_tiles.webp",
+   "small": "textures/roof_tiles@512.webp",
+   "size": 1024
+  },
+  "ploughed": {
+   "file": "textures/ploughed.webp",
+   "small": "textures/ploughed@512.webp",
+   "size": 1024
+  },
+  "wheat_ripe": {
+   "file": "textures/wheat_ripe.webp",
+   "small": "textures/wheat_ripe@512.webp",
+   "size": 1024
+  },
+  "riverbed": {
+   "file": "textures/riverbed.webp",
+   "small": "textures/riverbed@512.webp",
+   "size": 1024
+  },
+  "vineyard": {
+   "file": "textures/vineyard.webp",
+   "small": "textures/vineyard@512.webp",
+   "size": 1024
+  },
+  "garrigue": {
+   "file": "textures/garrigue.webp",
+   "small": "textures/garrigue@512.webp",
+   "size": 1024
+  },
+  "farmyard": {
+   "file": "textures/farmyard.webp",
+   "small": "textures/farmyard@512.webp",
+   "size": 1024
+  },
+  "market_ground": {
+   "file": "textures/market_ground.webp",
+   "small": "textures/market_ground@512.webp",
+   "size": 1024
+  },
+  "roman_paving": {
+   "file": "textures/roman_paving.webp",
+   "small": "textures/roman_paving@512.webp",
+   "size": 1024
+  },
+  "garden_path": {
+   "file": "textures/garden_path.webp",
+   "small": "textures/garden_path@512.webp",
+   "size": 1024
+  },
+  "stubble": {
+   "file": "textures/stubble.webp",
+   "small": "textures/stubble@512.webp",
+   "size": 1024
+  },
+  "flax": {
+   "file": "textures/flax.webp",
+   "small": "textures/flax@512.webp",
+   "size": 1024
+  },
+  "woad": {
+   "file": "textures/woad.webp",
+   "small": "textures/woad@512.webp",
+   "size": 1024
+  }
+ }
+}
