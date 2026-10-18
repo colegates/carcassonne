@@ -228,10 +228,15 @@ function placeOverlays() {
   bz.style.bottom = `${h + 8}px`;
   const over = bz.hidden ? 0 : bz.offsetHeight + 8; // the auction sheet or the round's strip
   const strip = bz.classList.contains('strip') ? over : 0;
+  // the map keeps clear of the dock and the strip (measured here, not on every draw)
+  const top = $('topbar').offsetHeight;
+  if (view.dockH !== h || view.stripH !== strip || view.topH !== top) { view.dockH = h; view.stripH = strip; view.topH = top; view.dirty = true; }
   $('side-tools').style.bottom = `${h + 14 + strip}px`;
   $('seat-back').style.bottom = `${h + 12 + over}px`;
   $('net-badge').style.bottom = `${h + 16 + over}px`;
 }
+
+window.addEventListener('resize', () => requestAnimationFrame(placeOverlays));
 
 // Row of piece/action choices in the dock (only shown when there is a choice).
 function renderPicker(picker) {
@@ -544,7 +549,8 @@ function renderBazaar() {
     else who = fitsForSomeone(x.t) ? '' : '<span class="bz-warn">⚠ fits nowhere now</span>';
     const sel = sheet ? ui.bazaarPick === i || bz.item === i : x.owner === state.current && x.played;
     const can = mine && !handOver && o.pick?.includes(i);
-    html += `<div class="bz-card${sel ? ' sel' : ''}${x.owner !== null && sheet ? ' owned' : ''}${can ? ' can' : ''}" data-i="${i}"><canvas width="128" height="128"></canvas><div class="bz-who">${who}</div></div>`;
+    // (a real button: iPhones don't send taps on plain boxes to the sheet's click handler)
+    html += `<button type="button" class="bz-card${sel ? ' sel' : ''}${x.owner !== null && sheet ? ' owned' : ''}${can ? ' can' : ''}" data-i="${i}"${can ? '' : ' tabindex="-1"'}><canvas width="128" height="128"></canvas><span class="bz-who">${who}</span></button>`;
   }
   html += '</div>';
   if (sheet) {

@@ -8,7 +8,12 @@ export const EXPANSIONS = [
   { id: 'tower', name: 'The Tower', icon: '🏰', blurb: 'Build towers to capture other players’ meeples and hold them for ransom.', ready: true },
   { id: 'bridges', name: 'Bridges, Castles & Bazaars', icon: '🌉', blurb: 'Bridges carry roads over anything, tiny cities become castles that score their neighbours, and bazaars auction tiles.', ready: true,
     // parts that can be switched off (options.bcb)
-    parts: [['bridges', '🌉 Bridges'], ['castles', '🏰 Castles'], ['bazaars', '🛒 Bazaars'], ['auction', '💰 Bidding']] },
+    parts: [
+      ['bridges', '🌉 Bridges', 'Carry a road over a meadow, city or river'],
+      ['castles', '🏰 Castles', 'Tiny finished cities can become castles'],
+      ['bazaars', '🛒 Bazaars', 'A bazaar tile starts an auction of new tiles'],
+      ['auction', '💰 Bidding', 'Off: everyone just takes a bazaar tile in turn'],
+    ] },
 ];
 
 export const expansionName = (id) => EXPANSIONS.find((e) => e.id === id)?.name || id;

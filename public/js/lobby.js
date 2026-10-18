@@ -69,20 +69,20 @@ export function renderExpansionToggles(box, values, onChange, readOnly = false, 
       sub.hidden = !values[e.id];
       const draw = () => {
         sub.innerHTML = '';
-        for (const [part, label] of e.parts) {
+        for (const [part, label, hint] of e.parts) {
           const on = parts.values[part] !== false;
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = `exp-part${on ? ' on' : ''}`;
-          b.textContent = `${label} ${on ? '✓' : '✗'}`;
-          b.disabled = readOnly || (part === 'auction' && parts.values.bazaars === false);
-          b.addEventListener('click', () => {
+          const row = document.createElement('label');
+          row.className = 'toggle exp-part';
+          row.innerHTML = `<input type="checkbox" ${on ? 'checked' : ''}><span class="slider"></span><span class="tlabel"><b>${label}</b><small>${hint}</small></span>`;
+          const input = row.querySelector('input');
+          input.disabled = readOnly || (part === 'auction' && parts.values.bazaars === false);
+          input.addEventListener('change', () => {
             sfx.tap();
-            parts.values = { ...parts.values, [part]: !on };
-            parts.onChange(part, !on);
+            parts.values = { ...parts.values, [part]: input.checked };
+            parts.onChange(part, input.checked);
             draw();
           });
-          sub.appendChild(b);
+          sub.appendChild(row);
         }
       };
       draw();

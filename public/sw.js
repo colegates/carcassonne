@@ -1,6 +1,6 @@
 // Offline support: app files come from the network when it answers (falling back to
 // the copy kept here), Google Fonts from the copy kept here.
-const CACHE = 'carcassonne-v7';
+const CACHE = 'carcassonne-v8';
 const JS = ['main', 'game', 'tiles', 'art', 'layout', 'board', 'ai', 'rules', 'sound', 'ui', 'controller', 'lobby', 'net', 'expansions',
   'data/river', 'data/abbot', 'data/inns', 'data/traders', 'data/dragon', 'data/tower'].map((f) => `js/${f}.js`);
 const CORE = ['./', 'index.html', 'css/style.css', ...JS, 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

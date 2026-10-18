@@ -73,11 +73,10 @@ export class BoardView {
 
   // Safe area of the board not covered by top bar / dock
   viewport() {
-    const top = (document.getElementById('topbar')?.offsetHeight || 60) + 10;
-    // (Bridges, Castles & Bazaars: the bazaar round's strip sits just above the dock)
-    const bz = document.getElementById('bazaar');
-    const strip = bz && !bz.hidden && bz.classList.contains('strip') ? bz.offsetHeight + 8 : 0;
-    const bottom = (document.getElementById('dock')?.offsetHeight || 120) + 10 + strip;
+    const top = (this.topH || document.getElementById('topbar')?.offsetHeight || 60) + 10;
+    // (Bridges, Castles & Bazaars: the bazaar round's strip sits just above the dock;
+    // its height is measured by the controller, never here: this runs for every point drawn)
+    const bottom = (this.dockH || 120) + 10 + (this.stripH || 0);
     return { top, bottom, cx: this.w / 2, cy: top + (this.h - top - bottom) / 2, vh: this.h - top - bottom };
   }
 
