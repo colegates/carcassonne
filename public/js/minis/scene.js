@@ -124,7 +124,19 @@ function buildScene(id, rot, variant) {
         const piece = pts.slice(i, i + 5);
         const c = piece[2];
         if (gates.some((gt) => Math.hypot(gt.x - c.x, gt.y - c.y) < 0.07)) continue;
-        statics.push({ t: 'wall', pts: piece, side, x: c.x, y: Math.max(...piece.map((p) => p.y)), shadow: false });
+        statics.push({ t: 'wall', pts: piece, side, x: c.x, y: Math.max(...piece.map((p) => p.y)), shadow: false, first: i === 0 });
+      }
+      // where the wall runs off the tile it meets its neighbour's wall, often at an angle: a
+      // round turret stands on the joint, the same one on both tiles (same sprite, size and
+      // spot), so the walls join cleanly whatever the neighbour does
+      const jt = avail('turret_small');
+      for (const p of [pts[0], pts[pts.length - 1]]) {
+        const onEdge = p.x < 0.012 || p.x > 0.988 || p.y < 0.012 || p.y > 0.988;
+        if (!jt || !onEdge || gates.some((gt) => Math.hypot(gt.x - p.x, gt.y - p.y) < 0.1)) continue;
+        const ex = p.x < 0.012 ? 0 : p.x > 0.988 ? 1 : p.x, ey = p.y < 0.012 ? 0 : p.y > 0.988 ? 1 : p.y;
+        const o = make(jt, ex, ey + 0.016, { tag: 'joint', scale: 0.82 });
+        statics.push(o); placed.push({ x: o.x, y: o.y, w: o.w, d: 0.04 });
+        towers.push(o);
       }
       // towers: at intervals, never at the tile edge (the neighbour carries on the wall)
       const L = pts[pts.length - 1].s;

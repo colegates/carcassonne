@@ -1,5 +1,6 @@
 // Small DOM helpers shared by the screens.
 import { drawPiece, FAIRY_COLOR, DRAGON_COLOR } from './art.js';
+import { hasPiece } from './pieces.js';
 import { PLAYER_COLORS } from './game.js';
 import { sfx } from './sound.js';
 
@@ -26,15 +27,39 @@ export function show(id) {
 }
 export const previousScreen = () => prevScreen;
 
+// A figure as a small canvas icon (player chips, the picker, setup rows). Icons drawn
+// before the photographed pieces have loaded are repainted when they arrive.
+const icons = new Set();
+function paintIcon(c, color, size, kind) {
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  const col = kind === 'fairy' ? FAIRY_COLOR : kind === 'dragon' ? DRAGON_COLOR : PLAYER_COLORS[color] || PLAYER_COLORS.red;
+  const k = { dragon: 0.72, pig: 0.9, builder: 0.74, large: 0.68, fairy: 0.72 }[kind] || 0.86; // (fill the icon, never clip)
+  drawPiece(ctx, kind, size / 2, size / 2, size * k, col, { icon: true });
+}
 export function pieceIcon(color, size = 46, kind = 'meeple') {
   const c = document.createElement('canvas');
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   c.width = c.height = size * dpr;
   c.style.width = c.style.height = `${size}px`;
-  const ctx = c.getContext('2d'); ctx.scale(dpr, dpr);
-  const col = kind === 'fairy' ? FAIRY_COLOR : kind === 'dragon' ? DRAGON_COLOR : PLAYER_COLORS[color] || PLAYER_COLORS.red;
-  drawPiece(ctx, kind, size / 2, size / 2 - 1, size * 0.82, col);
+  paintIcon(c, color, size, kind);
+  if (!hasPiece(kind === 'dragon' ? 'dragon_down' : kind)) {
+    c.dataset.icon = JSON.stringify([color, size, kind]);
+    icons.add(new WeakRef(c));
+  }
   return c;
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pieces-ready', () => {
+    for (const ref of icons) {
+      const c = ref.deref();
+      if (!c) { icons.delete(ref); continue; }
+      const [color, size, kind] = JSON.parse(c.dataset.icon);
+      paintIcon(c, color, size, kind);
+    }
+  });
 }
 
 let bannerTimer = null;

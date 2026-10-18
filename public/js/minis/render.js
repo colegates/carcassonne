@@ -55,22 +55,39 @@ function notifyThumbs() {
 }
 
 // ---------- grounds and composites ----------
-const gkey = (id, res) => `g|${id}|${res}`;
+const gkey = (id, r, res) => `g|${id}|${r}|${res}`;
+const dkey = (id, r, S, i, j) => `d|${id}|${r}|${S}|${i}|${j}`;
 const ckey = (id, r, v, res) => `c|${id}|${r}|${v}|${res}`;
-function groundJob(id, res) {
+// The ground of a tile type turned r quarter turns (its grass, lanes and water are laid in
+// board space, so it is built per rotation).
+function groundJob(id, r, res) {
   return function* () {
     if (!groundReady(id, res)) return; // textures still on their way
-    const gen = groundSteps(id, res, { fallbacks: landmarkFallbacks(id), symbols: groundSymbols() });
+    const gen = groundSteps(id, res, { r, fallbacks: landmarkFallbacks(id), symbols: groundSymbols() });
     let c = null;
     for (const v of gen) { if (v) c = v; else yield; }
-    if (c) cachePut(gkey(id, res), c, res * res * 4);
+    if (c) cachePut(gkey(id, r, res), c, res * res * 4);
   };
 }
-function getGround(id, res, build = true) {
-  const g = cacheGet(gkey(id, res));
+function getGround(id, r, res, build = true) {
+  const g = cacheGet(gkey(id, r, res));
   if (g) return g;
-  if (build) request(gkey(id, res), groundJob(id, res));
+  if (build) request(gkey(id, r, res), groundJob(id, r, res));
   return null;
+}
+// Deep zoom: the ground is painted live at screen resolution, in square pieces of CH device
+// px of a tile S px wide, built as jobs and cached like everything else.
+const CH = 512;
+const DEEP = [2048, 3072, 4096, 6144, 8192, 12288];
+function deepJob(id, r, S, i, j) {
+  return function* () {
+    if (!groundReady(id, S)) return;
+    const win = [i * CH, j * CH, Math.min(CH, S - i * CH), Math.min(CH, S - j * CH)];
+    const gen = groundSteps(id, S, { r, win, fallbacks: landmarkFallbacks(id), symbols: groundSymbols() });
+    let c = null;
+    for (const v of gen) { if (v) c = v; else yield; }
+    if (c) cachePut(dkey(id, r, S, i, j), c, c.width * c.height * 4);
+  };
 }
 // any cached ground or composite of a tile, nearest in size
 function anyCached(prefix, res) {
@@ -87,13 +104,13 @@ function spritesLoaded(list) {
 }
 function compositeJob(id, r, v, res) {
   return function* () {
-    let ground = cacheGet(gkey(id, res));
+    let ground = cacheGet(gkey(id, r, res));
     if (!ground) {
       if (!groundReady(id, res)) return;
-      const gen = groundSteps(id, res, { fallbacks: landmarkFallbacks(id), symbols: groundSymbols() });
+      const gen = groundSteps(id, res, { r, fallbacks: landmarkFallbacks(id), symbols: groundSymbols() });
       for (const x of gen) { if (x) ground = x; else yield; }
       if (!ground) return;
-      cachePut(gkey(id, res), ground, res * res * 4);
+      cachePut(gkey(id, r, res), ground, res * res * 4);
     }
     const scene = getScene(id, r, v);
     if (!spritesLoaded(scene.statics)) return; // try again once they have decoded
@@ -103,7 +120,7 @@ function compositeJob(id, r, v, res) {
     const g = c.getContext('2d');
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
     const cx = MX * res + res / 2, cy = MT * res + res / 2;
-    g.save(); g.translate(cx, cy); g.rotate((r * Math.PI) / 2); g.drawImage(ground, -res / 2, -res / 2, res, res); g.restore();
+    g.drawImage(ground, cx - res / 2, cy - res / 2, res, res);
     A.resetMipBudget(1e6);
     const items = scene.statics.map((o) => ({ ...o, tx: cx, ty: cy, z: res }));
     drawShadows(g, items, 1);
@@ -239,52 +256,98 @@ function pat(ctx, img) {
   if (!p) { p = ctx.createPattern(img, 'repeat'); m.set(img, p); }
   return p;
 }
+// A face texture of the curtain wall (outer: the banded late-Roman masonry; inner: the town
+// side), a generated face-on swatch when there is one, else the wall miniature's own face.
+const faceTex = new Map();
+function wallFace(inner) {
+  const id = inner ? 'wall_face_inner' : 'wall_face_outer';
+  if (faceTex.has(id)) return faceTex.get(id);
+  if (A.hasTexture(id)) {
+    const img = A.textureImage(id, true);
+    if (!img) return masonry();
+    faceTex.set(id, img);
+    return img;
+  }
+  return masonry();
+}
 function drawWall(ctx, it) {
   const { pts, side, z, tx, ty } = it;
   const hw = WALL_W * 0.5, H = WALL_H * z;
   const P = (p, s) => [tx + (p.x + p.nx * s - 0.5) * z, ty + (p.y + p.ny * s - 0.5) * z];
   const outer = pts.map((p) => P(p, side * hw)), inner = pts.map((p) => P(p, -side * hw));
-  const mid = pts[Math.floor(pts.length / 2)];
-  const fc = masonry();
-  const face = pat(ctx, fc);
-  // one band of the face texture is the wall's height
-  face.setTransform(new DOMMatrix().translate(tx, ty - H).scale((WALL_H * z) / (fc.height / 2)));
-  const drawFace = (line, nx, ny) => {
-    if (ny <= -0.05) return; // facing away from us
-    ctx.beginPath();
-    line.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-    for (let i = line.length - 1; i >= 0; i--) ctx.lineTo(line[i][0], line[i][1] - H);
-    ctx.closePath();
-    ctx.fillStyle = face; ctx.fill();
-    // light from the upper left: faces turned right are in shade
-    const shade = 0.06 + 0.2 * (nx * 0.7 + 0.3);
-    ctx.fillStyle = `rgba(30,20,10,${Math.max(0.05, shade).toFixed(3)})`; ctx.fill();
-    // grime at the foot
-    ctx.strokeStyle = 'rgba(40,30,15,0.35)'; ctx.lineWidth = Math.max(0.6, z * 0.004);
-    ctx.beginPath(); line.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+  // one face (outer or inner): the runs of segments that face the camera, each run one
+  // polygon (no seams), lit by a gradient that follows the turning of the wall
+  const drawFace = (line, sgn, isInner) => {
+    const fc = wallFace(isInner);
+    const face = pat(ctx, fc);
+    const rep = fc === faceCanvas ? fc.height / 2 : fc.height / 2.2;
+    const k = (WALL_H * z) / rep; // texture px -> screen px
+    let run = [];
+    const flush = () => {
+      if (run.length < 2) { run = []; return; }
+      // the masonry laid along the wall, segment by segment, its courses following the foot
+      for (let q = 0; q < run.length - 1; q++) {
+        const i = run[q], [ax, ay] = line[i], [bx, by] = line[run[q + 1]];
+        const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len, uy = dy / len, e = Math.min(0.7, len * 0.3); // a hair of overlap
+        const u0 = (pts[i].s * z) % (fc.width * k);
+        face.setTransform(new DOMMatrix([ux * k, uy * k, 0, k, ax - ux * u0, ay - H - uy * u0]));
+        ctx.beginPath();
+        ctx.moveTo(ax - ux * e, ay - uy * e); ctx.lineTo(bx + ux * e, by + uy * e);
+        ctx.lineTo(bx + ux * e, by + uy * e - H); ctx.lineTo(ax - ux * e, ay - uy * e - H);
+        ctx.closePath();
+        ctx.fillStyle = face; ctx.fill();
+      }
+      ctx.beginPath();
+      run.forEach((i, k2) => (k2 ? ctx.lineTo(line[i][0], line[i][1]) : ctx.moveTo(line[i][0], line[i][1])));
+      for (let k2 = run.length - 1; k2 >= 0; k2--) ctx.lineTo(line[run[k2]][0], line[run[k2]][1] - H);
+      ctx.closePath();
+      // light from the upper left: faces turned right are in shade
+      const xs = run.map((i) => line[i][0]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs);
+      const shadeOf = (i) => { const p = pts[i]; const nx = p.nx * sgn; return Math.max(0.05, 0.08 + 0.2 * (nx * 0.7 + 0.3)); };
+      let mono = true;
+      for (let k = 1; k < xs.length; k++) if ((xs[k] - xs[k - 1]) * (xs[1] - xs[0]) < 0) mono = false;
+      if (mono && x1 - x0 > 1) {
+        const gr = ctx.createLinearGradient(x0, 0, x1, 0);
+        for (const i of run) gr.addColorStop(Math.max(0, Math.min(1, (line[i][0] - x0) / (x1 - x0))), `rgba(30,20,10,${shadeOf(i).toFixed(3)})`);
+        ctx.fillStyle = gr;
+      } else ctx.fillStyle = `rgba(30,20,10,${(run.reduce((a, i) => a + shadeOf(i), 0) / run.length).toFixed(3)})`;
+      ctx.fill();
+      // grime at the foot
+      ctx.strokeStyle = 'rgba(40,30,15,0.35)'; ctx.lineWidth = Math.max(0.6, z * 0.004);
+      ctx.beginPath(); run.forEach((i, k) => (k ? ctx.lineTo(line[i][0], line[i][1]) : ctx.moveTo(line[i][0], line[i][1]))); ctx.stroke();
+      run = [];
+    };
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const ny = ((a.ny + b.ny) / 2) * sgn; // the face's normal, towards the camera when > 0
+      if (ny > -0.04) { if (!run.length) run.push(i); run.push(i + 1); } else flush();
+    }
+    flush();
   };
-  drawFace(outer, mid.nx * side, mid.ny * side);
-  drawFace(inner, -mid.nx * side, -mid.ny * side);
+  drawFace(outer, side, false);
+  drawFace(inner, -side, true);
   // the walk on top
   ctx.beginPath();
   outer.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - H) : ctx.moveTo(x, y - H)));
   for (let i = inner.length - 1; i >= 0; i--) ctx.lineTo(inner[i][0], inner[i][1] - H);
   ctx.closePath();
-  const top = pat(ctx, wallTop());
   const tw = wallTop();
+  const top = pat(ctx, tw);
   top.setTransform(new DOMMatrix().translate(tx, ty).scale((0.12 * z) / tw.width));
   ctx.fillStyle = top; ctx.fill();
   ctx.fillStyle = 'rgba(255,240,210,0.08)'; ctx.fill();
   ctx.strokeStyle = 'rgba(50,40,28,0.55)'; ctx.lineWidth = Math.max(0.5, z * 0.002);
   for (const line of [outer, inner]) { ctx.beginPath(); line.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - H) : ctx.moveTo(x, y - H))); ctx.stroke(); }
-  // merlons on the outer parapet
+  // merlons on the outer parapet, one every ~0.022 of a tile along the whole wall
   const mw = 0.011 * z, mh = 0.013 * z;
   for (let i = 0; i < outer.length; i++) {
     const [x, y] = outer[i];
     const p = pts[i];
-    // step every ~0.022 tile
-    if (Math.floor(p.s / 0.022) === Math.floor((pts[i - 1]?.s ?? -1) / 0.022)) continue;
-    const bx = x - p.nx * side * mw * 0.3 / z * z, by = y - H;
+    if (i && Math.floor(p.s / 0.022) === Math.floor(pts[i - 1].s / 0.022)) continue;
+    if (!i && it.first === false) continue; // (the piece before drew this one)
+    const bx = x - p.nx * side * mw * 0.3, by = y - H;
     ctx.fillStyle = '#9d907a'; ctx.fillRect(bx - mw / 2, by - mh, mw, mh);
     ctx.fillStyle = '#d6cab0'; ctx.fillRect(bx - mw / 2, by - mh, mw, mh * 0.3);
     ctx.fillStyle = 'rgba(40,30,20,0.35)'; ctx.fillRect(bx + mw * 0.2, by - mh, mw * 0.3, mh);
@@ -345,16 +408,36 @@ export class MinisRenderer {
     // far/mid without any composite yet: a few tiles show their ground and live miniatures,
     // the rest keep the painted tile until their composite is baked
     if (mode !== 'close' && (this.pendingStatics?.length || 0) >= 6) return false;
-    let g = getGround(tile.t, res);
-    if (!g) g = anyCached((b) => gkey(tile.t, b), res);
+    let g = getGround(tile.t, r, res);
+    if (!g) g = anyCached((b) => gkey(tile.t, r, b), res);
     if (!g) return false;
-    ctx.save(); ctx.translate(sx, sy); ctx.rotate((r * Math.PI) / 2);
-    ctx.drawImage(g, -size / 2 - 0.4, -size / 2 - 0.4, size + 0.8, size + 0.8);
-    ctx.restore();
+    ctx.drawImage(g, sx - size / 2 - 0.4, sy - size / 2 - 0.4, size + 0.8, size + 0.8);
+    if (mode === 'close' && size * dpr > 1100) this.drawDeepGround(ctx, tile, sx, sy, size);
     if (mode === 'close' && !opts.noWater) this.drawTileWater(ctx, key, tile, sx, sy, size);
     // a far/mid tile still waiting for its composite: show the statics live for now
     if (mode !== 'close') this.pendingStatics = (this.pendingStatics || []).concat([{ key, tile, sx, sy, size }]);
     return true;
+  }
+  // Deep zoom: the visible part of the tile's ground in pieces painted at screen resolution
+  // (drawn over the largest cached ground, which shows until they are ready).
+  drawDeepGround(ctx, tile, sx, sy, size) {
+    const dpr = this.view.dpr, px = size * dpr;
+    const S = DEEP.find((b) => b >= px * 0.85) || DEEP[DEEP.length - 1];
+    const n = Math.ceil(S / CH), k = size / S;
+    const x0 = sx - size / 2, y0 = sy - size / 2;
+    const i0 = Math.max(0, Math.floor(-x0 / k / CH)), i1 = Math.min(n - 1, Math.floor((this.view.w - x0) / k / CH));
+    const j0 = Math.max(0, Math.floor(-y0 / k / CH)), j1 = Math.min(n - 1, Math.floor((this.view.h - y0) / k / CH));
+    if (i1 < i0 || j1 < j0) return;
+    const cx = (i0 + i1) / 2, cy = (j0 + j1) / 2;
+    const want = [];
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const c = cacheGet(dkey(tile.t, tile.r, S, i, j));
+      if (c) ctx.drawImage(c, x0 + i * CH * k - 0.25, y0 + j * CH * k - 0.25, c.width * k + 0.5, c.height * k + 0.5);
+      else want.push([Math.hypot(i - cx, j - cy), i, j]);
+    }
+    // the middle of the screen first
+    want.sort((a, b) => a[0] - b[0]);
+    for (const [, i, j] of want) request(dkey(tile.t, tile.r, S, i, j), deepJob(tile.t, tile.r, S, i, j));
   }
   drawTileWater(ctx, key, tile, sx, sy, size) {
     const scene = getScene(tile.t, tile.r, this.variant(key));

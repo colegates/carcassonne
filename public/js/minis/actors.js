@@ -3,7 +3,7 @@
 // Each actor pushes draw items in the tile's screen-oriented unit space:
 //   { x, y (foot), id | draw, w, h, flip, alpha, lift, angle, pivot, shadow, sort, over }
 import * as A from './assets.js';
-import { CAT, GROUPS } from './catalog.js';
+import { CAT, GROUPS, sizeOf } from './catalog.js';
 import { sampleSeg } from './plan.js';
 import { avail, WALL_H } from './scene.js';
 import { RIVER_W } from './ground.js';
@@ -26,9 +26,20 @@ function along(pts, d) {
   return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, tx: a.tx + (b.tx - a.tx) * u, ty: a.ty + (b.ty - a.ty) * u, nx: a.nx, ny: a.ny };
 }
 function sizeFor(id, scale = 1) {
-  const info = A.spriteInfo(id); const c = CAT[id] || { h: 0.035 };
+  const info = A.spriteInfo(id);
+  if (info && (CAT[id] || id.endsWith('_b'))) return sizeOf(id, info, scale);
+  const c = CAT[id] || { h: 0.035 };
   const asp = info ? info.h / info.w : 1.6;
   return c.w ? [c.w * scale, c.w * asp * scale] : [(c.h / asp) * scale, c.h * scale];
+}
+// Stop-motion walking: the two poses of a figure (left leg, right leg) swap with each stride.
+// Animals and carts step a little slower than people.
+const STRIDE = { mule_packed: 1.5, hay_cart: 1.3, palfrey_rider: 1.7, donkey_rider: 1.5, knight_mounted: 1.8, goose_girl: 1.8, pig_running: 3, guard_dog: 2.6, boy_running: 3 };
+function walkPose(id, t, seed = 0) {
+  const b = id + '_b';
+  if (!A.hasSprite(b)) return id;
+  const rate = STRIDE[id] || 2.1; // strides per second
+  return Math.floor(t * rate + (seed % 7) / 7) % 2 ? b : id;
 }
 function fig(id, x, y, o = {}) {
   const [w, h] = sizeFor(id, o.scale || 1);
@@ -104,7 +115,7 @@ function roadWalker(road, id, seed, o = {}) {
         const f = d / L, [s0, s1] = road.span;
         if (f > s0 - 0.04 && f < s1 + 0.04) { deck = 0.035 * Math.sin(Math.PI * clamp((f - s0 + 0.04) / (s1 - s0 + 0.08), 0, 1)); sort = 0.09; }
       }
-      out.push(fig(id, x, y, { flip: vx > 0.05 ? true : vx < -0.05 ? false : (seed & 1) === 1, alpha: edgeFade, lift: bob + deck, scale, sort }));
+      out.push(fig(dir ? walkPose(id, T, seed) : id, x, y, { flip: vx > 0.05 ? true : vx < -0.05 ? false : (seed & 1) === 1, alpha: edgeFade, lift: bob * 0.5 + deck, scale, sort }));
     },
   };
 }
@@ -135,7 +146,8 @@ function wanderer(points, id, seed, o = {}) {
       if (u < walkU) { const v = u / walkU; x = a[0] + (b[0] - a[0]) * v; y = a[1] + (b[1] - a[1]) * v; moving = true; } else { x = b[0]; y = b[1]; }
       const bob = moving ? Math.abs(Math.sin(step12(t + phase) * 9)) * 0.002 : 0;
       const flip = b[0] - a[0] > 0.002;
-      out.push(fig(o.idAt ? o.idAt(k) : id, x, y, { flip, lift: bob + (o.lift || 0), scale }));
+      const who = o.idAt ? o.idAt(k) : id;
+      out.push(fig(moving ? walkPose(who, t + phase, seed) : who, x, y, { flip, lift: bob * 0.5 + (o.lift || 0), scale }));
     },
   };
 }
@@ -159,7 +171,7 @@ function wallPatrol(wall, id, seed) {
       const inward = -wall.side * 0.008;
       const vx = p.tx * dir;
       const bob = dir ? Math.abs(Math.sin(step12(t + phase) * 8)) * 0.0018 : 0;
-      out.push(fig(id, p.x + p.nx * inward, p.y + p.ny * inward, { flip: vx > 0.05, lift: WALL_H + bob, sort: 0.045, scale: 0.95 }));
+      out.push(fig(dir ? walkPose(id, t + phase, seed) : id, p.x + p.nx * inward, p.y + p.ny * inward, { flip: vx > 0.05, lift: WALL_H + bob * 0.5, sort: 0.045, scale: 0.95 }));
     },
   };
 }

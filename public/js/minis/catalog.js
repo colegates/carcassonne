@@ -1,3 +1,4 @@
+import * as A from './assets.js';
 // Real sizes of the miniature sprites, as a fraction of a tile edge (a tile is about 48 m of
 // countryside, so a person of 1.7 m is 0.035). `w` = width of the trimmed sprite, `h` = height;
 // the other dimension follows the sprite's own aspect. `walk`: a figure that walks (sheet
@@ -56,6 +57,11 @@ export const CAT = {
 
 // Width and height (tile units) of a sprite from its catalogue size and pixel aspect.
 export function sizeOf(id, info, scale = 1) {
+  // a second walking pose ('townsman_b') is drawn at exactly the first pose's pixel scale
+  if (!CAT[id] && id.endsWith('_b') && CAT[id.slice(0, -2)] && info) {
+    const base = id.slice(0, -2), bi = A.spriteInfo(base);
+    if (bi) { const [bw] = sizeOf(base, bi, scale); const k = bw / bi.w; return [info.w * k, info.h * k]; }
+  }
   const c = CAT[id] || { h: 0.05 };
   const asp = info ? info.h / info.w : 1;
   if (c.w) return [c.w * scale, c.w * asp * scale];

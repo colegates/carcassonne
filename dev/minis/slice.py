@@ -178,6 +178,11 @@ DESC = {
 }
 
 KIND = {}
+def base_id(i):
+    """The item a pose variant belongs to: 'townsman_b' -> 'townsman' (second walking pose)."""
+    return i[:-2] if i.endswith('_b') else i
+
+
 def _k(kind, ids):
     for i in ids.split():
         KIND[i] = kind
@@ -409,6 +414,14 @@ def foot_point(alpha, flat):
     return [int(round(x)), int(round(y))]
 
 
+def upper_centroid(alpha):
+    """Mean x of the middle band of a figure (body, load): steady between walking poses."""
+    ys, xs = np.nonzero(alpha > ALPHA_T)
+    y0, y1 = ys.min(), ys.max()
+    sel = (ys > y0 + (y1 - y0) * 0.3) & (ys < y0 + (y1 - y0) * 0.65)
+    return float(xs[sel].mean())
+
+
 def process_entry(entry, prompts, out_dir):
     sheet = entry['sheet']
     p = prompts[sheet]
@@ -425,6 +438,7 @@ def process_entry(entry, prompts, out_dir):
     meta = {}
     os.makedirs(os.path.join(out_dir, 'sprites'), exist_ok=True)
     cores, multi = [], []
+    centroids = {}
     for k, item_id in enumerate(ids):
         r, c = divmod(k, cols)
         y0, y1 = int(round(r * ch)), int(round((r + 1) * ch))
@@ -433,7 +447,7 @@ def process_entry(entry, prompts, out_dir):
         if box:  # [x0, y0, x1, y1] as fractions of the sheet, for items off the grid
             x0, y0, x1, y1 = int(box[0] * W), int(box[1] * H), int(box[2] * W), int(box[3] * H)
         cores.append((y0, x0, y1, x1))
-        multi.append(item_id in MULTI)
+        multi.append(base_id(item_id) in MULTI)
     strict = [i in set(entry.get('strict', [])) for i in ids]
     lab, f, kept = assign_components(arr[..., 3], cores, multi, cell, strict)
     for k, item_id in enumerate(ids):
@@ -458,14 +472,24 @@ def process_entry(entry, prompts, out_dir):
         if s < 1.0:
             size = (max(1, round(w * s)), max(1, round(h * s)))
             crop = resize_premul(crop, size)
+        if item_id in entry.get('flip', []):  # faces the wrong way on the sheet
+            crop = crop[:, ::-1].copy()
         h, w = crop.shape[:2]
         desc = descs.get(item_id, '')
-        flat = desc.startswith('flat, face-on') or item_id in FLAT_EXTRA
+        flat = desc.startswith('flat, face-on') or base_id(item_id) in FLAT_EXTRA
         foot = foot_point(crop[..., 3], flat)
+        cx = upper_centroid(crop[..., 3])
+        centroids[item_id] = (cx, foot, s)
+        base = base_id(item_id)
+        if base != item_id and base in centroids:
+            # a second walking pose: line its body up with the first pose's, so swapping poses
+            # moves the legs, not the figure (the foot is where the first pose's foot falls)
+            bcx, bfoot, bs = centroids[base]
+            foot = [int(round(cx + (bfoot[0] - bcx) * s / bs)), foot[1]]
         path = os.path.join(out_dir, 'sprites', f'{item_id}.webp')
         Image.fromarray(crop, 'RGBA').save(path, 'WEBP', quality=QUALITY, method=6, alpha_quality=90)
         rec = {'file': f'sprites/{item_id}.webp', 'w': w, 'h': h, 'foot': foot,
-               'kind': KIND.get(item_id, 'prop'), 'sheet': entry.get('sheets', {}).get(item_id, sheet)}
+               'kind': KIND.get(item_id) or KIND.get(base_id(item_id), 'prop'), 'sheet': entry.get('sheets', {}).get(item_id, sheet)}
         if flat:
             rec['flat'] = True
         rec['desc'] = entry.get('desc', {}).get(item_id) or DESC.get(item_id) or short_desc(desc)

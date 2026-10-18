@@ -15,15 +15,34 @@ const GARDEN_BOX = (g) => [g.x - 0.14, g.y - 0.095, 0.28, 0.19];
 function cv(w, h = w) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
 // reusable scratch canvases by size
 const scratch = new Map();
-function layer(S, slot = 0) {
-  const k = `${S}|${slot}`;
+function scratchCanvas(W, H, slot) {
+  const k = `${W}x${H}|${slot}`;
   let c = scratch.get(k);
-  if (!c) { c = cv(S); scratch.set(k, c); }
+  if (c) scratch.delete(k); else c = cv(W, H);
+  scratch.set(k, c); // most recently used last
+  // keep the big scratch canvases few (deep-zoom pieces come in several sizes)
+  if (scratch.size > 40) for (const [k0, c0] of scratch) { if (c0.width * c0.height > 65536 && c0 !== c) { c0.width = 0; scratch.delete(k0); break; } }
   const g = c.getContext('2d');
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-  g.clearRect(0, 0, S, S);
+  g.clearRect(0, 0, W, H);
   return [c, g];
 }
+// A view of the ground being painted: the tile at S px, turned by r quarter turns into screen
+// orientation, of which the window [x0, y0, W, H] (device px of that S-sized tile) is painted.
+// Drawing code works in canonical tile pixels (0..S); B maps them onto the canvas.
+function makeView(S, r = 0, win = null) {
+  const [x0, y0, W, H] = win || [0, 0, S, S];
+  const B = new DOMMatrix().translate(-x0, -y0).translate(S / 2, S / 2).rotate(r * 90).translate(-S / 2, -S / 2);
+  return { S, r, x0, y0, W, H, B };
+}
+// a scratch layer the size of the view, ready to draw on in canonical tile pixels
+function layer(V, slot = 0) {
+  const [c, g] = scratchCanvas(V.W, V.H, slot);
+  g.setTransform(V.B);
+  return [c, g];
+}
+// draw a layer (already in canvas pixels) onto the view's canvas
+function blit(g, l) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(l, 0, 0); g.restore(); }
 function segPath(seg, S, p = new Path2D()) {
   p.moveTo(seg[0][0] * S, seg[0][1] * S);
   p.bezierCurveTo(seg[1][0] * S, seg[1][1] * S, seg[2][0] * S, seg[2][1] * S, seg[3][0] * S, seg[3][1] * S);
@@ -39,6 +58,7 @@ function outlinePath(outline, S, p = new Path2D()) {
   return p;
 }
 const lerp = (a, b, t) => a + (b - a) * t;
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
 // ---------- textures (real, or a procedural stand-in when the manifest has none) ----------
 const PROC = {
@@ -108,11 +128,53 @@ function pattern(g, img, repeat, S, { rot = 0, ox = 0, oy = 0 } = {}) {
   return p;
 }
 
+// A texture laid in board space rather than tile space: n repeats per tile edge, anchored at the
+// tile corner and never turned with the tile, so a neighbour at any rotation carries on the
+// very same grass blades and pebbles across the seam. turn: a quarter turn of the texture
+// itself (in screen space), for directional textures such as ruts.
+function wpat(g, V, img, n, turn = 0) {
+  const p = g.createPattern(img, 'repeat');
+  const S = V.S;
+  let m = new DOMMatrix().translate(S / 2, S / 2).rotate(-V.r * 90).translate(-S / 2, -S / 2);
+  if (turn) m = m.rotate(90);
+  p.setTransform(m.scale(S / (n * img.width)));
+  return p;
+}
+// The ends of a ribbon (road, river, wall-walk) where it leaves the tile: laid in board space
+// with its grain across the edge, then blended into the curved ribbon over `band` of a tile,
+// so both tiles meeting at an edge show the same texture there.
+function edgeBands(g, V, segs, width, img, n, band = 0.16, half = 0.75) {
+  const S = V.S;
+  for (const seg of segs) {
+    for (const [p, q] of [[seg[0], seg[1]], [seg[3], seg[2]]]) {
+      const [x, y] = p;
+      let e = -1;
+      if (y < 0.004) e = 0; else if (x > 0.996) e = 1; else if (y > 0.996) e = 2; else if (x < 0.004) e = 3;
+      if (e < 0) continue;
+      const se = (e + V.r) % 4; // the edge on screen
+      const [l, lg] = layer(V, 3);
+      // a strip from the edge inwards, as wide as the ribbon and a little more
+      const hw = width * half;
+      const rect = e === 0 ? [x - hw, 0, 2 * hw, band] : e === 2 ? [x - hw, 1 - band, 2 * hw, band] : e === 1 ? [1 - band, y - hw, band, 2 * hw] : [0, y - hw, band, 2 * hw];
+      lg.fillStyle = wpat(lg, V, img, n, se % 2 === 1 ? 1 : 0);
+      lg.fillRect(rect[0] * S, rect[1] * S, rect[2] * S, rect[3] * S);
+      // fade: solid for the first third of the band, gone at its end
+      const gx0 = e === 1 ? S : e === 3 ? 0 : x * S, gy0 = e === 0 ? 0 : e === 2 ? S : y * S;
+      const dx = e === 1 ? -1 : e === 3 ? 1 : 0, dy = e === 0 ? 1 : e === 2 ? -1 : 0;
+      const gr = lg.createLinearGradient(gx0, gy0, gx0 + dx * band * S, gy0 + dy * band * S);
+      gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.35, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      lg.globalCompositeOperation = 'destination-in'; lg.fillStyle = gr; lg.fillRect(0, 0, S, S);
+      lg.globalCompositeOperation = 'source-over';
+      blit(g, l);
+    }
+  }
+}
+
 // A soft mask: shapes drawn small and stretched up, which blurs them without canvas filters.
 // res = the mask's resolution across the tile (so the softness is the same at every size)
 function softMask(S, res, draw) {
   const m = Math.min(S, Math.max(16, Math.round(res)));
-  const [c, g] = layer(m, 'mask');
+  const [c, g] = scratchCanvas(m, m, 'mask');
   g.setTransform(m / S, 0, 0, m / S, 0, 0);
   g.fillStyle = '#000'; g.strokeStyle = '#000';
   draw(g);
@@ -198,8 +260,9 @@ function bridgePart(r) {
 function neededTextures(plan) {
   const { lay } = plan;
   const t = ['meadow', 'meadow_flowers'];
+  if (A.hasTexture('meadow_rough')) t.push('meadow_rough');
   for (const p of plan.patches) t.push(p.kind);
-  if (lay.rivers.length || lay.lake || lay.inns.length) t.push('riverbed');
+  if (lay.rivers.length || lay.lake || lay.inns.length) { t.push('riverbed'); for (const x of ['river_bank', 'river_water']) if (A.hasTexture(x)) t.push(x); }
   if (lay.roads.length || lay.stubs.length) t.push('dirt_road');
   if (lay.cities.length) t.push('town_lane', 'wall_walk');
   if (lay.village || lay.house || lay.farmhouse || lay.inns.length) t.push('farmyard');
@@ -225,30 +288,38 @@ export function* groundSteps(id, S, options = {}) {
     if (t === 'wait') throw new Wait();
     return t;
   };
-  const c = cv(S); const g = c.getContext('2d');
+  const V = makeView(S, options.r || 0, options.win || null);
+  const c = cv(V.W, V.H); const g = c.getContext('2d');
+  g.setTransform(V.B);
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   const seed = A.hash('ground', id);
+  // how much fine detail to add on top (deep zoom: the textures would otherwise be stretched)
+  const fine = clamp01((S - 1400) / 2600);
 
-  // ---- meadow: two takes of the static-grass texture, blended by a slow noise, toned
-  g.fillStyle = pattern(g, T('meadow'), 0.42, S); g.fillRect(0, 0, S, S);
+  // ---- meadow: the static grass laid in board space (it runs on unbroken into the
+  // neighbours), a second take blended in by a slow noise inside the tile, toned
+  g.fillStyle = wpat(g, V, T('meadow'), 2); g.fillRect(0, 0, S, S);
+  if (fine > 0) { g.globalAlpha = 0.45 * fine; g.fillStyle = wpat(g, V, T('meadow'), 9); g.fillRect(0, 0, S, S); g.globalAlpha = 1; }
   {
-    const [l, lg] = layer(S, 1);
-    lg.fillStyle = pattern(lg, T('meadow'), 0.57, S, { rot: Math.PI / 2, ox: 0.31, oy: 0.17 }); lg.fillRect(0, 0, S, S);
+    const [l, lg] = layer(V, 1);
+    // rougher pasture with tufts and worn patches, in drifts inside the tile only
+    const rough = A.hasTexture('meadow_rough') ? 'meadow_rough' : 'meadow';
+    lg.fillStyle = pattern(lg, T(rough), 0.5, S, { rot: Math.PI / 2, ox: 0.31, oy: 0.17 }); lg.fillRect(0, 0, S, S);
     smoothDraw(lg, blobs(5, seed + 1), S, 1, 'destination-in');
     fadeEdges(lg, S, 0.2);
-    g.globalAlpha = 0.55; g.drawImage(l, 0, 0); g.globalAlpha = 1;
+    g.globalAlpha = 0.75; blit(g, l); g.globalAlpha = 1;
   }
   {
-    const [l, lg] = layer(S, 1);
+    const [l, lg] = layer(V, 1);
     smoothDraw(lg, blobs(4, seed + 2, '#b4b86a'), S, 0.22);
     smoothDraw(lg, blobs(5, seed + 3, '#4a5e2a'), S, 0.2);
     fadeEdges(lg, S);
-    g.drawImage(l, 0, 0);
+    blit(g, l);
   }
   // wildflowers on the verges (along roads, walls and banks) and in a few drifts
   {
-    const [l, lg] = layer(S, 1);
-    lg.fillStyle = pattern(lg, T('meadow_flowers'), 0.42, S, { ox: 0.13, oy: 0.29 }); lg.fillRect(0, 0, S, S);
+    const [l, lg] = layer(V, 1);
+    lg.fillStyle = wpat(lg, V, T('meadow_flowers'), 2); lg.fillRect(0, 0, S, S);
     const mask = softMask(S, 14, (m) => {
       m.lineCap = 'round';
       m.lineWidth = ROAD_W * 2.3 * S; for (const r of lay.roads) m.stroke(segPath(r.seg, S));
@@ -258,7 +329,7 @@ export function* groundSteps(id, S, options = {}) {
       for (let i = 0; i < 3; i++) { m.beginPath(); m.ellipse((0.2 + r() * 0.6) * S, (0.2 + r() * 0.6) * S, (0.05 + r() * 0.08) * S, (0.04 + r() * 0.06) * S, r() * 3, 0, 7); m.fill(); }
     });
     applyMask(lg, S, mask);
-    g.globalAlpha = 0.85; g.drawImage(l, 0, 0); g.globalAlpha = 1;
+    g.globalAlpha = 0.85; blit(g, l); g.globalAlpha = 1;
   }
 
   yield;
@@ -268,14 +339,14 @@ export function* groundSteps(id, S, options = {}) {
     const SUB = { vineyard: ['ploughed', 'rgba(214,192,140,0.3)'], stubble: ['wheat_ripe', 'rgba(236,226,190,0.38)'], flax: ['meadow', 'rgba(120,150,215,0.2)'], wheat_ripe: ['meadow', 'rgba(220,190,90,0.45)'], ploughed: ['meadow', 'rgba(150,115,75,0.6)'] };
     let texId = p.kind, tint = null;
     if (!A.hasTexture(texId) && SUB[texId] && (A.hasTexture(SUB[texId][0]) || SUB[texId][0] === 'meadow')) { [texId, tint] = SUB[texId]; if (!A.hasTexture(texId) && SUB[texId]) [texId, tint] = SUB[texId]; }
-    const [l, lg] = layer(S, 1);
+    const [l, lg] = layer(V, 1);
     const path = new Path2D(); p.poly.forEach(([x, y], i) => (i ? path.lineTo(x * S, y * S) : path.moveTo(x * S, y * S))); path.closePath();
     // a soft trodden margin, then the crop
     g.save(); g.globalAlpha = 0.28; g.lineWidth = 0.022 * S; g.lineJoin = 'round'; g.strokeStyle = '#6b5a3c'; g.stroke(path); g.restore();
     lg.fillStyle = pattern(lg, T(texId), texId === 'vineyard' ? 0.34 : 0.28, S, { rot: p.ang, ox: p.cx, oy: p.cy });
     lg.fill(path);
     if (tint) { lg.fillStyle = tint; lg.fill(path); }
-    g.drawImage(l, 0, 0);
+    blit(g, l);
     // a hedge or a low dry-stone wall round it
     const r = A.rng(p.seed);
     if (r() < 0.55) {
@@ -302,63 +373,97 @@ export function* groundSteps(id, S, options = {}) {
   for (const r of lay.rivers) if (r.spring) ellipses.push([r.seg[3][0], r.seg[3][1], 0.07, 0.1, 0]);
   for (const [, , lx, ly] of lay.inns) ellipses.push([lx, ly, 0.075, 0.047, 0.2]);
   if (waterShapes.length || ellipses.length) {
-    // muddy, pebbly banks
+    // wet, dark banks: mud, sand and pebbles, occluded towards the water (symmetric, so the
+    // tile turns cleanly), then the pebbles themselves
     const bank = softMask(S, 40, (m) => {
-      m.lineCap = 'round'; m.lineWidth = RIVER_W * 1.75 * S;
+      m.lineCap = 'round'; m.lineWidth = RIVER_W * 1.85 * S;
       for (const w of waterShapes) m.stroke(segPath(w.seg, S));
-      for (const [x, y, rx, ry, a] of ellipses) { m.beginPath(); m.ellipse(x * S, y * S, (rx + 0.03) * S, (ry + 0.03) * S, a, 0, 7); m.fill(); }
+      for (const [x, y, rx, ry, a] of ellipses) { m.beginPath(); m.ellipse(x * S, y * S, (rx + 0.035) * S, (ry + 0.035) * S, a, 0, 7); m.fill(); }
     });
+    const bankTex = A.hasTexture('river_bank') ? 'river_bank' : 'riverbed';
     {
-      const [l, lg] = layer(S, 1);
-      lg.fillStyle = pattern(lg, T('riverbed'), 0.22, S, { ox: 0.5 }); lg.fillRect(0, 0, S, S);
-      lg.fillStyle = 'rgba(92,84,56,0.45)'; lg.fillRect(0, 0, S, S);
+      const [l, lg] = layer(V, 1);
+      lg.fillStyle = wpat(lg, V, T(bankTex), 5); lg.fillRect(0, 0, S, S);
+      lg.fillStyle = bankTex === 'river_bank' ? 'rgba(60,50,32,0.25)' : 'rgba(78,68,44,0.5)'; lg.fillRect(0, 0, S, S);
       applyMask(lg, S, bank);
-      g.drawImage(l, 0, 0);
+      blit(g, l);
+      // the wettest, darkest mud right at the water's edge
+      const [d, dg] = layer(V, 2);
+      dg.fillStyle = 'rgba(34,28,16,0.55)'; dg.fillRect(0, 0, S, S);
+      applyMask(dg, S, softMask(S, 50, (m) => {
+        m.lineCap = 'round'; m.lineWidth = RIVER_W * 1.22 * S;
+        for (const w of waterShapes) m.stroke(segPath(w.seg, S));
+        for (const [x, y, rx, ry, a] of ellipses) { m.beginPath(); m.ellipse(x * S, y * S, (rx + 0.012) * S, (ry + 0.012) * S, a, 0, 7); m.fill(); }
+      }));
+      blit(g, d);
     }
     // pebbles along the banks
     const r = A.rng(seed + 9);
     for (const w of waterShapes) {
       const pts = sampleSeg(w.seg, 60);
       for (const p of pts) for (const side of [-1, 1]) {
-        if (r() < 0.55) continue;
-        const off = RIVER_W * (0.47 + r() * 0.4) * side;
+        if (r() < 0.45) continue;
+        const off = RIVER_W * (0.5 + r() * 0.36) * side;
         const x = (p.x + p.nx * off) * S, y = (p.y + p.ny * off) * S;
         if (x < 0 || y < 0 || x > S || y > S) continue;
-        const rr = (0.002 + r() * r() * 0.006) * S;
-        g.fillStyle = 'rgba(30,26,18,0.35)'; g.beginPath(); g.ellipse(x, y, rr * 1.25, rr * 1.05, 0, 0, 7); g.fill();
-        g.fillStyle = r() < 0.4 ? '#bfb7a3' : r() < 0.5 ? '#8f8a7e' : '#a89e88'; g.beginPath(); g.ellipse(x + (r() - 0.5) * 0.01 * S, y + (r() - 0.5) * 0.01 * S, rr, rr * 0.82, r() * 3, 0, 7); g.fill();
+        const rr = (0.0015 + r() * r() * 0.0045) * S;
+        const px = x + (r() - 0.5) * 0.01 * S, py = y + (r() - 0.5) * 0.01 * S;
+        const base = r() < 0.4 ? [196, 188, 168] : r() < 0.5 ? [132, 128, 118] : [168, 156, 132];
+        g.fillStyle = 'rgba(30,26,18,0.35)'; g.beginPath(); g.ellipse(px + rr * 0.15, py + rr * 0.2, rr * 1.15, rr * 0.95, 0, 0, 7); g.fill();
+        // a rounded, softly lit pebble (light from the upper left)
+        const gr = g.createRadialGradient(px - rr * 0.35, py - rr * 0.35, rr * 0.1, px, py, rr);
+        gr.addColorStop(0, `rgb(${Math.min(255, base[0] + 30)},${Math.min(255, base[1] + 30)},${Math.min(255, base[2] + 28)})`);
+        gr.addColorStop(1, `rgb(${base[0] * 0.62 | 0},${base[1] * 0.62 | 0},${base[2] * 0.6 | 0})`);
+        g.fillStyle = gr; g.beginPath(); g.ellipse(px, py, rr, rr * 0.82, r() * 3, 0, 7); g.fill();
       }
     }
-    // resin water: riverbed seen through, deepening in the channel
+    // resin water: the pebbly bed seen through it near the banks, deep teal-blue in the
+    // channel, a cool sky sheen on top
     for (const w of waterShapes) waters.addPath(segPath(w.seg, S));
-    const [l, lg] = layer(S, 1);
-    lg.fillStyle = pattern(lg, T('riverbed'), 0.3, S); lg.fillRect(0, 0, S, S);
-    // depth: olive-teal in the channel, paler at the edges
-    lg.globalCompositeOperation = 'source-over';
+    const [l, lg] = layer(V, 1);
+    lg.fillStyle = wpat(lg, V, T('riverbed'), 3); lg.fillRect(0, 0, S, S);
+    lg.fillStyle = 'rgba(34,82,88,0.42)'; lg.fillRect(0, 0, S, S); // the colour of the water over the shallows
     const deep = softMask(S, 30, (m) => {
-      m.lineCap = 'round'; m.lineWidth = RIVER_W * 0.62 * S;
+      m.lineCap = 'round'; m.lineWidth = RIVER_W * 0.66 * S;
       for (const w of waterShapes) m.stroke(segPath(w.seg, S));
-      for (const [x, y, rx, ry, a] of ellipses) { m.beginPath(); m.ellipse(x * S, y * S, rx * 0.72 * S, ry * 0.72 * S, a, 0, 7); m.fill(); }
+      for (const [x, y, rx, ry, a] of ellipses) { m.beginPath(); m.ellipse(x * S, y * S, rx * 0.74 * S, ry * 0.74 * S, a, 0, 7); m.fill(); }
     });
     {
-      const [d, dg] = layer(S, 2);
-      dg.fillStyle = '#2f4a40'; dg.fillRect(0, 0, S, S);
+      const [d, dg] = layer(V, 2);
+      if (A.hasTexture('river_water')) {
+        // a deep resin over dark weed and stones, its streaks following the current
+        for (const w of waterShapes) ribbon(dg, w.seg, RIVER_W * 1.0, T('river_water'), S);
+        edgeBands(dg, V, waterShapes.map((w) => w.seg), RIVER_W, T('river_water'), 8);
+        dg.fillStyle = wpat(dg, V, T('river_water'), 8);
+        for (const [x, y, rx, ry, a] of ellipses) { dg.beginPath(); dg.ellipse(x * S, y * S, rx * S, ry * S, a, 0, 7); dg.fill(); }
+        dg.fillStyle = 'rgba(14,52,66,0.35)'; dg.fillRect(0, 0, S, S);
+      } else { dg.fillStyle = '#17414c'; dg.fillRect(0, 0, S, S); }
       applyMask(dg, S, deep);
-      lg.globalAlpha = 0.62; lg.drawImage(d, 0, 0); lg.globalAlpha = 1;
+      lg.globalAlpha = 0.86; blit(lg, d); lg.globalAlpha = 1;
     }
-    lg.fillStyle = 'rgba(70,98,84,0.32)'; lg.fillRect(0, 0, S, S);
-    // a glossy sheen
-    lg.fillStyle = 'rgba(210,225,215,0.08)'; lg.fillRect(0, 0, S, S);
+    // sky sheen: a pale blue lift over the whole surface, a little more in the middle
+    lg.fillStyle = 'rgba(170,205,225,0.1)'; lg.fillRect(0, 0, S, S);
+    {
+      const [d, dg] = layer(V, 2);
+      dg.fillStyle = 'rgba(200,228,240,0.16)'; dg.fillRect(0, 0, S, S);
+      applyMask(dg, S, softMask(S, 24, (m) => { m.lineCap = 'round'; m.lineWidth = RIVER_W * 0.3 * S; for (const w of waterShapes) m.stroke(segPath(w.seg, S)); }));
+      blit(lg, d);
+    }
     const shape = softMask(S, 110, (m) => {
       m.lineCap = 'round'; m.lineWidth = RIVER_W * S;
       for (const w of waterShapes) { m.lineCap = w.dead ? 'round' : 'butt'; m.stroke(segPath(w.seg, S)); }
       for (const [x, y, rx, ry, a] of ellipses) { m.beginPath(); m.ellipse(x * S, y * S, rx * S, ry * S, a, 0, 7); m.fill(); }
     });
     applyMask(lg, S, shape);
-    // meniscus: a pale line where resin meets the bank
-    g.drawImage(l, 0, 0);
-    g.save(); g.lineCap = 'round'; g.strokeStyle = 'rgba(235,232,210,0.1)'; g.lineWidth = 0.006 * S;
-    for (const w of waterShapes) for (const side of [-1, 1]) { offsetLine(g, w.seg, side * RIVER_W * 0.47, S); g.stroke(); }
+    blit(g, l);
+    // the edge of the resin: a dark line of shade under the bank, then a bright meniscus
+    g.save(); g.lineCap = 'butt';
+    g.strokeStyle = 'rgba(20,24,16,0.38)'; g.lineWidth = 0.008 * S;
+    for (const w of waterShapes) for (const side of [-1, 1]) { offsetLine(g, w.seg, side * RIVER_W * 0.475, S); g.stroke(); }
+    g.strokeStyle = 'rgba(240,245,235,0.2)'; g.lineWidth = 0.003 * S;
+    for (const w of waterShapes) for (const side of [-1, 1]) { offsetLine(g, w.seg, side * RIVER_W * 0.455, S); g.stroke(); }
+    g.lineWidth = 0.0035 * S;
+    for (const [x, y, rx, ry, a] of ellipses) { g.beginPath(); g.ellipse(x * S, y * S, (rx - 0.004) * S, (ry - 0.004) * S, a, 0, 7); g.stroke(); }
     g.restore();
     if (lay.rock) stones(g, lay.rock[0], lay.rock[1], S, A.rng(seed + 11), T('garrigue'));
   }
@@ -372,16 +477,17 @@ export function* groundSteps(id, S, options = {}) {
     if (!list.length) return;
     const verge = softMask(S, 34, (m) => { m.lineCap = 'butt'; m.lineWidth = w * 1.75 * S; for (const s of list) m.stroke(segPath(s, S)); });
     {
-      const [l, lg] = layer(S, 1);
+      const [l, lg] = layer(V, 1);
       lg.fillStyle = 'rgba(120,108,66,0.5)'; lg.fillRect(0, 0, S, S);
       applyMask(lg, S, verge);
-      g.drawImage(l, 0, 0);
+      blit(g, l);
     }
-    const [l, lg] = layer(S, 1);
+    const [l, lg] = layer(V, 1);
     for (const s of list) ribbon(lg, s, w * 1.05, T('dirt_road'), S);
+    if (w >= ROAD_W) edgeBands(lg, V, list, w, T('dirt_road'), 9);
     const edge = softMask(S, 100, (m) => { m.lineCap = 'butt'; m.lineWidth = w * 0.98 * S; for (const s of list) m.stroke(segPath(s, S)); });
     applyMask(lg, S, edge);
-    g.drawImage(l, 0, 0);
+    blit(g, l);
   };
   roadSet(plain.map((r) => r.seg), ROAD_W);
   roadSet(stubs, ROAD_W * 0.55);
@@ -389,10 +495,10 @@ export function* groundSteps(id, S, options = {}) {
   yield;
   // ---- yards: villages, farms, inns, the bazaar, the monastery precinct, the garden
   const yard = (texId, draw, alpha = 1, rep = 0.3) => {
-    const [l, lg] = layer(S, 1);
+    const [l, lg] = layer(V, 1);
     lg.fillStyle = pattern(lg, T(texId), rep, S); lg.fillRect(0, 0, S, S);
     applyMask(lg, S, softMask(S, 70, draw));
-    g.globalAlpha = alpha; g.drawImage(l, 0, 0); g.globalAlpha = 1;
+    g.globalAlpha = alpha; blit(g, l); g.globalAlpha = 1;
   };
   if (lay.village) yard('farmyard', (m) => { m.beginPath(); m.arc(lay.village.x * S, lay.village.y * S, (lay.village.r + 0.035) * S, 0, 7); m.fill(); }, 0.95);
   if (lay.house) yard('farmyard', (m) => { m.beginPath(); m.ellipse(lay.house[0] * S, lay.house[1] * S, 0.09 * S, 0.07 * S, 0, 0, 7); m.fill(); }, 0.85);
@@ -423,31 +529,32 @@ export function* groundSteps(id, S, options = {}) {
     g.save(); g.lineCap = 'round';
     const ao = softMask(S, 26, (m) => { m.lineWidth = 0.17 * S; for (const w of cty.walls) m.stroke(segPath(w, S)); });
     {
-      const [l, lg] = layer(S, 1);
+      const [l, lg] = layer(V, 1);
       lg.fillStyle = 'rgba(28,22,10,0.42)'; lg.fillRect(0, 0, S, S);
       applyMask(lg, S, ao);
-      g.drawImage(l, 0, 0);
+      blit(g, l);
     }
     g.restore();
-    const [l, lg] = layer(S, 1);
-    lg.fillStyle = pattern(lg, T('town_lane'), 0.3, S, { ox: 0.07 }); lg.fill(path);
+    const [l, lg] = layer(V, 1);
+    lg.fillStyle = wpat(lg, V, T('town_lane'), 3); lg.fill(path);
     // inner occlusion
     lg.save(); lg.clip(path);
-    const [d, dg] = layer(S, 2);
+    const [d, dg] = layer(V, 2);
     dg.fillStyle = 'rgba(25,18,8,0.45)'; dg.fillRect(0, 0, S, S);
     applyMask(dg, S, softMask(S, 22, (m) => { m.lineWidth = 0.15 * S; for (const w of cty.walls) m.stroke(segPath(w, S)); }));
-    lg.drawImage(d, 0, 0);
+    blit(lg, d);
     // trodden lanes where the roads run on into the town
     lg.globalAlpha = 0.35; lg.strokeStyle = '#4e3d2b'; lg.lineCap = 'round'; lg.lineWidth = ROAD_W * 0.55 * S;
     for (const r of lay.roads) lg.stroke(segPath(r.seg, S));
     lg.globalAlpha = 1;
     lg.restore();
-    g.drawImage(l, 0, 0);
+    blit(g, l);
     // the wall-walk (top-down): flagstones along the curve, dark joints both sides, merlons outside
     for (const w of cty.walls) {
       const WW = 0.07;
       g.save(); g.lineCap = 'butt'; g.strokeStyle = 'rgba(30,24,16,0.55)'; g.lineWidth = (WW + 0.012) * S; g.stroke(segPath(w, S)); g.restore();
       ribbon(g, w, WW, T('wall_walk'), S, { n: 32 });
+      edgeBands(g, V, [w], WW, T('wall_walk'), 14, 0.1, 0.5);
       g.save(); g.strokeStyle = 'rgba(40,32,22,0.6)'; g.lineWidth = 0.004 * S;
       for (const side of [-1, 1]) { offsetLine(g, w, side * WW * 0.5, S); g.stroke(); }
       // merlons along the outer parapet
@@ -481,8 +588,8 @@ export function* groundSteps(id, S, options = {}) {
     roadSet([r.seg], ROAD_W);
     g.save(); g.lineCap = 'butt';
     const ao = softMask(S, 30, (m) => { m.lineWidth = ROAD_W * 2.1 * S; m.stroke(segPath(span, S)); });
-    const [l, lg] = layer(S, 1);
-    lg.fillStyle = 'rgba(15,18,8,0.55)'; lg.fillRect(0, 0, S, S); applyMask(lg, S, ao); g.drawImage(l, 0, 0);
+    const [l, lg] = layer(V, 1);
+    lg.fillStyle = 'rgba(15,18,8,0.55)'; lg.fillRect(0, 0, S, S); applyMask(lg, S, ao); blit(g, l);
     g.strokeStyle = 'rgba(30,24,16,0.7)'; g.lineWidth = ROAD_W * 1.62 * S; g.stroke(segPath(span, S));
     ribbon(g, span, ROAD_W * 1.5, T('wall_walk'), S, { n: 12 });
     ribbon(g, span, ROAD_W * 0.92, T('dirt_road'), S, { n: 12 });
@@ -506,14 +613,14 @@ export function* groundSteps(id, S, options = {}) {
   // ---- painted stand-ins where a landmark's miniature is missing
   for (const f of options.fallbacks || []) {
     const art = plan.art.canvas;
-    const [l, lg] = layer(S, 1);
+    const [l, lg] = layer(V, 1);
     lg.drawImage(art, 0, 0, ART_SIZE, ART_SIZE, 0, 0, S, S);
     applyMask(lg, S, softMask(S, 60, (m) => {
       m.beginPath();
       if (f.ellipse) { const [x, y, rx, ry] = f.ellipse; m.ellipse(x * S, y * S, rx * S, ry * S, 0, 0, 7); } else { const [x, y, w, h] = f.box; m.rect(x * S, y * S, w * S, h * S); }
       m.fill();
     }));
-    g.drawImage(l, 0, 0);
+    blit(g, l);
   }
 
   yield;

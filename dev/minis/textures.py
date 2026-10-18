@@ -155,12 +155,20 @@ def process_entry(entry, prompts):
         n = min(sw.shape[:2])
         sw = sw[:n, :n]
         t = make_tileable(sw)
+        tone = entry.get('tone', {}).get(tid)
+        if tone:  # shift the colour to a target mean (keeps a re-roll in the palette of the set)
+            m = t.reshape(-1, 3).mean(0)
+            t = t - m + np.array(tone['mean'], np.float32)
+            if 'sat' in tone:
+                g = t.mean(-1, keepdims=True)
+                t = g + (t - g) * tone['sat']
+        size = entry.get('size', {}).get(tid, SIZE)
         t8 = Image.fromarray(np.clip(np.round(t), 0, 255).astype(np.uint8), 'RGB')
-        big = t8.resize((SIZE, SIZE), Image.LANCZOS)
+        big = t8.resize((size, size), Image.LANCZOS)
         small = t8.resize((SMALL, SMALL), Image.LANCZOS)
         big.save(os.path.join(OUT, 'textures', f'{tid}.webp'), 'WEBP', quality=QUALITY, method=6)
         small.save(os.path.join(OUT, 'textures', f'{tid}@512.webp'), 'WEBP', quality=QUALITY, method=6)
-        meta[tid] = {'file': f'textures/{tid}.webp', 'small': f'textures/{tid}@512.webp', 'size': SIZE}
+        meta[tid] = {'file': f'textures/{tid}.webp', 'small': f'textures/{tid}@512.webp', 'size': size}
         print(f'  {tid:16s} swatch {x1 - x0}x{y1 - y0} -> tile {t.shape[1]}x{t.shape[0]}')
     return meta
 

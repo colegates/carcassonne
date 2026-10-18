@@ -3,8 +3,11 @@ import { TILE_TYPES } from './tiles.js';
 import { getTileArt, drawPiece, drawTower, drawTowerBadge, drawBridge, drawCastle, getTableTexture, tableScale, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
 import { parseKey, PLAYER_COLORS, featuresOf, bridgeFeature } from './game.js';
 import { MinisRenderer } from './minis/render.js';
+import { CASTLE_TOP } from './pieces.js';
 
 const HIT = 96;
+// Camera zoom limits, in CSS pixels per tile (at the top a person stands about 100 px tall)
+export const MIN_ZOOM = 24, MAX_ZOOM = 2800;
 
 // Bridges, Castles & Bazaars: a figure on a tile with a bridge whose spot lies under the
 // bridge's deck (a monk, a knight in the middle of a city) steps to the side of it, so it
@@ -58,6 +61,7 @@ export class BoardView {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('ui-art-ready', () => { this.tablePattern = null; this.dirty = true; });
+    window.addEventListener('pieces-ready', () => { this.dirty = true; }); // photographed pieces arrived
     this.bindInput();
     // never let one bad frame stop the board from drawing
     const loop = (now) => {
@@ -130,7 +134,7 @@ export class BoardView {
   ensureVisible(x, y, minZ = 0) {
     const [sx, sy] = this.toScreen(x, y);
     const { top, bottom } = this.viewport();
-    const m = this.cam.z * 0.9;
+    const m = Math.min(this.cam.z * 0.9, this.w * 0.3, (this.h - top - bottom) * 0.3); // (deep zoom: keep it on screen)
     const z = Math.max(this.cam.z, minZ);
     if (sx < m || sx > this.w - m || sy < top + m || sy > this.h - bottom - m || z !== this.cam.z) {
       this.animateCam({ x: lerpN(this.cam.x, x, 0.7), y: lerpN(this.cam.y, y, 0.7), z });
@@ -174,7 +178,7 @@ export class BoardView {
       } else if (this.pointers.size === 2 && pinch) {
         const now = this.pinchInfo();
         const [wx, wy] = this.toWorld(pinch.mx, pinch.my);
-        this.cam.z = clamp(pinch.z * (now.d / pinch.d), 24, 260);
+        this.cam.z = clamp(pinch.z * (now.d / pinch.d), MIN_ZOOM, MAX_ZOOM);
         // keep the pinch centre anchored
         const { cx, cy } = this.viewport();
         this.cam.x = wx - (now.mx - cx) / this.cam.z;
@@ -203,7 +207,7 @@ export class BoardView {
     c.addEventListener('wheel', (e) => {
       e.preventDefault();
       const [wx, wy] = this.toWorld(e.clientX, e.clientY);
-      this.cam.z = clamp(this.cam.z * Math.exp(-e.deltaY * 0.0015), 24, 260);
+      this.cam.z = clamp(this.cam.z * Math.exp(-e.deltaY * 0.0015), MIN_ZOOM, MAX_ZOOM);
       const { cx, cy } = this.viewport();
       this.cam.x = wx - (e.clientX - cx) / this.cam.z;
       this.cam.y = wy - (e.clientY - cy) / this.cam.z;
@@ -222,7 +226,7 @@ export class BoardView {
       const { from, to, start, dur } = this.camTarget;
       // frame timestamps can be a little older than the animation's start
       const t = clamp((now - start) / dur, 0, 1), e = easeOut(t);
-      this.cam = { x: lerpN(from.x, to.x, e), y: lerpN(from.y, to.y, e), z: clamp(lerpN(from.z, to.z, e), 24, 260) };
+      this.cam = { x: lerpN(from.x, to.x, e), y: lerpN(from.y, to.y, e), z: clamp(Math.exp(lerpN(Math.log(from.z), Math.log(to.z), e)), MIN_ZOOM, MAX_ZOOM) }; // zoom eases evenly in scale
       if (t >= 1) this.camTarget = null;
       this.dirty = true;
     }
@@ -603,7 +607,7 @@ export class BoardView {
   }
   castleTop(c) {
     const [bx, by] = this.castleBase(c);
-    return [bx, by - this.cam.z * this.castleSize(c) * 0.345 - this.cam.z * 0.12];
+    return [bx, by - this.cam.z * this.castleSize(c) * CASTLE_TOP - this.cam.z * 0.12];
   }
   // (side by side, the two halves of the city are narrow strips along the seam)
   castleSize(c) {

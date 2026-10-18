@@ -145,8 +145,23 @@ export function spriteFor(id, devH) {
     if (rec) rec.img = null;
   }
   let best = m[0];
+  // deep zoom: bigger than our largest copy, and the source has more to give
+  if (devH > best.height * 1.12 && manifest.sprites[id].h > best.height * 1.12) return fullImage(id) || best;
   for (const c of m) { if (c.height >= devH) best = c; else break; }
   return best;
+}
+// Full-resolution sprites for deep zoom, decoded on demand; only the most recent few are kept.
+const fulls = new Map(); // id -> { img, ready }
+function fullImage(id) {
+  let f = fulls.get(id);
+  if (f) { fulls.delete(id); fulls.set(id, f); return f.ready ? f.img : null; }
+  f = { img: new Image(), ready: false };
+  f.img.decoding = 'async';
+  f.img.src = BASE + manifest.sprites[id].file;
+  (f.img.decode ? f.img.decode() : new Promise((res, rej) => { f.img.onload = res; f.img.onerror = rej; })).then(() => { f.ready = true; generation++; changed(); }, () => {});
+  fulls.set(id, f);
+  while (fulls.size > 28) fulls.delete(fulls.keys().next().value);
+  return null;
 }
 
 // ---------- soft cast shadows ----------
