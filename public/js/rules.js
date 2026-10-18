@@ -1,13 +1,14 @@
 // Illustrated "How to play" guide, drawn with the same tile art as the game.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawPiece, drawTower, drawBridge, drawCastle, rotUnit, getTableTexture, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
+import { getTileArt, getTileThumb, drawPiece, drawTower, drawBridge, drawCastle, rotUnit, getTableTexture, tableScale, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
 import { PLAYER_COLORS, getGroup, key, neighbour, edgeType, bridgeFeature } from './game.js';
 import { featureMask } from './board.js';
 
 // tiles: [[x, y, type, rot, meeple?: [colorName, featureIndex, kind?], bridgeAxis?]]
 // extras: [{ kind: 'dragon' | 'fairy' | 'tower', x, y, u?, v?, h?, top?: colorName },
 //          { kind: 'castle', a: [x, y], b: [x, y], top?: colorName }, { kind: 'area', cells: [[x, y]] }]
-export function renderMini(tiles, { px = 74, highlight = null, highlightColor = '#ffd84a', pad = 0.35, marks = [], extras = [] } = {}) {
+export function renderMini(tiles, opts = {}) {
+  const { px = 74, highlight = null, highlightColor = '#ffd84a', pad = 0.35, marks = [], extras = [] } = opts;
   const xs = tiles.map((t) => t[0]), ys = tiles.map((t) => t[1]);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const W = (maxX - minX + 1 + pad * 2) * px, H = (maxY - minY + 1 + pad * 2) * px;
@@ -17,7 +18,7 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
   const ctx = c.getContext('2d');
   ctx.scale(dpr, dpr);
   const pat = ctx.createPattern(getTableTexture(), 'repeat');
-  pat.setTransform(new DOMMatrix().scale(0.6));
+  pat.setTransform(new DOMMatrix().scale(0.6 * tableScale()));
   ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H);
   const pos = (x, y) => [(x - minX + pad + 0.5) * px, (y - minY + pad + 0.5) * px];
   for (const [x, y] of tiles) {
@@ -32,9 +33,7 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
   }
   for (const [x, y, t, r, , b] of tiles) {
     const [sx, sy] = pos(x, y);
-    ctx.save(); ctx.translate(sx, sy); ctx.rotate((r * Math.PI) / 2);
-    ctx.drawImage(getTileArt(t).canvas, -px / 2, -px / 2, px, px);
-    ctx.restore();
+    ctx.drawImage(getTileThumb(t, px * dpr, r), sx - px / 2, sy - px / 2, px, px);
     if (b !== undefined) drawBridge(ctx, sx, sy, px, b);
   }
   if (highlight) {
@@ -101,8 +100,24 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
     ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,.75)'; ctx.strokeText(text, sx, sy);
     ctx.fillStyle = color || '#fff'; ctx.fillText(text, sx, sy);
   }
+  if (!repainting) minis.push([new WeakRef(c), tiles, opts]);
   return c;
 }
+// The miniature tile pictures arrive a moment after the page opens: repaint the figures.
+const minis = [];
+let repainting = false;
+window.addEventListener('minis-updated', () => {
+  repainting = true;
+  for (let i = minis.length - 1; i >= 0; i--) {
+    const [ref, tiles, opts] = minis[i];
+    const c = ref.deref();
+    if (!c || !c.isConnected) { if (!c) minis.splice(i, 1); continue; }
+    const n = renderMini(tiles, opts);
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height); g.drawImage(n, 0, 0);
+  }
+  repainting = false;
+  for (const c of document.querySelectorAll('canvas[data-tile][data-painted]')) c.getContext('2d').drawImage(getTileThumb(c.dataset.tile, c.width), 0, 0, c.width, c.height);
+});
 
 // Tile pictures in the galleries are painted only when scrolled into view,
 // a few per frame, so the rules open instantly.
@@ -113,7 +128,8 @@ function paintSome() {
   const t0 = performance.now();
   while (paintQueue.length && performance.now() - t0 < 14) {
     const c = paintQueue.shift();
-    c.getContext('2d').drawImage(getTileArt(c.dataset.tile).canvas, 0, 0, c.width, c.height);
+    c.getContext('2d').drawImage(getTileThumb(c.dataset.tile, c.width), 0, 0, c.width, c.height);
+    c.dataset.painted = '1';
   }
   if (paintQueue.length) requestAnimationFrame(paintSome); else painting = false;
 }

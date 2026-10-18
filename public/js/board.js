@@ -1,7 +1,8 @@
 // Board renderer: camera, pan/pinch-zoom, tiles, meeples, overlays & effects.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawPiece, drawTower, drawTowerBadge, drawBridge, drawCastle, getTableTexture, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
+import { getTileArt, drawPiece, drawTower, drawTowerBadge, drawBridge, drawCastle, getTableTexture, tableScale, rotUnit, ART_SIZE, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
 import { parseKey, PLAYER_COLORS, featuresOf, bridgeFeature } from './game.js';
+import { MinisRenderer } from './minis/render.js';
 
 const HIT = 96;
 
@@ -52,8 +53,11 @@ export class BoardView {
     this.onTap = null;
     this.dirty = true;
     this.tablePattern = null;
+    this.minis = new MinisRenderer(this); // photographed miniatures (falls back to the painted tiles)
+    this.lastDraw = 0;
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    window.addEventListener('ui-art-ready', () => { this.tablePattern = null; this.dirty = true; });
     this.bindInput();
     // never let one bad frame stop the board from drawing
     const loop = (now) => {
@@ -223,8 +227,11 @@ export class BoardView {
       this.dirty = true;
     }
     const animating = this.effects.length > 0 || this.vm.candidates?.length || this.vm.ghosts?.length || this.vm.tentative || this.vm.dragonMoves?.length || this.vm.dragonFly;
-    if (!this.dirty && !animating) return;
+    // living miniatures on screen: redraw at up to 30 fps while the page is visible
+    const alive = this.minis.live && now - this.lastDraw >= 32 && document.visibilityState === 'visible';
+    if (!this.dirty && !animating && !alive) { this.minis.pump(); return; }
     this.dirty = false;
+    this.lastDraw = now;
     this.draw(now);
   }
 
@@ -245,6 +252,11 @@ export class BoardView {
     }
     const dropFx = new Map();
     for (const e of this.effects) if (e.type === 'drop') dropFx.set(e.key, e);
+    const minis = this.minis.active() ? this.minis : null;
+    if (minis) {
+      minis.beginFrame(now);
+      visible.sort((a, b) => a.y - b.y || a.x - b.x); // miniatures overhang the tile behind them
+    }
 
     // shadows
     ctx.fillStyle = 'rgba(15,8,2,0.45)';
@@ -268,11 +280,13 @@ export class BoardView {
         ctx.fillRect(v.sx - sz / 2 + z * 0.06 + lift * 0.5, v.sy - sz / 2 + z * 0.08 + lift, sz, sz);
         ctx.globalAlpha = alpha;
       }
-      this.drawTile(v.tile.t, v.tile.r, v.sx, v.sy - lift, z * scale);
+      if (!minis || !minis.drawTileBase(ctx, v.k, v.tile, v.sx, v.sy - lift, z * scale, z)) this.drawTile(v.tile.t, v.tile.r, v.sx, v.sy - lift, z * scale);
       // Bridges, Castles & Bazaars: a bridge built across the tile
       if (v.tile.bridge !== undefined && v.tile.bridge !== null) drawBridge(ctx, v.sx, v.sy - lift, z * scale, v.tile.bridge);
       ctx.globalAlpha = 1;
     }
+    // the standing miniatures and everything that moves, sorted by depth
+    if (minis) minis.drawObjects(ctx, visible, now, { skip: new Set(dropFx.keys()) });
     // last placed tile marker
     if (this.vm.lastKey && board[this.vm.lastKey] && !this.vm.tentative) {
       const [x, y] = parseKey(this.vm.lastKey);
@@ -382,6 +396,7 @@ export class BoardView {
       if (t >= 1) { e.done?.(); return false; }
       return true;
     });
+    if (minis) minis.endFrame(false);
   }
 
   drawTable() {
@@ -389,7 +404,7 @@ export class BoardView {
     if (!this.tablePattern) this.tablePattern = ctx.createPattern(getTableTexture(), 'repeat');
     const s = clamp(this.cam.z / 90, 0.35, 2.5) * 0.9;
     const [ox, oy] = this.toScreen(0, 0);
-    this.tablePattern.setTransform(new DOMMatrix().translate(ox, oy).scale(s));
+    this.tablePattern.setTransform(new DOMMatrix().translate(ox, oy).scale(s * tableScale()));
     ctx.fillStyle = this.tablePattern;
     ctx.fillRect(0, 0, this.w, this.h);
     const g = ctx.createRadialGradient(this.w / 2, this.h / 2, Math.min(this.w, this.h) * 0.25, this.w / 2, this.h / 2, Math.max(this.w, this.h) * 0.75);
@@ -530,8 +545,10 @@ export class BoardView {
     ctx.fillRect(sx - z / 2 + z * 0.08, sy - z / 2 + z * 0.1, z, z);
     ctx.save();
     ctx.translate(sx, sy - lift);
-    ctx.rotate((rot * Math.PI) / 2);
-    ctx.drawImage(getTileArt(t.t).canvas, -z / 2, -z / 2, z, z);
+    if (!this.minis.active() || !this.minis.drawTentative(ctx, t, rot, 0, 0, z)) {
+      ctx.rotate((rot * Math.PI) / 2);
+      ctx.drawImage(getTileArt(t.t).canvas, -z / 2, -z / 2, z, z);
+    }
     ctx.restore();
     const pulse = 0.5 + 0.5 * Math.sin(now / 200);
     // Bridges, Castles & Bazaars: the bridge this placement needs (on the tile or next to it)

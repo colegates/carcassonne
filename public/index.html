@@ -16,17 +16,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600;800&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="assets/ui/home-portrait.webp" type="image/webp" media="(orientation: portrait)">
+  <link rel="preload" as="image" href="assets/ui/home-landscape.webp" type="image/webp" media="(orientation: landscape)">
+  <link rel="preload" as="image" href="assets/ui/logo.webp" type="image/webp">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <!-- ============ HOME ============ -->
   <section id="home" class="screen active">
-    <canvas id="home-bg"></canvas>
+    <canvas id="home-bg" aria-hidden="true"></canvas>
+    <video id="home-video" muted playsinline loop preload="none" aria-hidden="true" disablepictureinpicture></video>
     <div class="home-inner">
       <div class="logo">
+        <h1><img src="assets/ui/logo.webp" width="1100" height="276" alt="Carcassonne" decoding="async"></h1>
         <div class="logo-small">The Classic Tile-Laying Game</div>
-        <h1>Carcassonne</h1>
-        <div class="logo-rule"></div>
       </div>
       <div class="home-buttons">
         <button class="btn big gold" id="btn-continue" hidden>Continue Game</button>

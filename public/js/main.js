@@ -1,7 +1,7 @@
 // App shell: home screen, menu, rules, boot.
 import { TILE_TYPES } from './tiles.js';
 import * as G from './game.js';
-import { getTileArt, drawPiece, getTableTexture, rotUnit, getTileBack } from './art.js';
+import { getTileArt, getTileThumb, drawPiece, getTableTexture, rotUnit, getTileBack } from './art.js';
 import { buildRules } from './rules.js';
 import { sfx, unlockAudio, soundOn, setSound } from './sound.js';
 import { $, store, show, onScreen, previousScreen, ask } from './ui.js';
@@ -15,52 +15,23 @@ document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('clic
 document.addEventListener('pointerdown', unlockAudio, { capture: true });
 
 // ---------------- home ----------------
-let homeTiles = null;
+// The backdrop is a photograph of a miniature Carcassonne (CSS background, see style.css).
+// In portrait a short seamless loop of the same scene fades in over it once it can play;
+// skipped for reduced motion and data saver, and paused whenever home is hidden.
+const homeVideoOk = () => matchMedia('(orientation: portrait)').matches
+  && !matchMedia('(prefers-reduced-motion: reduce)').matches && !navigator.connection?.saveData;
+function homeVideo(play) {
+  const v = $('home-video');
+  if (!play || !homeVideoOk()) { if (!v.paused) v.pause(); return; }
+  if (!v.getAttribute('src')) {
+    v.addEventListener('playing', () => v.classList.add('on'), { once: true });
+    v.src = v.canPlayType('video/mp4; codecs="avc1.640028"') ? 'assets/ui/home-loop.mp4' : 'assets/ui/home-loop.webm';
+  }
+  v.play()?.catch(() => {});
+}
+new MutationObserver(() => homeVideo($('home').classList.contains('active'))).observe($('home'), { attributes: true, attributeFilter: ['class'] });
+window.addEventListener('load', () => setTimeout(() => homeVideo($('home').classList.contains('active')), 400));
 function drawHome() {
-  const c = $('home-bg');
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const w = window.innerWidth, h = window.innerHeight;
-  c.width = w * dpr; c.height = h * dpr;
-  const ctx = c.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.fillStyle = ctx.createPattern(getTableTexture(), 'repeat'); ctx.fillRect(0, 0, w, h);
-  if (!homeTiles) {
-    // simulate a random little countryside for the backdrop
-    const s = G.newGame([{ name: 'a', color: 'red' }, { name: 'b', color: 'blue' }, { name: 'c', color: 'green' }, { name: 'd', color: 'yellow' }]);
-    for (let i = 0; i < 44 && s.phase !== 'over'; i++) {
-      const vp = G.validPlacements(s);
-      vp.sort((a, b) => Math.hypot(a.x, a.y * 1.4) - Math.hypot(b.x, b.y * 1.4));
-      const p = vp[Math.floor(Math.random() * Math.min(3, vp.length))];
-      G.placeTile(s, p.x, p.y, p.rots[Math.floor(Math.random() * p.rots.length)]);
-      const o = G.followerOptions(s);
-      G.finishTurn(s, o.length && Math.random() < 0.3 ? o[Math.floor(Math.random() * o.length)] : null);
-    }
-    homeTiles = s;
-  }
-  const z = Math.max(70, Math.min(w, h) / 5.2);
-  const cx = w / 2, cy = h / 2;
-  const entries = Object.entries(homeTiles.board);
-  ctx.fillStyle = 'rgba(10,5,0,0.5)';
-  for (const [k] of entries) {
-    const [x, y] = G.parseKey(k);
-    ctx.fillRect(cx + x * z - z / 2 + z * 0.04, cy + y * z - z / 2 + z * 0.06, z, z);
-  }
-  for (const [k, t] of entries) {
-    const [x, y] = G.parseKey(k);
-    ctx.save(); ctx.translate(cx + x * z, cy + y * z); ctx.rotate((t.r * Math.PI) / 2);
-    ctx.drawImage(getTileArt(t.t).canvas, -z / 2, -z / 2, z, z); ctx.restore();
-  }
-  for (const [k, t] of entries) {
-    for (const pc of t.pieces) {
-      const [x, y] = G.parseKey(k);
-      const [ax, ay] = getTileArt(t.t).anchors[pc.f];
-      const [rx, ry] = rotUnit(ax, ay, t.r);
-      drawPiece(ctx, pc.k, cx + (x + rx - 0.5) * z, cy + (y + ry - 0.5) * z, z * 0.3, G.PLAYER_COLORS[homeTiles.players[pc.p].color], { lying: TILE_TYPES[t.t].features[pc.f].type === 'field' });
-    }
-  }
-  const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.2, w / 2, h / 2, Math.max(w, h) * 0.7);
-  g.addColorStop(0, 'rgba(0,0,0,0.05)'); g.addColorStop(1, 'rgba(0,0,0,0.7)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
   const saved = store.get('carc-save');
   const online = hasOnlineSave();
   $('btn-continue').hidden = !(saved?.phase && saved.phase !== 'over');
@@ -68,7 +39,7 @@ function drawHome() {
   if (online) $('btn-rejoin').textContent = `Rejoin Online Game ${online}`;
 }
 onScreen('home', drawHome);
-window.addEventListener('resize', () => { if ($('home').classList.contains('active')) drawHome(); });
+window.addEventListener('resize', () => { if ($('home').classList.contains('active')) { drawHome(); homeVideo(true); } });
 
 $('btn-new').addEventListener('click', () => { sfx.tap(); openSetup(); });
 $('btn-join-home').addEventListener('click', () => { sfx.tap(); openJoin(); });
@@ -124,7 +95,7 @@ $('menu').addEventListener('click', (e) => { if (e.target.id === 'menu') $('menu
 $('scores-modal').addEventListener('click', (e) => { if (e.target.id === 'scores-modal' && C.getState()?.phase !== 'over') $('scores-modal').hidden = true; });
 
 // ---------------- boot ----------------
-document.querySelector('#deck .stack').style.backgroundImage = `url(${getTileBack().toDataURL()})`;
+document.querySelector('#deck .stack').style.backgroundImage = `url(assets/ui/tile-back-base.webp), url(${getTileBack().toDataURL()})`;
 if (document.fonts?.ready) document.fonts.ready.then(() => { if ($('home').classList.contains('active')) drawHome(); });
 drawHome();
 // invite links: https://…/#join=ABCD

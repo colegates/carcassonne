@@ -6,6 +6,7 @@ import { layoutOf, bezierPoint, rotUnit } from './layout.js';
 
 export const ART_SIZE = 576; // px per tile in the cached artwork
 const HIT = 96; // resolution of the feature hit-map
+export const LABEL_RES = HIT;
 
 // ---------- small utils ----------
 export function mulberry(seed) {
@@ -1376,6 +1377,7 @@ export function getTileArt(id) {
   if (lay.garden && !lay.garden.auto) gardenArt(ctx, lay.garden.x, lay.garden.y, S, k, rnd);
   if (lay.foundation) foundationArt(ctx, lay.foundation[0], lay.foundation[1], S, k);
   // symbols: keep them off the meeple spots and off each other
+  const symbols = [];
   const avoid = anchors.map(([x, y]) => [x, y, 0.13]);
   const place = (fi, prefer, r = 0.14) => {
     const at = fi >= 0 ? symbolSpot(label, fi, prefer, avoid) : prefer;
@@ -1400,24 +1402,64 @@ export function getTileArt(id) {
         }
         if (at) avoid.push([at[0], at[1], 0.14]);
       }
-      if (at) drawShield(ctx, at[0] * S, at[1] * S, 0.125 * S);
+      if (at) symbols.push({ kind: 'shield', x: at[0], y: at[1] });
     }
     if (cty.goods) {
       const at = place(cty.fi, [0.3, 0.2]);
-      if (at) goodsArt(ctx, cty.goods, at[0], at[1], S, k);
+      if (at) symbols.push({ kind: 'goods', goods: cty.goods, x: at[0], y: at[1] });
     }
     if (cty.princess) {
       const at = place(cty.fi, lay.princess || [0.22, 0.2]);
-      if (at) princessArt(ctx, at[0], at[1], S, k);
+      if (at) symbols.push({ kind: 'princess', x: at[0], y: at[1] });
     }
   }
   const featAt = ([x, y]) => label[Math.min(HIT - 1, Math.floor(y * HIT)) * HIT + Math.min(HIT - 1, Math.floor(x * HIT))];
-  if (lay.portal) { const at = place(featAt(lay.portal), lay.portal); portalArt(ctx, at[0], at[1], S, k); }
-  if (lay.dragon) { const at = place(featAt(lay.dragon), lay.dragon); dragonSymbolArt(ctx, at[0], at[1], S, k); }
+  if (lay.portal) { const at = place(featAt(lay.portal), lay.portal); symbols.push({ kind: 'portal', x: at[0], y: at[1] }); }
+  if (lay.dragon) { const at = place(featAt(lay.dragon), lay.dragon); symbols.push({ kind: 'dragon', x: at[0], y: at[1] }); }
+  paintSymbols(ctx, symbols, S);
   finishTile(ctx, S, rnd);
-  const art = { canvas: c, anchors, label, problems, lay };
+  const art = { canvas: c, anchors, label, problems, lay, symbols };
   cache.set(id, art);
   return art;
+}
+
+// The printed symbols of a tile (pennant shields, trade goods, princess, portal, dragon),
+// painted at their spots in the tile's own frame; the miniature renderer paints them on its ground.
+function paintSymbols(ctx, symbols, S, only = null) {
+  const k = S / 384;
+  for (const sym of symbols) {
+    if (only && !only.includes(sym.kind)) continue;
+    if (sym.kind === 'shield') drawShield(ctx, sym.x * S, sym.y * S, 0.125 * S);
+    else if (sym.kind === 'goods') goodsArt(ctx, sym.goods, sym.x, sym.y, S, k);
+    else if (sym.kind === 'princess') princessArt(ctx, sym.x, sym.y, S, k);
+    else if (sym.kind === 'portal') portalArt(ctx, sym.x, sym.y, S, k);
+    else if (sym.kind === 'dragon') dragonSymbolArt(ctx, sym.x, sym.y, S, k);
+  }
+}
+export function drawTileSymbols(ctx, id, S, only = null) { paintSymbols(ctx, getTileArt(id).symbols, S, only); }
+// one symbol centred at (x, y), drawn at the scale of a tile S px wide
+export function drawSymbolAt(ctx, sym, x, y, S) {
+  ctx.save(); ctx.translate(x - sym.x * S, y - sym.y * S); paintSymbols(ctx, [sym], S); ctx.restore();
+}
+
+// A picture of a tile for thumbnails (dock, bazaar cards, rules, galleries), turned r
+// quarter turns: the miniature renderer's composite when it has one, else the painted tile.
+let thumbProvider = null;
+export function setThumbProvider(fn) { thumbProvider = fn; }
+const turned = new Map();
+export function getTileThumb(id, size = 256, r = 0) {
+  const c = thumbProvider?.(id, size, ((r % 4) + 4) % 4);
+  if (c) return c;
+  const base = getTileArt(id).canvas;
+  r = ((r % 4) + 4) % 4;
+  if (!r) return base;
+  const key = `${id}|${r}`;
+  if (!turned.has(key)) {
+    const t = canvas(ART_SIZE); const g = t.getContext('2d');
+    g.translate(ART_SIZE / 2, ART_SIZE / 2); g.rotate((r * Math.PI) / 2); g.drawImage(base, -ART_SIZE / 2, -ART_SIZE / 2);
+    turned.set(key, t);
+  }
+  return turned.get(key);
 }
 
 // Which feature is at unit point (u,v) in the *unrotated* tile
@@ -1709,9 +1751,33 @@ export function drawTowerBadge(ctx, x, y, size, h, fh = size * 0.075, color = '#
 // ---------- tile back & table ----------
 // The back of a tile: green, or blue with a stream for The River's tiles (they are kept
 // apart from the others and come first).
+// Photographed table and tile backs (public/assets/ui); the painted ones stand in until
+// they load, or if they never do. On arrival the cached canvases are dropped and a window
+// 'ui-art-ready' event lets the board and the deck pile repaint.
+const uiArt = {};
+if (typeof Image !== 'undefined' && typeof window !== 'undefined') {
+  for (const [key, file] of [['table', 'table.webp'], ['back:base', 'tile-back-base.webp'], ['back:river', 'tile-back-river.webp']]) {
+    const img = new Image();
+    img.onload = () => {
+      uiArt[key] = img;
+      cache.delete(key === 'table' ? '_table' : `_${key}`);
+      window.dispatchEvent(new Event('ui-art-ready'));
+    };
+    img.src = new URL(`../assets/ui/${file}`, import.meta.url).href;
+  }
+}
+// planks of the photographed table are drawn at this scale to match the painted ones
+export const tableScale = () => (uiArt.table ? 512 / uiArt.table.width : 1);
+
 export function getTileBack(kind = 'base') {
   const id = `_back:${kind}`;
   if (cache.has(id)) return cache.get(id);
+  const photo = uiArt[`back:${kind}`];
+  if (photo) {
+    const c = canvas(256); c.getContext('2d').drawImage(photo, 0, 0, 256, 256);
+    cache.set(id, c);
+    return c;
+  }
   const river = kind === 'river';
   const S = 256; const c = canvas(S); const ctx = c.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, S, S);
@@ -1736,6 +1802,11 @@ export function getTileBack(kind = 'base') {
 
 export function getTableTexture() {
   if (cache.has('_table')) return cache.get('_table');
+  if (uiArt.table) {
+    const t = canvas(uiArt.table.width, uiArt.table.height); t.getContext('2d').drawImage(uiArt.table, 0, 0);
+    cache.set('_table', t);
+    return t;
+  }
   const S = 512; const c = canvas(S); const ctx = c.getContext('2d');
   const rnd = mulberry(99);
   ctx.fillStyle = '#5a3d26'; ctx.fillRect(0, 0, S, S);

@@ -1,18 +1,25 @@
 <!doctype html><html><body style="background:#333;margin:0"><div id=o style="display:flex;flex-wrap:wrap;gap:6px;padding:6px"></div>
 <script type=module>
-// Tile gallery: dev/gallery.html?f=DG/&mode=clean|labels|meeples (default meeples)
+// Tile gallery: dev/gallery.html?f=DG/&mode=clean|labels|meeples|painted (default meeples)&s=size&r=rotation
+// (miniature pictures unless mode=painted; meeples and labels are drawn unrotated, so use r=0 with them)
 import { TILE_TYPES } from '../public/js/tiles.js';
-import { getTileArt, drawMeeple, allFieldProblems } from '../public/js/art.js';
+import { getTileArt, getTileThumb, drawMeeple, allFieldProblems } from '../public/js/art.js';
 import { PLAYER_COLORS } from '../public/js/game.js';
+import { standaloneThumbs, thumbReady } from '../public/js/minis/render.js';
 const q = new URLSearchParams(location.search);
 const filter = q.get('f') || '', mode = q.get('mode') || (location.hash === '#clean' ? 'clean' : 'meeples');
-const size = +(q.get('s') || 300);
+const size = +(q.get('s') || 300), rot = +(q.get('r') || 0);
 const cols = Object.values(PLAYER_COLORS);
+// the miniature pictures (mode=painted shows the painted tiles); wait for their images
+if (mode !== 'painted' && await standaloneThumbs()) {
+  const ids = Object.keys(TILE_TYPES).filter((i) => filter.split(',').some((f) => i.startsWith(f)));
+  for (let k = 0; k < 120 && !ids.every((id) => (getTileThumb(id, +(q.get('s') || 300), +(q.get('r') || 0)), thumbReady(id, +(q.get('s') || 300), +(q.get('r') || 0)))); k++) await new Promise((r) => setTimeout(r, 250));
+}
 const LABEL_COLS = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff'];
 for (const id of Object.keys(TILE_TYPES).filter((i) => filter.split(',').some((f) => i.startsWith(f)))) {
   const a = getTileArt(id);
   const c = document.createElement('canvas'); c.width = c.height = size;
-  const g = c.getContext('2d'); g.drawImage(a.canvas, 0, 0, size, size);
+  const g = c.getContext('2d'); g.drawImage(mode === 'painted' ? a.canvas : getTileThumb(id, size, rot), 0, 0, size, size);
   if (mode === 'labels') {
     const H = Math.sqrt(a.label.length), px = size / H;
     g.globalAlpha = 0.45;

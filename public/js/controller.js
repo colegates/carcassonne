@@ -4,7 +4,7 @@ import { TILE_TYPES, isRiverTile } from './tiles.js';
 import * as G from './game.js';
 import { chooseMove, suggestMove, chooseDragonMove, chooseRansom, chooseCastle, chooseBazaarAction } from './ai.js';
 import { BoardView, besideBridge } from './board.js';
-import { getTileArt, getTileBack, rotUnit, drawCastle } from './art.js';
+import { getTileArt, getTileThumb, getTileBack, rotUnit, drawCastle } from './art.js';
 import { sfx } from './sound.js';
 import { fingerprint } from './net.js';
 import { $, sleep, store, escapeHtml, show, pieceIcon, banner, toast, ask } from './ui.js';
@@ -133,7 +133,8 @@ export function renderPlayers() {
   // the pile shows the back of the next tile: The River's tiles come first, with a blue back
   const back = state.deck.length && isRiverTile(state.deck[state.deck.length - 1]) ? 'river' : 'base';
   const stack = document.querySelector('#deck .stack');
-  if (stack.dataset.back !== back) { stack.dataset.back = back; stack.style.backgroundImage = `url(${getTileBack(back).toDataURL()})`; }
+  // (the photographed back over the painted one, which shows if the photo is missing)
+  if (stack.dataset.back !== back) { stack.dataset.back = back; stack.style.backgroundImage = `url(assets/ui/tile-back-${back}.webp), url(${getTileBack(back).toDataURL()})`; }
 }
 
 function supplyText(p) {
@@ -191,12 +192,14 @@ function chipCenter(i) {
   return [r.left + 15, r.top + r.height / 2];
 }
 
+// the miniature pictures arrive a moment later: repaint the tile in hand
+window.addEventListener('minis-updated', () => { if (state) drawPreview(); });
 function drawPreview() {
   const c = $('preview'); const ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
   if (!state.drawn) { c.style.visibility = 'hidden'; return; }
   c.style.visibility = 'visible';
-  ctx.drawImage(getTileArt(state.drawn).canvas, 0, 0, c.width, c.height);
+  ctx.drawImage(getTileThumb(state.drawn, c.width), 0, 0, c.width, c.height);
   c.style.transform = `rotate(${ui.previewRotDeg ?? ui.previewRot * 90}deg)`;
 }
 
@@ -587,7 +590,7 @@ function renderBazaar() {
   requestAnimationFrame(placeOverlays);
   box.querySelectorAll('.bz-card').forEach((card) => {
     const c = card.querySelector('canvas');
-    c.getContext('2d').drawImage(getTileArt(bz.tiles[+card.dataset.i].t).canvas, 0, 0, c.width, c.height);
+    c.getContext('2d').drawImage(getTileThumb(bz.tiles[+card.dataset.i].t, c.width), 0, 0, c.width, c.height);
   });
 }
 
