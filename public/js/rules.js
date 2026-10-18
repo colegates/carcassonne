@@ -1,11 +1,12 @@
 // Illustrated "How to play" guide, drawn with the same tile art as the game.
 import { TILE_TYPES } from './tiles.js';
-import { getTileArt, drawPiece, drawTower, rotUnit, getTableTexture, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
-import { PLAYER_COLORS, getGroup, key, neighbour, edgeType } from './game.js';
+import { getTileArt, drawPiece, drawTower, drawBridge, drawCastle, rotUnit, getTableTexture, DRAGON_COLOR, FAIRY_COLOR } from './art.js';
+import { PLAYER_COLORS, getGroup, key, neighbour, edgeType, bridgeFeature } from './game.js';
 import { featureMask } from './board.js';
 
-// tiles: [[x, y, type, rot, meeple?: [colorName, featureIndex, kind?]]]
-// extras: [{ kind: 'dragon' | 'fairy' | 'tower', x, y, u?, v?, h?, top?: colorName }]
+// tiles: [[x, y, type, rot, meeple?: [colorName, featureIndex, kind?], bridgeAxis?]]
+// extras: [{ kind: 'dragon' | 'fairy' | 'tower', x, y, u?, v?, h?, top?: colorName },
+//          { kind: 'castle', a: [x, y], b: [x, y], top?: colorName }, { kind: 'area', cells: [[x, y]] }]
 export function renderMini(tiles, { px = 74, highlight = null, highlightColor = '#ffd84a', pad = 0.35, marks = [], extras = [] } = {}) {
   const xs = tiles.map((t) => t[0]), ys = tiles.map((t) => t[1]);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -24,22 +25,24 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
     ctx.fillStyle = 'rgba(10,5,0,0.45)'; ctx.fillRect(sx - px / 2 + px * 0.04, sy - px / 2 + px * 0.06, px, px);
   }
   const board = {};
-  for (const [x, y, t, r] of tiles) board[key(x, y)] = { t, r, pieces: [] };
+  for (const [x, y, t, r, , b] of tiles) board[key(x, y)] = { t, r, pieces: [], ...(b === undefined ? {} : { bridge: b }) };
   for (const [x, y] of tiles) for (const s of [1, 2]) {
     const nb = neighbour(board, x, y, s);
     if (nb && edgeType(board[key(x, y)], s) !== edgeType(nb, (s + 2) % 4)) console.warn(`rules figure mismatch at ${x},${y} side ${s}`);
   }
-  for (const [x, y, t, r] of tiles) {
+  for (const [x, y, t, r, , b] of tiles) {
     const [sx, sy] = pos(x, y);
     ctx.save(); ctx.translate(sx, sy); ctx.rotate((r * Math.PI) / 2);
     ctx.drawImage(getTileArt(t).canvas, -px / 2, -px / 2, px, px);
     ctx.restore();
+    if (b !== undefined) drawBridge(ctx, sx, sy, px, b);
   }
   if (highlight) {
     const [hx, hy, hfi] = highlight;
     const g = getGroup(board, key(hx, hy), hfi);
     ctx.save(); ctx.globalAlpha = 0.42;
     for (const [k, fi] of g.nodes) {
+      if (fi === bridgeFeature(board[k])) continue; // (a bridge's road is not printed on the tile)
       const [x, y] = k.split(',').map(Number); const { t, r } = board[k];
       const [sx, sy] = pos(x, y);
       ctx.save(); ctx.translate(sx, sy); ctx.rotate((r * Math.PI) / 2);
@@ -48,14 +51,36 @@ export function renderMini(tiles, { px = 74, highlight = null, highlightColor = 
     }
     ctx.restore();
   }
-  for (const [x, y, t, r, m] of tiles) {
+  for (const [x, y, t, r, m, b] of tiles) {
     if (!m) continue;
     const [sx, sy] = pos(x, y);
+    if (b !== undefined && m[1] === bridgeFeature(board[key(x, y)])) {
+      // standing on the bridge
+      drawPiece(ctx, m[2] || 'meeple', b === 0 ? sx : sx + px * 0.22, b === 0 ? sy - px * 0.22 : sy, px * 0.32, PLAYER_COLORS[m[0]]);
+      continue;
+    }
     const [ax, ay] = getTileArt(t).anchors[m[1]];
     const [rx, ry] = rotUnit(ax, ay, r);
     drawPiece(ctx, m[2] || 'meeple', sx + (rx - 0.5) * px, sy + (ry - 0.5) * px, px * 0.32, PLAYER_COLORS[m[0]], { lying: TILE_TYPES[t].features[m[1]].type === 'field' });
   }
+  for (const e of extras.filter((q) => q.kind === 'area')) {
+    for (const [x, y] of e.cells) {
+      const [sx, sy] = pos(x, y);
+      ctx.fillStyle = 'rgba(255,216,74,0.16)';
+      ctx.fillRect(sx - px / 2 + 3, sy - px / 2 + 3, px - 6, px - 6);
+      ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 2.5; ctx.setLineDash([px * 0.1, px * 0.07]);
+      ctx.strokeRect(sx - px / 2 + 3, sy - px / 2 + 3, px - 6, px - 6);
+      ctx.setLineDash([]);
+    }
+  }
   for (const e of extras) {
+    if (e.kind === 'area') continue;
+    if (e.kind === 'castle') {
+      const [ax, ay] = pos(...e.a), [bx, by] = pos(...e.b);
+      const top = drawCastle(ctx, (ax + bx) / 2, (ay + by) / 2 + px * 0.15, px * 0.9);
+      if (e.top) drawPiece(ctx, 'meeple', (ax + bx) / 2, top - px * 0.12, px * 0.28, PLAYER_COLORS[e.top]);
+      continue;
+    }
     const [sx, sy] = pos(e.x, e.y);
     const { t, r } = board[key(e.x, e.y)];
     if (e.kind === 'tower') {
@@ -291,10 +316,25 @@ export function buildRules(root) {
       <p>If two players hold each other's figures they swap them back at once, one for one (if you could get back different figures, you choose which). Once per turn you may <b>buy back</b> one of your figures for <span class="pts">3 points</span> paid to whoever holds it (tap ⛓️) — you need at least 3 points. Builders, pigs, the fairy and the dragon can't be captured. Towers score nothing, and prisoners still held at the end are worth nothing.</p>`,
     () => [[renderMini([[0, 0, 'TO/C', 2], [0, -1, 'D', 0, ['blue', 0]], [1, 0, 'B', 0], [0, -2, 'E', 2]], { px: 66, extras: [{ kind: 'tower', x: 0, y: 0, h: 2 }], marks: [[0, -1, '⚔', '#ff7b6b', 0.82, 0.18], [1, 0, '⚔', '#ff7b6b', 0.82, 0.18], [0, -2, '⚔', '#ff7b6b', 0.82, 0.18]] }), 'A tower 2 floors tall reaches 2 tiles in a straight line: Blue\'s knight can be captured.']], 'tower');
 
+  addExp('🌉', 'Bridges, Castles &amp; Bazaars',
+    `<p><b>Bridges.</b> You have 3 bridges (2 with 5 or 6 players). When you place a tile you may build <b>one</b> bridge, on your new tile or on a tile right next to it. It goes straight across, side to opposite side, and both ends must stand on <b>grass</b> — never on a city, road or river. In between it can cross anything. A bridge is a road worth <span class="pts">1 per tile</span>, and it never cuts a field or a city in two.</p>
+     <p><b>A bridge can rescue a tile:</b> your tile's road may run into grass if a bridge carries it on. A tile that only fits with a bridge may also be thrown away (🗑) — then you draw another. Your meeple may stand on a bridge on your new tile (not on one next door).</p>
+     <p><small>In the app, squares marked 🌉 only fit with a bridge; it is added for you. After placing, the <b>🌉 Bridge</b> choice builds a bridge or moves it.</small></p>
+     <p><b>Castles.</b> When a tile finishes a tiny city of two half-round pieces, the player whose knight is in it chooses: take the <span class="pts">4 points</span>, or build a <b>castle</b>. The knight climbs onto the castle, which watches <b>6 squares</b>: its two tiles and the two beside each. Pointed cities (with a gate road or a corner) can't become castles.</p>
+     <p>On a <b>later</b> turn, the first road, city, monastery or garden finished there (a monastery or garden must sit on one of the squares) gives the castle's owner the <b>same points</b> — even if nobody owned it! Then the knight comes home. If several finish at once, the castle takes the best, and a scoring castle can set off a neighbouring castle.</p>
+     <p>Castles still waiting at the end score nothing, but every castle is worth <span class="pts">4</span> to farmers instead of 3.</p>
+     <p><b>Bazaars.</b> After a turn with a bazaar tile (the market stall), one tile per player is turned over. Starting on the left, a player picks a tile and bids (0 is fine). Everyone else without a tile may raise once, going round. Then the picker <b>keeps</b> it (paying the top bidder) or <b>sells</b> it (the top bidder pays the picker). Scores can even drop below zero! The last tile is free. Then everyone plays their tile as a normal turn, starting on the bazaar player's left, and the game goes on after the bazaar player. There's no bazaar when fewer tiles are left than players, and none starts during a bazaar.</p>
+     <p><small>Options: each part can be switched off in the setup. Without <b>bidding</b> (an official variant) everyone simply takes a tile in turn.</small></p>`,
+    () => [[renderMini([[-1, 0, 'U', 1, ['blue', 0]], [0, 0, 'F', 1, null, 1], [1, 0, 'U', 1]], { px: 74 }), 'Blue\'s road meets a meadow: the new tile carries it across the city on a bridge.'],
+     [renderMini([[-1, 0, 'U', 1, ['red', 0]], [0, 0, 'B', 0, null, 1]], { px: 74 }), 'A bridge on the tile next door carries Red\'s road over the monastery\'s meadow. Its far end must face an empty square or a road.'],
+     [renderMini([[0, 0, 'E', 2], [0, 1, 'E', 0], [-1, 0, 'B', 0], [1, 0, 'A', 0], [1, 1, 'U', 0], [0, 2, 'B', 0]], { px: 62, extras: [{ kind: 'area', cells: [[0, 0], [0, 1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }, { kind: 'castle', a: [0, 0], b: [0, 1], top: 'red' }], marks: [[-1, 0, '✓', '#6dff6d', 0.8, 0.2], [1, 0, '✓', '#6dff6d', 0.8, 0.2], [0, 2, '✗', '#ff6b5b', 0.8, 0.2]] }),
+       'Red\'s castle watches the 6 gold squares (empty ones too): the monasteries and the road there can set it off. The monastery below is outside.']], 'bridges');
+
   add('🧩', 'Mixing Expansions',
     `<p>After placing your tile you do <b>one</b> thing: place a figure (meeple, big meeple, abbot, builder or pig), <b>or</b> call your abbot home, <b>or</b> move the fairy, <b>or</b> use the magic portal or the princess, <b>or</b> add a tower floor, <b>or</b> put a meeple on top of a tower.</p>
      <p>The dragon always flies <b>before</b> anything is scored, and tower captures happen before the dragon flies.</p>
-     <p>The fairy's +1 and buying back a prisoner happen at most <b>once per turn</b> — even when the builder gives you a bonus tile.</p>`);
+     <p>The fairy's +1 and buying back a prisoner happen at most <b>once per turn</b> — even when the builder gives you a bonus tile.</p>
+     <p>A bridge goes down with your tile, before your figure. Castles are decided after the dragon, before scoring. The bazaar comes after the whole turn, before the builder's bonus tile.</p>`);
 
   add('📱', 'Using the App',
     `<p>• <b>Drag</b> to move around the map, <b>pinch</b> to zoom. ⌖ shows the whole map.</p>

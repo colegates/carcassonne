@@ -4,6 +4,7 @@ import { getTileArt, drawPiece, drawTower, drawTowerBadge, drawBridge, drawCastl
 import { parseKey, PLAYER_COLORS, featuresOf, bridgeFeature } from './game.js';
 
 const HIT = 96;
+const CASTLE_SIZE = 0.9; // a castle's size on the board, in tiles
 const maskCache = new Map();
 export function featureMask(id, fi, color) {
   const ck = `${id}|${fi}|${color}`;
@@ -64,7 +65,10 @@ export class BoardView {
   // Safe area of the board not covered by top bar / dock
   viewport() {
     const top = (document.getElementById('topbar')?.offsetHeight || 60) + 10;
-    const bottom = (document.getElementById('dock')?.offsetHeight || 120) + 10;
+    // (Bridges, Castles & Bazaars: the bazaar round's strip sits just above the dock)
+    const bz = document.getElementById('bazaar');
+    const strip = bz && !bz.hidden && bz.classList.contains('strip') ? bz.offsetHeight + 8 : 0;
+    const bottom = (document.getElementById('dock')?.offsetHeight || 120) + 10 + strip;
     return { top, bottom, cx: this.w / 2, cy: top + (this.h - top - bottom) / 2, vh: this.h - top - bottom };
   }
 
@@ -274,6 +278,8 @@ export class BoardView {
     // feature glows
     for (const e of this.effects) if (e.type === 'glow') this.drawGlow(e, now);
     if (this.vm.highlight) this.drawHighlight(this.vm.highlight, now);
+    // Bridges, Castles & Bazaars: the six squares a castle being decided would watch
+    if (this.vm.castleArea) this.drawCastleArea(this.vm.castleArea, now);
     // The Tower: how far the tower being built reaches (a plus shape)
     if (this.vm.reach && this.vm.ghosts) this.drawReach(this.vm.reach);
     // candidate spots
@@ -296,6 +302,16 @@ export class BoardView {
       }
       this.drawPieces(v.tile, v.tile.pieces, v.sx, v.sy, a, fx ? { key: v.k, f: fx.f, dy } : null);
     }
+    // Bridges, Castles & Bazaars: castles stand on the edge between their two tiles
+    for (const c of this.state.castles || []) {
+      const [bx, by] = this.castleBase(c);
+      if (bx < -z || by < -z || bx > this.w + z || by > this.h + z) continue;
+      drawCastle(this.ctx, bx, by, z * CASTLE_SIZE);
+      if (c.k && !hidden.has(c.key)) {
+        const [tx, ty] = this.castleTop(c);
+        drawPiece(this.ctx, c.k, tx, ty, z * 0.26, PLAYER_COLORS[this.state.players[c.owner].color] || PLAYER_COLORS.red);
+      }
+    }
     // The Tower: floors and the meeple on top
     const towers = Object.entries(this.state.towers || {}).filter(([k, tw]) => board[k] && (tw.h > 0 || tw.top));
     towers.sort((a, b) => parseKey(a[0])[1] - parseKey(b[0])[1]);
@@ -314,9 +330,9 @@ export class BoardView {
     }
     for (const m of this.vm.extraMeeples || []) {
       const tile = board[m.key]; if (!tile) continue;
-      if (m.f === 'top') {
-        const [tx, ty] = this.figurePos(m.key, 'top');
-        drawPiece(this.ctx, m.k, tx, ty, z * 0.3, PLAYER_COLORS[this.state.players[m.p].color] || PLAYER_COLORS.red);
+      if (m.f === 'top' || m.f === 'castle') {
+        const [tx, ty] = this.figurePos(m.key, m.f, m);
+        drawPiece(this.ctx, m.k, tx, ty, z * (m.f === 'top' ? 0.3 : 0.26), PLAYER_COLORS[this.state.players[m.p].color] || PLAYER_COLORS.red);
         continue;
       }
       const [x, y] = parseKey(m.key); const [sx, sy] = this.toScreen(x, y);
@@ -327,7 +343,7 @@ export class BoardView {
     if (this.vm.dragonMoves) this.drawDragonMoves(now);
     const fy = this.state.fairy;
     if (fy && board[fy.key]) {
-      const [fx, fyy] = this.fairyPos(fy.key, fy.f);
+      const [fx, fyy] = this.fairyPos(fy.key, fy.f, fy.c);
       drawPiece(this.ctx, 'fairy', fx, fyy, z * 0.3, FAIRY_COLOR);
     }
     const dk = this.vm.dragonAt || this.state.dragon;
@@ -450,6 +466,11 @@ export class BoardView {
         ctx.font = `${Math.round(z * 0.38)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('💡', sx, sy);
       }
+      // Bridges, Castles & Bazaars: it only fits here (turned this way) with a bridge
+      if (c.bridge && good && z > 34) {
+        ctx.font = `${Math.round(z * 0.24)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('🌉', sx + z * 0.27, sy - z * 0.27);
+      }
     }
     this.drawEdgeArrows(offscreen, pulse);
   }
@@ -544,10 +565,53 @@ export class BoardView {
     return Math.max(z * 0.032, Math.min(z * 0.075, room / (Math.min(h, 7) + 0.45)));
   }
 
-  // Where the figure on feature f of tile k stands (f 'top' = on the tower).
+  // Bridges, Castles & Bazaars: a castle's base (the middle of the edge its two tiles
+  // share) and where its castellan stands, on top.
+  castleBase(c) {
+    const [ax, ay] = parseKey(c.tiles[0]), [bx, by] = parseKey(c.tiles[1]);
+    const [sx, sy] = this.toScreen((ax + bx) / 2, (ay + by) / 2);
+    return [sx, sy + this.cam.z * 0.15];
+  }
+  castleTop(c) {
+    const [bx, by] = this.castleBase(c);
+    return [bx, by - this.cam.z * CASTLE_SIZE * 0.345 - this.cam.z * 0.12];
+  }
+  castleOf(k, who) {
+    const list = this.state.castles || [];
+    return list.find((c) => c.id === who?.c) || list.find((c) => c.key === k && c.k) || list.find((c) => c.key === k);
+  }
+
+  // The six squares a castle would watch: dashed gold squares, empty ones too.
+  drawCastleArea(keys, now) {
+    const { ctx } = this;
+    const z = this.cam.z;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    ctx.save();
+    for (const k of keys) {
+      const [x, y] = parseKey(k);
+      const [sx, sy] = this.toScreen(x, y);
+      const inset = z * 0.05;
+      ctx.fillStyle = `rgba(255,216,74,${0.1 + 0.08 * pulse})`;
+      roundRect(ctx, sx - z / 2 + inset, sy - z / 2 + inset, z - 2 * inset, z - 2 * inset, z * 0.08);
+      ctx.fill();
+      ctx.lineWidth = Math.max(2, z * 0.03);
+      ctx.strokeStyle = `rgba(255,216,74,${0.7 + 0.3 * pulse})`;
+      ctx.setLineDash([z * 0.1, z * 0.07]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  // Where the figure on feature f of tile k stands (f 'top' = on the tower,
+  // 'castle' = on the castle who.c).
   figurePos(k, f, who = null) {
     const tile = this.state.board[k];
     const z = this.cam.z;
+    if (f === 'castle') {
+      const c = this.castleOf(k, who);
+      if (c) return this.castleTop(c);
+    }
     if (f === 'top') {
       const [bx, by] = this.towerBase(k);
       const h = this.state.towers?.[k]?.h || 0;
@@ -561,8 +625,12 @@ export class BoardView {
     return this.piecePos(tile, f, sx, sy, i, Math.max(1, list.length));
   }
 
-  fairyPos(k, f) {
+  fairyPos(k, f, c) {
     const z = this.cam.z;
+    if (f === 'castle') {
+      const [mx, my] = this.figurePos(k, 'castle', { c });
+      return [mx + z * 0.22, my + z * 0.12];
+    }
     if (f === null || f === undefined || (f !== 'top' && !this.state.board[k].pieces.some((pc) => pc.f === f))) {
       const [x, y] = parseKey(k);
       const [sx, sy] = this.toScreen(x, y);
@@ -575,7 +643,7 @@ export class BoardView {
   ghostScreenPos(g) {
     const z = this.cam.z;
     const type = g.type || 'follower';
-    if (type === 'fairy') return this.fairyPos(g.key, g.fi);
+    if (type === 'fairy') return this.fairyPos(g.key, g.fi, g.act?.c);
     if (type === 'princess' || type === 'capture' || type === 'recall') return this.figurePos(g.key, g.fi, g);
     if (type === 'floor') {
       const [bx, by] = this.towerBase(g.key); const h = this.state.towers[g.key].h;

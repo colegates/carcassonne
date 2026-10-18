@@ -17,7 +17,7 @@ setup = {
     { name: 'Player 1', color: 'red', kind: 'human' },
     { name: 'Player 2', color: 'blue', kind: 'human' },
   ],
-  farmers: true, hints: true, expansions: {}, myName: '', myColor: 'red',
+  farmers: true, hints: true, expansions: {}, bcb: {}, myName: '', myColor: 'red',
   ...setup,
 };
 setup.players.forEach((p) => { if (!COLOR_ORDER.includes(p.color)) p.color = 'pink'; });
@@ -43,12 +43,14 @@ function renderSetup() {
   $('online-help').hidden = setup.mode !== 'online';
   renderLocalPlayers();
   renderOnlineMe();
-  renderExpansionToggles($('exp-list'), setup.expansions, (id, on) => { setup.expansions[id] = on; saveSetup(); renderLocalPlayers(); });
+  renderExpansionToggles($('exp-list'), setup.expansions, (id, on) => { setup.expansions[id] = on; saveSetup(); renderLocalPlayers(); }, false,
+    { values: setup.bcb || {}, onChange: (part, on) => { setup.bcb = { ...setup.bcb, [part]: on }; saveSetup(); } });
   $('opt-farmers').checked = setup.farmers;
   $('opt-hints').checked = setup.hints;
 }
 
-export function renderExpansionToggles(box, values, onChange, readOnly = false) {
+// parts: the sub-options of an expansion ({ values, onChange(part, on) }), shown under its switch while it is on
+export function renderExpansionToggles(box, values, onChange, readOnly = false, parts = null) {
   box.innerHTML = '';
   const list = readyExpansions();
   if (!list.length) {
@@ -60,13 +62,43 @@ export function renderExpansionToggles(box, values, onChange, readOnly = false) 
     row.className = 'toggle exp';
     row.innerHTML = `<input type="checkbox" ${values[e.id] ? 'checked' : ''} ${readOnly ? 'disabled' : ''}><span class="slider"></span>
       <span class="tlabel"><b>${e.icon} ${escapeHtml(e.name)}</b><small>${escapeHtml(e.blurb)} <button type="button" class="exp-info">Rules ›</button></small></span>`;
-    row.querySelector('input').addEventListener('change', (ev) => { sfx.tap(); onChange(e.id, ev.target.checked); });
+    let sub = null;
+    if (e.parts && parts) {
+      sub = document.createElement('div');
+      sub.className = 'exp-parts';
+      sub.hidden = !values[e.id];
+      const draw = () => {
+        sub.innerHTML = '';
+        for (const [part, label] of e.parts) {
+          const on = parts.values[part] !== false;
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = `exp-part${on ? ' on' : ''}`;
+          b.textContent = `${label} ${on ? '✓' : '✗'}`;
+          b.disabled = readOnly || (part === 'auction' && parts.values.bazaars === false);
+          b.addEventListener('click', () => {
+            sfx.tap();
+            parts.values = { ...parts.values, [part]: !on };
+            parts.onChange(part, !on);
+            draw();
+          });
+          sub.appendChild(b);
+        }
+      };
+      draw();
+    }
+    row.querySelector('input').addEventListener('change', (ev) => {
+      sfx.tap();
+      if (sub) sub.hidden = !ev.target.checked;
+      onChange(e.id, ev.target.checked);
+    });
     row.querySelector('.exp-info').addEventListener('click', (ev) => {
       ev.preventDefault(); ev.stopPropagation();
       sfx.tap();
       window.dispatchEvent(new CustomEvent('open-rules', { detail: e.id }));
     });
     box.appendChild(row);
+    if (sub) box.appendChild(sub);
   }
 }
 
@@ -155,7 +187,13 @@ $('me-name').addEventListener('input', (e) => { setup.myName = e.target.value; s
 $('me-name').addEventListener('pointerdown', (e) => e.stopPropagation());
 
 function gameOptions(src = setup) {
-  return { farmers: src.farmers !== false, hints: src.hints !== false, expansions: { ...activeExpansionsFrom(src.expansions) } };
+  const out = { farmers: src.farmers !== false, hints: src.hints !== false, expansions: { ...activeExpansionsFrom(src.expansions) } };
+  // Bridges, Castles & Bazaars: the parts in play
+  if (out.expansions.bridges) out.bcb = bcbOptions(src.bcb);
+  return out;
+}
+function bcbOptions(b = {}) {
+  return { bridges: b.bridges !== false, castles: b.castles !== false, bazaars: b.bazaars !== false, auction: b.auction !== false };
 }
 function activeExpansionsFrom(exp = {}) {
   const out = {};
@@ -384,7 +422,10 @@ function renderLobby() {
   renderExpansionToggles($('lobby-exp'), opts.expansions || {}, (id, on) => {
     const next = { ...opts, expansions: { ...(opts.expansions || {}), [id]: on } };
     session.net.send({ type: 'lobby', op: 'options', options: next });
-  }, !isHost());
+  }, !isHost(), { values: opts.bcb || {}, onChange: (part, on) => {
+    const next = { ...opts, bcb: { ...bcbOptions(opts.bcb), [part]: on } };
+    session.net.send({ type: 'lobby', op: 'options', options: next });
+  } });
   $('lobby-farmers').checked = opts.farmers !== false;
   $('lobby-farmers').disabled = !isHost();
   $('lobby-hints').checked = opts.hints !== false;
@@ -431,6 +472,7 @@ $('lobby-start').addEventListener('click', () => {
   if (r.seats.length > maxPlayers(activeExpansionsFrom(r.options?.expansions))) { toast('6 players need Inns & Cathedrals'); return; }
   const opts = { ...gameOptions(), ...r.options };
   opts.expansions = activeExpansionsFrom(opts.expansions);
+  if (opts.expansions.bridges) opts.bcb = bcbOptions(opts.bcb); else delete opts.bcb;
   const init = G.newGame(r.seats.map((s) => ({ name: s.name, color: s.color, kind: s.kind, level: s.level })), opts);
   init.players.forEach((p, i) => { p.owner = r.seats[i].owner || null; });
   init.current = Math.floor(Math.random() * init.players.length);

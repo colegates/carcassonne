@@ -6,7 +6,7 @@ over the internet, or against computer knights (Easy / Medium / Hard).
 
 * Full base game: all 72 tiles, roads, cities with shields, monasteries and
   farmers, with 3rd-edition scoring.
-* Six expansions that can be mixed freely (3rd-edition rules, see
+* Seven expansions that can be mixed freely (3rd-edition rules, see
   `docs/expansions/MASTER.md`):
   * **The River** — start the map with a river from spring to lake.
   * **The Abbot** — gardens and an abbot who can come home early with points.
@@ -15,6 +15,9 @@ over the internet, or against computer knights (Easy / Medium / Hard).
   * **The Princess & the Dragon** — volcanoes, the dragon's flight, the fairy,
     magic portals and princesses.
   * **The Tower** — tower floors, capturing figures, prisoners and ransom.
+  * **Bridges, Castles & Bazaars** — bridges that carry roads over anything,
+    small cities that become castles, and bazaars that auction tiles (each part
+    can be switched off; bidding is optional).
 * **Online play**: create a room, share the 4-letter code (or the invite link /
   QR), and each player uses their own phone. Computer players can join too.
 * Painted tile artwork generated procedurally on a canvas (no image assets).

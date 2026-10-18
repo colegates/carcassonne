@@ -6,6 +6,9 @@ export const EXPANSIONS = [
   { id: 'traders', name: 'Traders & Builders', icon: '🔨', blurb: 'Trade goods, a builder for double turns and a pig for richer farms.', ready: true },
   { id: 'dragon', name: 'The Princess & the Dragon', icon: '🐉', blurb: 'A dragon that eats meeples, a protective fairy, magic portals and princesses.', ready: true },
   { id: 'tower', name: 'The Tower', icon: '🏰', blurb: 'Build towers to capture other players’ meeples and hold them for ransom.', ready: true },
+  { id: 'bridges', name: 'Bridges, Castles & Bazaars', icon: '🌉', blurb: 'Bridges carry roads over anything, tiny cities become castles that score their neighbours, and bazaars auction tiles.', ready: true,
+    // parts that can be switched off (options.bcb)
+    parts: [['bridges', '🌉 Bridges'], ['castles', '🏰 Castles'], ['bazaars', '🛒 Bazaars'], ['auction', '💰 Bidding']] },
 ];
 
 export const expansionName = (id) => EXPANSIONS.find((e) => e.id === id)?.name || id;
