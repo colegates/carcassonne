@@ -1,5 +1,14 @@
 # Bridges, Castles & Bazaars × base game and the six expansions — interaction rulings
 
+> **Arbitrated 2026-10-17 — `MASTER.md` §H (rulings BC1–BC50) and `bridges-castles-bazaars.json` / `.md` supersede
+> this research file where they differ.** Every recommended ruling below was adopted. Changes made here after the
+> arbitration: (1) §10: a placement never has "1 + 2 + 8 variants" — at most **one** bridge position can make a given
+> spot and rotation legal, and at most five optional spots exist (MASTER H.2.3); (2) §10 / PD-6: castellan references
+> and the fairy carry the castle's id (`{ key, f: 'castle', c, k, p }`), because two castles can have their knights on
+> the same tile; (3) §12: all open questions settled as recommended (BC22, BC39, BC13, BC11 / BC28 / BC44, BC23,
+> BC41); (4) step numbering: MASTER calls the castle decisions **6a**, feature scoring 6b, castle scoring 6c and the
+> returns 6d (this file's 6a "find completed features" is part of MASTER's 6b); the order is the same.
+
 *3rd edition: HiG "Brücken, Burgen und Basare" (DE, © 2010/2017) and the Z-Man English text (© 2010/2018, the copy
 hosted by HiG). Researched 2026-10-17 for expansion #8. This file covers only how BCB interacts with the base game,
 The River, The Abbot, Inns & Cathedrals, Traders & Builders, The Princess & the Dragon and The Tower, plus the FAQ
@@ -260,11 +269,13 @@ in which case it is ignored (TB-4).
 - **Model already in place** (commit `816ab7b`): `tile.bridge` (0 = N–S, 1 = W–E, world axis); the bridge is the last
   road feature and fields keep their outer ports. Still needed: bridge supply per player; the bridge in the `turn`
   action (`bridge: { key, axis } | null`); `validPlacements`/`drawTile` placeability including P's bridge options
-  (up to 1 + 2 + 8 variants per spot; prune for the AI); a "decline (bridge-only)" action; 2b after the bridge.
+  (*corrected:* at most one required bridge per spot and rotation, at most five optional spots — MASTER H.2.3); a
+  "decline (bridge-only)" action; 2b after the bridge.
 - **Castles:** store castellans **outside `tile.pieces`**, like tower tops. The dragon, tower capture, princess and
-  portal then exclude them automatically. Suggested shape: `state.castles[] = { nodes: [[k1, f1], [k2, f2]], keys: [k1, k2], fief: [6 keys], p, k: 'meeple' | 'large' | null, key /* tile the follower stood on */, born /* placement serial */ }`.
-  The fairy can then use `{ key, f: 'castle', k, p }`. `returnPieces` and `syncFairy` must handle `f === 'castle'`.
-  Piece-conservation checks must count castellans.
+  portal then exclude them automatically. Suggested shape: `state.castles[] = { nodes: [[k1, f1], [k2, f2]], keys: [k1, k2], fief: [6 keys], p, k: 'meeple' | 'large' | null, key /* tile the follower stood on */, born /* placement serial */ }`
+  (final shape: MASTER H.2.2). The fairy then uses `{ key, f: 'castle', c /* castle id */, k, p }` — *corrected:* the
+  id is needed because two castles can have their knights on the same tile. `returnPieces` and `syncFairy` must handle
+  `f === 'castle'`. Piece-conservation checks must count castellans.
 - `completedCloisters` must also report **unoccupied** completed monasteries and gardens, for castle triggers only
   (BB-13, AB-3).
 - **Field scoring:** a converted city still exists as two city features. `fieldCities` must recognise its group as a
@@ -308,6 +319,11 @@ in which case it is ignored (TB-4).
 - X13 Lockstep replay with castle decisions, bids and bridges.
 
 ## 12. Open questions (for the product owner)
+
+*Settled in MASTER §H (2026-10-17), all as recommended: 1 → BC22 (yes, from the next placement on); 2 → BC39 (fairy
++1 and ransom in every bazaar-round turn); 3 → BC13 (bridges may cross rivers and are allowed in the river phase);
+4 → BC11 (portal onto bridges), BC28 (fairy stays with the converted knight), BC44 (replacement draw); 5 → BC23
+(gardens trigger); 6 → BC41 (bazaar round before the host's part 2).*
 
 1. **BB-10** — Can a castle built in part 1 score in part 2 of the same double turn? Recommended: yes (community +
    JCZ, coherent with the bazaar round). Strict alternative: not until the creating player's turn is over.

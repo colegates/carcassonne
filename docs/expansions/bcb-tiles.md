@@ -1,5 +1,11 @@
 # Bridges, Castles & Bazaars – tile verification notes
 
+> **Arbitrated 2026-10-17.** The tiles below were adopted unchanged into the final spec `bridges-castles-bazaars.json`
+> (which converts cleanly: 11 types, 12 tiles). Changes made here: the converter now maps `castle_base: false` to
+> `noCastle: true` (it no longer ignores it), and the same flag is required on two existing tiles — `IC/C!` feature 0
+> and `DG/CCc+.p` feature 0 (MASTER BC16). The inns of `BB/R.bi` and `BB/RFR.bi` count only with Inns & Cathedrals
+> (MASTER BC14).
+
 Machine-readable twin: `bcb-tiles.json`. This file covers only the **tiles**. The rules are in the rules researcher's file.
 
 **Edition:** our "3rd edition" is WikiCarpedia **C2**: Hans im Glück 2017 (German), Z-Man English 2018, new art by Anne Pätzke. The tiles are JCloisterZone tile set `bridges-castles-and-bazaars:2`. The 1st edition (HiG 2010, set `:1`) has the same 12 tiles with the same geometry. The only feature change is the garden on the pointed-city tile: `BB/CFR!` became `BB/CFR!G`.
@@ -41,7 +47,7 @@ Machine-readable twin: `bcb-tiles.json`. This file covers only the **tiles**. Th
 * **BB/CFc.b:** JCZ, both lists and the box backs agree. The bazaar is drawn inside the city and splits nothing.
 * **BB/CFR!G:** JCZ (set :2), the WikiCarpedia C2 list ("(garden)", tile I), the WikiCarpedia *Abbot* garden list (the only BCB garden tile) and the C2 scan agree.
   * The pointed ("witch-hat") city touches the NE corner, so the N strip and the small EL triangle are **separate** fields.
-  * WikiCarpedia (HiG 7/2010, Christof Tisch on BGG) and JCZ `castle-base="false"`: this city can never be part of a castle. Our new city property is `"castle_base": false`; the converter currently ignores it. In our scope JCZ also marks **IC/C!** and **DG/CCc+.p** this way.
+  * WikiCarpedia (HiG 7/2010, Christof Tisch on BGG) and JCZ `castle-base="false"`: this city can never be part of a castle. Our new city property is `"castle_base": false`; the converter maps it to `noCastle: true`. In our scope JCZ also marks **IC/C!** and **DG/CCc+.p** this way, and MASTER BC16 adopts both: their feature 0 needs the same flag in `inns-cathedrals.json` / `princess-dragon.json`.
   * Its outline is the same as I&C `C!` (layout.js `capSpike`), turned so the city is on the west.
   * The C1 art differs: there is no garden, the wall bulges towards the south-east and the gate sits near the E edge.
 * **BB/CFR.b:** JCZ, both lists, S-CAR (CFRF) and both scans agree. The bazaar does not touch the city wall, so one field wraps around it.
@@ -72,9 +78,12 @@ Machine-readable twin: `bcb-tiles.json`. This file covers only the **tiles**. Th
 * **C2 art changes (topology unchanged):** a garden on CFR!; a farmhouse on F.b; a water tower on one Cccc.b; highwaymen on RFR.b; bazaars moved (RFR.b bottom → top, F.b centre → upper left); the CFR! gate moved from the E edge to mid-tile; tents on brown earth instead of a yellow oval with three canopies.
 * The 2025 *Castles & Bridges* (C3.1) replaces this expansion with 16 different tiles and no bazaars. It is not in scope.
 
-## Extra JSON fields (ignored by the converter)
+## Extra JSON fields
 
-* `castle_base: false` on the city of BB/CFR!G.
+* `castle_base: false` on the city of BB/CFR!G — **used** by the converter (→ `noCastle: true`).
+
+Ignored by the converter:
+
 * `first_edition_id` on BB/CFR!G.
 * `note` on some features.
 * `refs`: the scan file names.

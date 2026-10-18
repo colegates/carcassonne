@@ -57,7 +57,9 @@ A field that touches no edge at all (e.g. enclosed by four city caps) has
       "count": 2,
       "name": "Cathedral city",
       "features": [
-        // city: sides, pennants (int), cathedral, goods ("wine"|"grain"|"cloth"), princess
+        // city: sides, pennants (int), cathedral, goods ("wine"|"grain"|"cloth"), princess,
+        //       castle_base: false when the segment can never be half of a castle (Bridges, Castles & Bazaars;
+        //       the converter writes noCastle: true)
         { "type": "city", "sides": ["N", "E", "S", "W"], "pennants": 0, "cathedral": true },
         // road: sides (1 side = the road ends on this tile), inn
         { "type": "road", "sides": ["W", "E"], "inn": true },
@@ -69,7 +71,7 @@ A field that touches no edge at all (e.g. enclosed by four city caps) has
         { "type": "garden" }
       ],
       // tile-level symbols: "volcano", "dragon", "portal", "tower" (tower foundation),
-      // "spring", "lake", "start"
+      // "spring", "lake", "start", "bazaar"
       "tags": [],
       // What the printed tile looks like, precisely enough to paint it:
       // city shape (cap / corner / band / three-sided / full / small cap ...),
@@ -102,4 +104,5 @@ A field that touches no edge at all (e.g. enclosed by four city caps) has
 
 ## Expansions in scope (slugs)
 
-`river`, `abbot`, `inns-cathedrals`, `traders-builders`, `princess-dragon`, `tower`
+`river`, `abbot`, `inns-cathedrals`, `traders-builders`, `princess-dragon`, `tower`, `bridges-castles-bazaars`
+(engine expansion id `bridges`; arbitrated in `MASTER.md` §H)

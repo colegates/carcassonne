@@ -1,5 +1,15 @@
 # Bridges, Castles & Bazaars (Expansion 8): rules spec, 3rd edition
 
+> **Arbitrated 2026-10-17 — `MASTER.md` §H (rulings BC1–BC50) and the final spec `bridges-castles-bazaars.json` /
+> `.md` supersede this research file where they differ.** Changes made here after the arbitration:
+> (1) B4 and §13: at most **one** bridge position can make a given spot and rotation legal, so there are no
+> "alternatives" to offer (proof and probe in MASTER H.2.3); (2) §9: every open question is settled — all
+> recommendations adopted (Q1 → BC37, Q2 → BC39, Q3 → BC41, Q4 → BC22, Q5 → BC23, Q6 → BC16, Q7 → BC7, Q8 → BC34,
+> Q9 → BC44, Q10 → BC3, Q11/Q12 → BC25, Q13 → BC3); Q14 is moot (a builder can never be in a small city, BC31);
+> (3) §1, Z4: "too few tiles" counts **drawable** tiles (P&D dragon tiles in the stack do not count before the first
+> volcano, BC34); (4) §13 engine notes and §14 bidding defaults are superseded by MASTER H.2/H.3; the §17 JSON by the
+> final JSON. No rule in this file was overturned.
+
 This file covers the rules of the expansion itself: bridges, castles and bazaars. The tile list and the interactions with the other expansions are researched separately. Interaction facts I came across are collected in §10 for that researcher.
 
 **Edition implemented.** The current rulebook *Brücken, Burgen und Basare* (Hans im Glück, © 2010, 2017; PDF made Feb 2018) and its English translation *Bridges, Castles and Bazaars* (Z-Man / HiG, © 2010, 2018). It has the new artwork, and one of its tiles shows a garden. Our project calls this the "3rd edition". WikiCarpedia calls this tile design "C2" and the 2010 original "C1". The 2025 redesign *Castles & Bridges* is a **different expansion** and is **not** implemented (§11.4).
@@ -36,7 +46,7 @@ This file covers the rules of the expansion itself: bridges, castles and bazaars
 | Bazaar: when | After the complete normal turn (steps 1–3, scoring included) in which a bazaar tile was placed. | RB-DE3 p.4–5; S-CAR fn 345 |
 | Bazaar: procedure | Reveal **one tile per player** (the active player gets one too). The player **left** of the active player picks a tile and opens the bidding (0 allowed). Each other player still without a tile then raises or passes **once**, clockwise. The picker **buys** (pays the high bid to the high bidder) or **sells** (the high bidder pays him and takes the tile). If only the picker bid, he pays his bid to the bank. Anyone with a tile drops out, and the last tile is free. Scores may go **negative**. | RB-DE3 p.5; RB-EN3 p.5 |
 | After the auction | Everyone plays their tile as a full normal turn, starting **left of the bazaar player** and ending with him. Nobody draws in this round, and play then goes on normally from the left player. Bazaars on bought tiles don't trigger. | RB-DE3 p.5; RB-EN3 p.5 |
-| Too few tiles | If fewer tiles are left in the stack than there are players, there is no auction. | RB-EN3 p.5 (not in RB-DE3); JCZ |
+| Too few tiles | If fewer (drawable) tiles are left in the stack than there are players, there is no auction. With P&D, dragon tiles in the stack do not count before the first volcano (MASTER BC34). | RB-EN3 p.5 (not in RB-DE3); JCZ |
 
 ---
 
@@ -145,7 +155,7 @@ Game end            – remove the meeples on castles (0 points); farms: castle 
   * A bridge **on the new tile** cures 1 or 2 mismatches (one at each end; e.g. a new tile dropped between two facing road ends). Its other end must face an empty square or a road. It may **not** face a neighbour's field or city edge.
   * A bridge **on a neighbouring tile T** cures only the edge between T and the new tile. Its **far end** must face an **empty** square: any tile already there matched T's field edge, so it shows field, and road against field is illegal.
   * City, river or double mismatches on different axes can never be cured. Only one bridge is allowed per placement.
-* **JCZ** follows this exactly. `getTilePlacements` first tries the tile as printed, then with a bridge on the tile (N/S or W/E sides become `ROAD`, and the result must match the border exactly), then with a bridge on each placed neighbour (`isBridgePlacementAllowed`: no bridge there yet, both edges field, and every end either facing an empty square or a "city gate", a feature from another expansion). JCZ keeps only the first option per position and rotation. Our UI should offer every alternative (e.g. N–S on the tile vs. on the neighbour) where more than one exists.
+* **JCZ** follows this exactly. `getTilePlacements` first tries the tile as printed, then with a bridge on the tile (N/S or W/E sides become `ROAD`, and the result must match the border exactly), then with a bridge on each placed neighbour (`isBridgePlacementAllowed`: no bridge there yet, both edges field, and every end either facing an empty square or a "city gate", a feature from another expansion). JCZ keeps only the first option per position and rotation. *(Corrected after the arbitration:)* that loses nothing — a bridge on the new tile needs every mismatch to be "new field / neighbour road" on its axis, a bridge on a neighbour needs exactly one "new road / neighbour field" mismatch, so at most **one** bridge position can make a given position and rotation legal (MASTER H.2.3, BC6).
 * **You may refuse.** OC 10/2014 (S-CAR fn 357): "A player is not required to use a bridge to place a tile, even if that tile would otherwise have to be discarded. The player has the choice to use the bridge to place the tile or just discard the tile." **JCZ** `TilePhase`: the player may *pass* (discard and draw again) when every legal placement needs a bridge.
 
 ### B5. Fields and cities under a bridge
@@ -307,7 +317,7 @@ Game end            – remove the meeples on castles (0 points); farms: castle 
 
 ### Z4. Special cases
 
-* **Fewer tiles in the stack than players: no auction.** The bazaar is ignored. RB-EN3 p.5: "Skip this step if there are fewer tiles remaining than there are players." The same rule is in the RGG Big Box 3 (S-CAR fn 352). RB-DE3 says nothing. **JCZ**: `tilePack.size() < playersCount → skip`. With exactly as many tiles as players, all are auctioned, and the game ends when the bazaar round is over.
+* **Fewer tiles in the stack than players: no auction.** The bazaar is ignored. RB-EN3 p.5: "Skip this step if there are fewer tiles remaining than there are players." The same rule is in the RGG Big Box 3 (S-CAR fn 352). RB-DE3 says nothing. **JCZ**: `tilePack.size() < playersCount → skip` (JCZ's pack size excludes dragon tiles still waiting for the volcano; we likewise count only drawable tiles, MASTER BC34). With exactly as many tiles as players, all are auctioned, and the game ends when the bazaar round is over.
 * **A bought tile that cannot be placed** (no legal spot, or the player refuses the only bridge placements, OC 10/2014): no rule. **JCZ** discards it and the player **draws a replacement from the stack**. If the stack is empty, that player's turn is skipped. Points paid are not refunded. Recommendation: follow JCZ (Q9). A bazaar on the replacement is ignored (Z1).
 * **A bazaar on a bought tile** never triggers (Z1).
 * **Does the bazaar player get a tile? Yes.** There is one tile per player, he can bid, he can be the high bidder (example: "du bietest 3 Punkte"), and he places last.
@@ -367,6 +377,12 @@ Game end            – remove the meeples on castles (0 points); farms: castle 
 | Q12 | A castle reachable from scored castles of different values | owner takes the highest (owner-chooses rule) vs. the active player decides (COM) vs. first found (JCZ) | **highest** |
 | Q13 | Bridge after the follower? | no, the bridge belongs to step 1 (RB-DE3 structure, JCZ) vs. any time in the turn (S-CAR fn 356 on the C1 text) | **no** |
 | Q14 | A builder in a small city that becomes a castle | T&B rule "the builder goes home when you no longer have a meeple in that feature", so presumably home; no BCB ruling | for the interactions researcher |
+
+**Settled in MASTER §H (2026-10-17):** every recommendation above is adopted — Q1 (a) BC37 · Q2 BC39 · Q3 RB-DE3 BC41 ·
+Q4 yes BC22 · Q5 yes BC23 · Q6 semicircles BC16 · Q7 allowed BC7 · Q8 skip, counting drawable tiles BC34 · Q9
+replacement draw BC44 · Q10 per tile placement BC3 · Q11 the first reading BC25 · Q12 highest BC25 · Q13 no BC3. Q14 is
+moot: a builder needs an unfinished feature on the new tile and can never be in a small city (BC31); the engine still
+runs the lonely-builder sweep after a conversion.
 
 ---
 
@@ -438,7 +454,7 @@ This is a different expansion: 16 tiles (one river tile), **no bazaars**, 6 cast
   * No mismatch: legal with no bridge.
   * Otherwise, if the player has a bridge, try **on the tile**: every mismatch is "new tile field, neighbour road" on the two sides of one axis; both printed end edges are field; each end faces an empty square or a road.
   * Then try **on a neighbour T**: exactly one mismatch, on the side towards T, with the new tile showing road and T showing field; T has no bridge; T's opposite edge is field and faces an empty square.
-  * Offer every alternative, and offer *discard* when only bridge placements exist (E1).
+  * At most one of these can succeed for a given position and rotation (MASTER H.2.3). Offer *discard* when only bridge placements exist (E1).
 * **Optional bridge options** (after placement, if no bridge was used for this tile): the new tile and its orthogonal neighbours, same end tests. Then follower options, including the bridge road on the new tile.
 * **Castle eligibility:** a city group with 2 nodes on 2 tiles, each node a 1-side city that is not one of the excluded tiles, completed by this placement and occupied. The tile researcher marks the excluded segments with the city property `"castle_base": false` in `bcb-tiles.json` and notes it is needed on IC/C! and DG/CCc+.p as well. Then ask the owner. On conversion, mark the group as a castle (`{tiles, axis, owner, figure, builtTurnPart}`). Its figure no longer counts as a knight. Fields adjacent to the group score 4 (or 5 with a pig) once.
 * **Castle triggers need *unoccupied* completions too.** `completedCloisters` currently reports only monasteries and gardens **with a figure**, and road and city completion detection may likewise skip empty features. Castle scoring needs every road, city, monastery and garden completed by the placement, with its full value (inn and cathedral included), whether or not anyone scores it.

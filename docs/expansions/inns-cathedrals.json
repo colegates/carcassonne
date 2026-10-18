@@ -125,7 +125,7 @@
       "name": "City wedge with wall to the corner",
       "refs": { "wikicarpedia_c2": "Inns_And_Cathedrals_C2_Tile_G.jpg (shown rotated 90 deg counter-clockwise: city on the W edge)", "bigbox_2021": "V3-EG" },
       "features": [
-        { "type": "city", "sides": ["N"], "pennants": 0 },
+        { "type": "city", "sides": ["N"], "pennants": 0, "castle_base": false },
         { "type": "field", "halves": ["EL", "ER"], "cities": [0] },
         { "type": "field", "halves": ["SL", "SR", "WL", "WR"], "cities": [0] }
       ],

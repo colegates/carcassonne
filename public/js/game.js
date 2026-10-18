@@ -31,11 +31,14 @@ export const FLOORS = { 2: 10, 3: 9, 4: 7, 5: 6, 6: 5 };
 export const DRAGON_STEPS = 6;
 // Bridges, Castles & Bazaars: bridges (and castles) each player gets
 export const BRIDGES = (players) => (players >= 5 ? 2 : 3);
+export const BAZAAR_MAX_BID = 99;
 const FOLLOWER_KINDS = ['meeple', 'large', 'abbot'];
 
 export const key = (x, y) => `${x},${y}`;
 export const parseKey = (k) => k.split(',').map(Number);
 export const hasExp = (state, id) => !!state.options?.expansions?.[id];
+export const bcbOn = (state, part) => hasExp(state, 'bridges') && state.options.bcb?.[part] !== false;
+const auctionOn = (state) => state.options.bcb?.auction !== false;
 
 // Deterministic random numbers kept in the state, so every phone agrees.
 function rand(state) {
@@ -65,7 +68,7 @@ export function newGame(players, options = {}, rnd = Math.random) {
     return s;
   };
   const state = {
-    version: 4,
+    version: 5,
     options: opts,
     players: players.map((p) => ({
       name: p.name, color: p.color, kind: p.kind || 'human', level: p.level || 'medium',
@@ -73,10 +76,10 @@ export function newGame(players, options = {}, rnd = Math.random) {
       supply: supply(),
       goods: exp.traders ? { wine: 0, grain: 0, cloth: 0 } : undefined,
       floors: exp.tower ? FLOORS[players.length] || 5 : 0,
-      bridges: exp.bridges ? BRIDGES(players.length) : 0,
-      castles: exp.bridges ? BRIDGES(players.length) : 0,
+      bridges: exp.bridges && opts.bcb?.bridges !== false ? BRIDGES(players.length) : 0,
+      castles: exp.bridges && opts.bcb?.castles !== false ? BRIDGES(players.length) : 0,
       prisoners: [], // figures of other players held by this player (The Tower)
-      breakdown: { road: 0, city: 0, monastery: 0, field: 0, goods: 0, fairy: 0, tower: 0 },
+      breakdown: { road: 0, city: 0, monastery: 0, field: 0, goods: 0, fairy: 0, tower: 0, castle: 0, bazaar: 0 },
     })),
     // the River's spring is turned so the river flows down the (portrait) screen
     board: { [key(0, 0)]: { t: start, r: start === RIVER_SPRING ? 1 : 0, pieces: [], n: 0 } },
@@ -99,6 +102,7 @@ export function newGame(players, options = {}, rnd = Math.random) {
     flight: null, // { visited: [keys], moves } while the dragon flies
     towers: {}, // key -> { h: floors, top: null | { p, k } }
     ransomPaid: false,
+    castles: [], castleAsk: [], bazaar: null, bazaarDue: false, lastBridge: null,
   };
   if (start === RIVER_SPRING) {
     const rs = riverSidesWorld(start, 1);
@@ -143,6 +147,15 @@ export function migrate(s) {
     }
     s.version = 4;
   }
+  if (s.version < 5) {
+    s.castles = s.castles || []; s.castleAsk = s.castleAsk || []; s.bazaar = s.bazaar ?? null;
+    s.bazaarDue = !!s.bazaarDue; s.lastBridge = s.lastBridge ?? null;
+    for (const p of s.players) {
+      p.bridges = p.bridges ?? 0; p.castles = p.castles ?? 0;
+      p.breakdown.castle = p.breakdown.castle || 0; p.breakdown.bazaar = p.breakdown.bazaar || 0;
+    }
+    s.version = 5;
+  }
   return s;
 }
 
@@ -169,7 +182,17 @@ function bridgedType(t, axis) {
 }
 // the bridge's direction in the tile's own (unrotated) frame
 const localAxis = (tile) => (tile.bridge + tile.r) % 2;
-const typeOf = (tile) => (tile.bridge === undefined || tile.bridge === null ? TILE_TYPES[tile.t] : bridgedType(tile.t, localAxis(tile)));
+const innless = new Map();
+function innlessType(bt, id) {
+  if (innless.has(id)) return innless.get(id);
+  const v = { features: bt.features.map((f) => (f.inn ? { ...f, inn: false } : f)), portFeature: bt.portFeature };
+  innless.set(id, v);
+  return v;
+}
+const typeOf = (tile) => {
+  const bt = tile.bridge === undefined || tile.bridge === null ? TILE_TYPES[tile.t] : bridgedType(tile.t, localAxis(tile));
+  return tile.noInn ? innlessType(bt, `${tile.t}|${tile.bridge ?? '-'}|${tile.r}`) : bt;
+};
 export const featuresOf = (tile) => typeOf(tile).features;
 export const bridgeFeature = (tile) => (tile.bridge === undefined || tile.bridge === null ? -1 : featuresOf(tile).length - 1);
 
@@ -235,7 +258,7 @@ function bridgeFits(tile, axis) {
 // Bridges the current player could build with tile t at (x, y, r): on the new
 // tile or on a tile next to it, such that every edge still matches.
 export function bridgeSpots(state, x, y, t, r) {
-  if (!hasExp(state, 'bridges') || !(state.players[state.current].bridges > 0)) return [];
+  if (!bcbOn(state, 'bridges') || !(state.players[state.current].bridges > 0)) return [];
   const board = state.board;
   const k = key(x, y);
   const out = [];
@@ -296,7 +319,7 @@ export function frontier(board) {
 export function validPlacements(state, t = state.drawn) {
   const res = [];
   if (!t) return res;
-  const bridges = hasExp(state, 'bridges') && state.players[state.current]?.bridges > 0;
+  const bridges = bcbOn(state, 'bridges') && state.players[state.current]?.bridges > 0;
   for (const [x, y] of frontier(state.board)) {
     const rots = [];
     let needsBridge = null;
@@ -313,6 +336,10 @@ export function validPlacements(state, t = state.drawn) {
   }
   return res;
 }
+
+export const hasPlainPlacement = (state, t) =>
+  frontier(state.board).some(([x, y]) => [0, 1, 2, 3].some((r) => canPlace(state, x, y, t, r)));
+export const canDiscard = (state) => state.phase === 'place' && !!state.drawn && !hasPlainPlacement(state, state.drawn);
 
 // ---------- feature groups ----------
 const weightOf = (k) => PIECES[k]?.weight ?? 0;
@@ -429,6 +456,7 @@ export function placeTile(state, x, y, r, bridge = null) {
   const k = key(x, y);
   const t = state.drawn;
   state.board[k] = { t, r, pieces: [], n: state.placed++ };
+  if (!hasExp(state, 'inns') && TILE_TYPES[t].features.some((f) => f.inn)) state.board[k].noInn = true;
   // Bridges, Castles & Bazaars: the bridge goes down together with the tile
   state.lastBridge = null;
   if (bridge) {
@@ -459,6 +487,7 @@ export function placeTile(state, x, y, r, bridge = null) {
       state.setAside = [];
     }
   }
+  state.bazaarDue = bcbOn(state, 'bazaars') && hasTag(t, 'bazaar') && !state.bazaar;
   // Traders & Builders: extending the road/city with your builder earns a second tile.
   state.bonus = false;
   if (state.part === 1 && hasExp(state, 'traders')) {
@@ -549,8 +578,8 @@ export function followerOptions(state) {
     // fairy: stand her next to one of your followers
     const fy = state.fairy;
     for (const f of followersOf(state, p)) {
-      if (fy && fy.p === p && fy.key === f.key && fy.f === f.fi) continue;
-      out.push({ kind: 'fairy', key: f.key, fi: f.fi, k: f.k });
+      if (fy && fy.p === p && fy.key === f.key && fy.f === f.fi && (fy.c ?? null) === (f.c ?? null)) continue;
+      out.push({ kind: 'fairy', key: f.key, fi: f.fi, k: f.k, ...(f.c !== undefined ? { c: f.c } : {}) });
     }
   }
   if (hasExp(state, 'tower')) {
@@ -570,6 +599,7 @@ export function followersOf(state, p) {
     for (const pc of tile.pieces) if (pc.p === p && FOLLOWER_KINDS.includes(pc.k)) out.push({ key: k, fi: pc.f, k: pc.k });
   }
   for (const [k, tw] of Object.entries(state.towers || {})) if (tw.top?.p === p) out.push({ key: k, fi: 'top', k: tw.top.k });
+  for (const c of state.castles || []) if (c.k && c.owner === p) out.push({ key: c.key, fi: 'castle', c: c.id, k: c.k });
   return out;
 }
 
@@ -640,6 +670,10 @@ function returnPieces(state, pieces) {
       const tw = state.towers[m.key];
       if (!tw?.top || tw.top.p !== m.p) continue;
       tw.top = null; // the tower is open again
+    } else if (m.f === 'castle') {
+      const c = state.castles[m.c];
+      if (!c || c.k !== m.k || c.owner !== m.p) continue;
+      c.k = null;
     } else {
       const tile = state.board[m.key];
       const i = tile.pieces.findIndex((pc) => pc.p === m.p && pc.f === m.f && pc.k === m.k);
@@ -655,7 +689,8 @@ function returnPieces(state, pieces) {
 function syncFairy(state) {
   const fy = state.fairy;
   if (!fy || fy.p === null || fy.p === undefined) return;
-  const there = fy.f === 'top' ? state.towers?.[fy.key]?.top : state.board[fy.key]?.pieces.find((pc) => pc.f === fy.f && pc.p === fy.p && pc.k === fy.k);
+  const cs = fy.f === 'castle' ? state.castles?.[fy.c] : null;
+  const there = fy.f === 'top' ? state.towers?.[fy.key]?.top : fy.f === 'castle' ? (cs?.k ? { p: cs.owner, k: cs.k } : null) : state.board[fy.key]?.pieces.find((pc) => pc.f === fy.f && pc.p === fy.p && pc.k === fy.k);
   if (!there || there.p !== fy.p || there.k !== fy.k) state.fairy = { key: fy.key, f: null, k: null, p: null };
 }
 
@@ -663,7 +698,7 @@ function syncFairy(state) {
 function fairyEvent(state, e) {
   const fy = state.fairy;
   if (!fy || fy.p === null || fy.p === undefined || !e.meeples) return null;
-  if (!e.meeples.some((m) => m.key === fy.key && m.f === fy.f && m.p === fy.p && m.k === fy.k)) return null;
+  if (!e.meeples.some((m) => m.key === fy.key && m.f === fy.f && m.p === fy.p && m.k === fy.k && (m.f !== 'castle' || m.c === fy.c))) return null;
   return { kind: 'fairy', winners: [fy.p], points: 3, nodes: e.nodes, meeples: [], key: fy.key, label: 'Fairy bonus +3' };
 }
 
@@ -688,13 +723,12 @@ function completedCloisters(board, x, y) {
     const mk = key(x + dx, y + dy);
     const mt = board[mk];
     if (!mt) continue;
-    for (const pc of mt.pieces) {
-      const feat = featuresOf(mt)[pc.f];
-      if (feat.type !== 'monastery' && feat.type !== 'garden') continue;
-      if (monasteryNeighbours(board, x + dx, y + dy) === 8) {
-        out.push({ kind: feat.type, winners: [pc.p], points: 9, nodes: [[mk, pc.f]], meeples: [{ key: mk, p: pc.p, f: pc.f, k: pc.k }], complete: true, tiles: 9 });
-      }
-    }
+    if (monasteryNeighbours(board, x + dx, y + dy) !== 8) continue;
+    featuresOf(mt).forEach((feat, fi) => {
+      if (feat.type !== 'monastery' && feat.type !== 'garden') return;
+      const meeples = mt.pieces.filter((pc) => pc.f === fi).map((pc) => ({ key: mk, p: pc.p, f: pc.f, k: pc.k }));
+      out.push({ kind: feat.type, winners: owners(meeples), points: 9, nodes: [[mk, fi]], meeples, complete: true, tiles: 9 });
+    });
   }
   return out;
 }
@@ -716,6 +750,7 @@ export function scoreAfterPlacement(state, k, apply = true) {
     if (seen.has(g.id)) return;
     seen.add(g.id);
     if (!g.complete) return;
+    if (g.type === 'city' && castleAt(state, g.nodes[0])) return; // a castle is not a completed city
     const winners = owners(g.meeples);
     const pts = groupPoints(g);
     events.push({
@@ -745,11 +780,22 @@ export function scoreAfterPlacement(state, k, apply = true) {
       for (const [gname, n] of Object.entries(e.goods)) pl.goods[gname] = (pl.goods[gname] || 0) + n;
     }
   }
+  const featureEvents = events.filter((e) => ['road', 'city', 'monastery', 'garden'].includes(e.kind));
+  const castleEvents = bcbOn(state, 'castles') ? castleTriggers(state, k, featureEvents) : [];
+  for (const ce of castleEvents) {
+    out.push(ce);
+    const fe = fairyEvent(state, ce);
+    if (fe) out.push(fe);
+    if (!apply) continue;
+    award(state, ce.winners, ce.points, 'castle');
+    if (fe) award(state, fe.winners, fe.points, 'fairy');
+    returnPieces(state, ce.meeples);
+  }
   return out.concat(goodsEvents);
 }
 
 function sameAction(a, b) {
-  return a.kind === b.kind && a.key === b.key && a.fi === b.fi && (a.k || null) === (b.k || null);
+  return a.kind === b.kind && a.key === b.key && a.fi === b.fi && (a.k || null) === (b.k || null) && (a.c ?? null) === (b.c ?? null);
 }
 
 // Finish the current part of the turn: perform the follower-phase action (or
@@ -783,7 +829,7 @@ export function finishTurn(state, act = null, noBonus = false) {
       events.push({ kind: 'princess', winners: [], points: 0, nodes: [[knight.key, knight.f]], meeples: [knight], label: 'The princess sends a knight home' });
     } else if (act.kind === 'fairy') {
       const from = state.fairy ? state.fairy.key : null;
-      state.fairy = { key: act.key, f: act.fi, k: act.k, p };
+      state.fairy = { key: act.key, f: act.fi, k: act.k, p, ...(act.fi === 'castle' ? { c: act.c } : {}) };
       events.push({ kind: 'fairyMove', winners: [], points: 0, nodes: [], meeples: [], key: act.key, from });
     } else if (act.kind === 'floor') {
       const tw = state.towers[act.key];
@@ -815,8 +861,91 @@ export function finishTurn(state, act = null, noBonus = false) {
     state.phase = 'action';
     events.push({ kind: 'dragonStuck', winners: [], points: 0, nodes: [], meeples: [], key: state.dragon });
   }
+  return resolvePlacement(state, events);
+}
+
+// ---------- Bridges, Castles & Bazaars: castles (MASTER H.2.5, H.2.6) ----------
+function resolvePlacement(state, events) {
+  state.castleAsk = bcbOn(state, 'castles') ? castleCandidates(state) : [];
+  return continueResolution(state, events);
+}
+function continueResolution(state, events) {
+  while (state.castleAsk.length && state.players[state.castleAsk[0].p].castles < 1) state.castleAsk.shift();
+  if (state.castleAsk.length) { state.phase = 'castle'; return events; }
+  state.phase = 'action';
   events.push(...scoreAndEnd(state));
   return events;
+}
+export function decideCastle(state, fi, build) {
+  const ask = state.castleAsk?.[0];
+  if (state.phase !== 'castle' || !ask || ask.fi !== fi) throw new Error('Illegal castle decision');
+  state.castleAsk.shift();
+  const events = build ? [buildCastle(state, state.last, fi)] : [];
+  const loose = unsupportedFigures(state);
+  if (loose.length) { returnPieces(state, loose); events.push({ kind: 'return', winners: [], points: 0, nodes: [], meeples: loose }); }
+  return continueResolution(state, events);
+}
+const isCastleCap = (f) => f.type === 'city' && f.sides.length === 1 && !f.noCastle;
+function castleCandidates(state) {
+  const k = state.last, board = state.board, n = state.players.length, out = [];
+  featuresOf(board[k]).forEach((f, fi) => {
+    if (!isCastleCap(f)) return;
+    const g = getGroup(board, k, fi);
+    if (!g.complete || g.nodes.length !== 2 || g.tiles.size !== 2) return;
+    if (!g.nodes.every(([nk, nf]) => isCastleCap(featuresOf(board[nk])[nf]))) return;
+    const fol = g.meeples.filter(isFollower);
+    if (fol.length !== 1 || state.players[fol[0].p].castles < 1) return;
+    out.push({ fi, p: fol[0].p });
+  });
+  const d = (p) => (p - state.current + n) % n;
+  return out.sort((a, b) => d(a.p) - d(b.p) || a.fi - b.fi);
+}
+export function castleArea([a, b]) {
+  const [ax, ay] = parseKey(a), [bx, by] = parseKey(b);
+  return ax === bx
+    ? [a, b, key(ax - 1, ay), key(ax + 1, ay), key(bx - 1, by), key(bx + 1, by)]
+    : [a, b, key(ax, ay - 1), key(ax, ay + 1), key(bx, by - 1), key(bx, by + 1)];
+}
+export const castleAt = (state, [k, fi]) => state.castles?.find((c) => c.nodes.some(([a, b]) => a === k && b === fi)) || null;
+function buildCastle(state, k, fi) {
+  const g = getGroup(state.board, k, fi);
+  const m = g.meeples.find(isFollower);
+  const tiles = [...g.tiles];
+  const c = { id: state.castles.length, nodes: g.nodes.map(([a, b]) => [a, b]), tiles, area: castleArea(tiles),
+    owner: m.p, k: m.k, key: m.key, born: state.board[k].n };
+  state.castles.push(c);
+  const tile = state.board[m.key];
+  tile.pieces.splice(tile.pieces.findIndex((pc) => pc.p === m.p && pc.f === m.f && pc.k === m.k), 1);
+  state.players[m.p].castles--;
+  const fy = state.fairy;
+  if (fy && fy.p === m.p && fy.key === m.key && fy.f === m.f && fy.k === m.k) state.fairy = { key: m.key, f: 'castle', c: c.id, k: m.k, p: m.p };
+  return { kind: 'castleBuilt', winners: [], points: 0, nodes: c.nodes, meeples: [], castle: c.id, player: m.p };
+}
+function castleTriggers(state, k, featureEvents) {
+  const now = state.board[k].n;
+  const waiting = state.castles.filter((c) => c.k && c.born < now);
+  if (!waiting.length) return [];
+  const feats = featureEvents.map((e) => ({ v: e.points, keys: new Set(e.nodes.map(([nk]) => nk)), kind: e.kind }));
+  const val = new Map();
+  const offer = (c, v, from) => { const o = val.get(c.id); if (o && o.v >= v) return false; val.set(c.id, { v, from }); return true; };
+  for (const c of waiting) for (const f of feats) if (c.area.some((a) => f.keys.has(a))) offer(c, f.v, f.kind);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const c of waiting) for (const d of waiting) {
+      if (c !== d && val.has(d.id) && c.area.some((a) => d.tiles.includes(a))) changed = offer(c, val.get(d.id).v, 'castle') || changed;
+    }
+  }
+  return waiting.filter((c) => val.has(c.id)).map((c) => ({
+    kind: 'castle', winners: [c.owner], points: val.get(c.id).v, nodes: c.nodes, castle: c.id, from: val.get(c.id).from,
+    meeples: [{ key: c.key, f: 'castle', c: c.id, p: c.owner, k: c.k }], label: `Castle +${val.get(c.id).v}`,
+  }));
+}
+export function castleOptions(state) {
+  if (state.phase !== 'castle') return null;
+  const ask = state.castleAsk[0];
+  const g = getGroup(state.board, state.last, ask.fi);
+  const tiles = [...g.tiles];
+  return { seat: ask.p, fi: ask.fi, nodes: g.nodes, tiles, area: castleArea(tiles) };
 }
 
 function scoreAndEnd(state) {
@@ -901,7 +1030,7 @@ export function moveDragon(state, k) {
     if (state.flight.moves < DRAGON_STEPS) events.push({ kind: 'dragonLands', winners: [], points: 0, nodes: [], meeples: [], key: k, steps: state.flight.moves });
     state.flight = null;
     state.phase = 'action';
-    events.push(...scoreAndEnd(state));
+    resolvePlacement(state, events);
   }
   return events;
 }
@@ -932,20 +1061,187 @@ export function payRansom(state, from, k) {
 }
 
 function endPart(state, events) {
+  if (state.bazaarDue) {
+    state.bazaarDue = false;
+    if (startBazaar(state, events)) return;
+  }
   if (state.bonus && state.part === 1) {
-    // the builder's extra tile: same player, draw again
-    state.part = 2;
-    state.bonus = false;
+    state.part = 2; state.bonus = false;
     drawTile(state);
-    if (state.drawn) {
-      state.phase = 'place';
-      events.push({ kind: 'bonus', winners: [], points: 0, nodes: [], meeples: [], player: state.current });
-      return;
-    }
-    gameOver(state);
+    if (state.drawn) { state.phase = 'place'; events.push({ kind: 'bonus', winners: [], points: 0, nodes: [], meeples: [], player: state.current }); return; }
+    if (state.bazaar) { nextBazaarTurn(state, events); return; }
+    gameOver(state); return;
+  }
+  if (state.bazaar) { nextBazaarTurn(state, events); return; }
+  endTurn(state, events);
+}
+
+// ---------- Bridges, Castles & Bazaars: discard and bazaars (MASTER H.2.3, H.2.7) ----------
+function discardDrawn(state) {
+  if (!canDiscard(state)) throw new Error('This tile fits without a bridge: it must be placed');
+  const events = [{ kind: 'discard', winners: [], points: 0, nodes: [], meeples: [], tile: state.drawn, player: state.current }];
+  state.discarded.push(state.drawn);
+  drawTile(state);
+  if (!state.drawn) { if (state.bazaar) nextBazaarTurn(state, events); else gameOver(state); }
+  return events;
+}
+export function drawableCount(state) {
+  const held = hasExp(state, 'dragon') && !state.dragon;
+  return held ? state.deck.filter((t) => !hasTag(t, 'dragon')).length : state.deck.length;
+}
+const ev0 = (kind, extra = {}) => ({ kind, winners: [], points: 0, nodes: [], meeples: [], ...extra });
+function startBazaar(state, events) {
+  const n = state.players.length, host = state.current;
+  if (drawableCount(state) < n) { events.push(ev0('bazaarSkip', { host })); return false; }
+  const tiles = [];
+  while (tiles.length < n) {
+    const t = state.deck.pop();
+    if (!state.dragon && hasExp(state, 'dragon') && hasTag(t, 'dragon')) { state.setAside.push(t); continue; }
+    tiles.push({ t, owner: null, price: 0, how: null, played: false });
+  }
+  state.bazaar = { host, tiles, stage: 'pick', chooser: (host + 1) % n, item: null, high: null, bidder: null, queue: [],
+    ret: { part: state.part, bonus: state.bonus, ransomPaid: state.ransomPaid } };
+  state.bonus = false;
+  events.push(ev0('bazaarOpen', { host, tiles: tiles.map((x) => x.t) }));
+  if (auctionOn(state)) { state.phase = 'bazaar'; return true; }
+  beginRound(state, events);
+  return true;
+}
+const hasTileIn = (bz, p) => bz.tiles.some((x) => x.owner === p);
+function nextBidder(state, from) {
+  const bz = state.bazaar, n = state.players.length;
+  for (let i = 1; i < n; i++) {
+    const p = (from + i) % n;
+    if (p === bz.chooser) return null;
+    if (!hasTileIn(bz, p)) return p;
+  }
+  return null;
+}
+function bazaarAction(state, a) {
+  const bz = state.bazaar;
+  if (state.phase !== 'bazaar' || !bz) throw new Error('No bazaar');
+  const events = [];
+  const intBid = (b, min) => Number.isInteger(b) && b >= min && b <= BAZAAR_MAX_BID;
+  if (bz.stage === 'pick') {
+    if (!bz.tiles[a.pick] || bz.tiles[a.pick].owner !== null || !intBid(a.bid, 0)) throw new Error('Illegal pick');
+    bz.item = a.pick; bz.high = { p: bz.chooser, bid: a.bid };
+    events.push(ev0('bazaarPick', { p: bz.chooser, i: a.pick, bid: a.bid }));
+    bz.bidder = nextBidder(state, bz.chooser); bz.stage = 'bid';
+    if (bz.bidder === null) endLap(state, events);
+    return events;
+  }
+  if (bz.stage === 'bid') {
+    if (a.pass) events.push(ev0('bazaarPass', { p: bz.bidder }));
+    else if (intBid(a.bid, bz.high.bid + 1)) { bz.high = { p: bz.bidder, bid: a.bid }; events.push(ev0('bazaarBid', { p: bz.bidder, bid: a.bid })); }
+    else throw new Error('Illegal bid');
+    bz.bidder = nextBidder(state, bz.bidder);
+    if (bz.bidder === null) endLap(state, events);
+    return events;
+  }
+  if (bz.stage === 'decide') {
+    if (typeof a.sell !== 'boolean') throw new Error('Illegal decision');
+    const { p: q, bid: b } = bz.high, x = bz.tiles[bz.item];
+    if (a.sell) { award(state, [q], -b, 'bazaar'); award(state, [bz.chooser], b, 'bazaar'); x.owner = q; x.how = 'sell'; }
+    else { award(state, [bz.chooser], -b, 'bazaar'); award(state, [q], b, 'bazaar'); x.owner = bz.chooser; x.how = 'buy'; }
+    x.price = b;
+    events.push(ev0('bazaarDeal', { i: bz.item, t: x.t, how: x.how, chooser: bz.chooser, owner: x.owner, payee: a.sell ? bz.chooser : q, price: b }));
+    afterDeal(state, events);
+    return events;
+  }
+  if (bz.stage === 'take') {
+    const x = bz.tiles[a.take];
+    if (!x || x.owner !== null) throw new Error('Illegal take');
+    x.owner = state.current; x.how = 'take';
+    if (!beginBazaarTurn(state, state.current, events)) nextBazaarTurn(state, events);
+    return events;
+  }
+  throw new Error('Illegal bazaar action');
+}
+function endLap(state, events) {
+  const bz = state.bazaar;
+  if (bz.high.p === bz.chooser) {
+    const x = bz.tiles[bz.item];
+    award(state, [bz.chooser], -bz.high.bid, 'bazaar');
+    x.owner = bz.chooser; x.how = 'bank'; x.price = bz.high.bid;
+    events.push(ev0('bazaarDeal', { i: bz.item, t: x.t, how: 'bank', chooser: bz.chooser, owner: bz.chooser, payee: null, price: x.price }));
+    afterDeal(state, events);
+  } else bz.stage = 'decide';
+}
+function afterDeal(state, events) {
+  const bz = state.bazaar, n = state.players.length;
+  bz.item = null; bz.high = null; bz.bidder = null;
+  const free = state.players.map((_, i) => i).filter((p) => !hasTileIn(bz, p));
+  if (free.length === 1) {
+    const x = bz.tiles.find((y) => y.owner === null);
+    x.owner = free[0]; x.how = 'free';
+    events.push(ev0('bazaarDeal', { i: bz.tiles.indexOf(x), t: x.t, how: 'free', chooser: null, owner: free[0], payee: null, price: 0 }));
+    beginRound(state, events);
     return;
   }
-  endTurn(state, events);
+  for (let i = 1; i <= n; i++) { const p = (bz.chooser + i) % n; if (free.includes(p)) { bz.chooser = p; break; } }
+  bz.stage = 'pick';
+}
+function beginRound(state, events) {
+  const bz = state.bazaar, n = state.players.length;
+  bz.stage = 'round';
+  bz.queue = Array.from({ length: n }, (_, i) => (bz.host + 1 + i) % n);
+  events.push(ev0('bazaarRound', { order: [...bz.queue] }));
+  nextBazaarTurn(state, events);
+}
+function nextBazaarTurn(state, events) {
+  const bz = state.bazaar;
+  while (bz.queue.length) {
+    const seat = bz.queue.shift();
+    state.current = seat; state.part = 1; state.bonus = false; state.ransomPaid = false; state.turn++;
+    const free = bz.tiles.filter((x) => x.owner === null);
+    if (free.length > 1) { bz.stage = 'take'; bz.chooser = seat; state.phase = 'bazaar'; return; }
+    if (free.length === 1) { free[0].owner = seat; free[0].how = 'take'; }
+    if (beginBazaarTurn(state, seat, events)) return;
+  }
+  finishBazaar(state, events);
+}
+function beginBazaarTurn(state, seat, events) {
+  const bz = state.bazaar;
+  bz.stage = 'round';
+  const item = bz.tiles.find((x) => x.owner === seat && !x.played);
+  item.played = true;
+  state.drawn = validPlacements(state, item.t).length ? item.t : null;
+  const replaced = !state.drawn;
+  if (replaced) { state.discarded.push(item.t); drawTile(state); }
+  if (!state.drawn) return false;
+  state.phase = 'place';
+  events.push(ev0('bazaarTurn', { seat, t: state.drawn, replaced }));
+  const fy = state.fairy;
+  if (fy && fy.p === seat) {
+    award(state, [seat], 1, 'fairy');
+    events.push({ kind: 'fairy', winners: [seat], points: 1, nodes: [], meeples: [], key: fy.key, label: 'Fairy +1', start: true });
+  }
+  return true;
+}
+function finishBazaar(state, events) {
+  const { host, ret } = state.bazaar;
+  state.bazaar = null;
+  state.current = host; state.part = ret.part; state.bonus = ret.bonus; state.ransomPaid = ret.ransomPaid;
+  events.push(ev0('bazaarEnd'));
+  endPart(state, events);
+}
+export function actingSeat(state) {
+  switch (state.phase) {
+    case 'dragon': return dragonMover(state);
+    case 'castle': return state.castleAsk[0].p;
+    case 'bazaar': return state.bazaar.stage === 'bid' ? state.bazaar.bidder : state.bazaar.chooser;
+    case 'over': return null;
+    default: return state.current;
+  }
+}
+export function bazaarOptions(state) {
+  if (state.phase !== 'bazaar') return null;
+  const bz = state.bazaar;
+  const unowned = bz.tiles.map((x, i) => (x.owner === null ? i : -1)).filter((i) => i >= 0);
+  return { seat: actingSeat(state), stage: bz.stage, item: bz.item, high: bz.high,
+    pick: bz.stage === 'pick' || bz.stage === 'take' ? unowned : null,
+    minBid: bz.stage === 'pick' ? 0 : bz.stage === 'bid' ? bz.high.bid + 1 : null, maxBid: BAZAAR_MAX_BID,
+    canPass: bz.stage === 'bid', canSell: bz.stage === 'decide' };
 }
 
 function endTurn(state, events = []) {
@@ -980,6 +1276,12 @@ export function applyAction(state, a) {
   if (a.t === 'turn') {
     placeTile(state, a.x, a.y, a.r, a.bridge || null);
     events = finishTurn(state, a.act || null, !!a.noBonus);
+  } else if (a.t === 'discard') {
+    events = discardDrawn(state);
+  } else if (a.t === 'castle') {
+    events = decideCastle(state, a.fi, !!a.build);
+  } else if (a.t === 'bazaar') {
+    events = bazaarAction(state, a);
   } else if (a.t === 'dragon') {
     events = moveDragon(state, a.key);
   } else if (a.t === 'ransom') {
@@ -1002,6 +1304,7 @@ export function finalScoring(state, apply = true) {
   const board = state.board;
   const events = [];
   const seen = new Set();
+  for (const c of state.castles || []) if (c.k) events.push({ kind: 'castleEnd', winners: [], points: 0, nodes: c.nodes, meeples: [{ key: c.key, f: 'castle', c: c.id, p: c.owner, k: c.k }], label: 'Castle not scored', complete: false });
   for (const [k, tile] of Object.entries(board)) {
     for (const pc of tile.pieces) {
       const feat = featuresOf(tile)[pc.f];
@@ -1017,8 +1320,9 @@ export function finalScoring(state, apply = true) {
       seen.add(g.id);
       if (g.type === 'field') {
         const cities = fieldCities(board, g).filter((c) => c.complete);
+        const castles = cities.filter((cg) => castleAt(state, cg.nodes[0])).length;
         const winners = owners(g.meeples);
-        events.push({ kind: 'field', winners, points: 3 * cities.length, nodes: g.nodes, meeples: g.meeples, cities: cities.map((c) => c.nodes), cityCount: cities.length, complete: false, tiles: g.tiles.size });
+        events.push({ kind: 'field', winners, points: 3 * cities.length + castles, nodes: g.nodes, meeples: g.meeples, cities: cities.map((c) => c.nodes), cityCount: cities.length, castleCount: castles, complete: false, tiles: g.tiles.size });
         // Traders & Builders: a winning farmer with their pig earns +1 per city
         const pigs = [...new Set(g.meeples.filter((m) => m.k === 'pig' && winners.includes(m.p)).map((m) => m.p))];
         if (pigs.length && cities.length) {
@@ -1030,7 +1334,7 @@ export function finalScoring(state, apply = true) {
     }
   }
   // Order like the rulebook: roads, cities, monasteries & gardens, farms (+ pig bonus).
-  const order = { road: 0, city: 1, monastery: 2, garden: 2, field: 3, pig: 4 };
+  const order = { castleEnd: -1, road: 0, city: 1, monastery: 2, garden: 2, field: 3, pig: 4 };
   events.sort((a, b) => order[a.kind] - order[b.kind]);
   // Traders & Builders: 10 points for the most of each trade good (ties all score)
   if (hasExp(state, 'traders')) {
@@ -1046,7 +1350,7 @@ export function finalScoring(state, apply = true) {
   const out = [];
   for (const e of events) {
     out.push(e);
-    const fe = fairyEvent(state, e);
+    const fe = e.kind === 'castleEnd' ? null : fairyEvent(state, e);
     if (fe) out.push(fe);
   }
   if (apply) {

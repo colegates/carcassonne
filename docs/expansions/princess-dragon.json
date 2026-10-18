@@ -1093,6 +1093,7 @@
           ],
           "pennants": 0,
           "princess": true,
+          "castle_base": false,
           "note": "cap on the N edge whose wall narrows into a city band running diagonally down to the SW corner (touches the W side only at the corner point)"
         },
         {
