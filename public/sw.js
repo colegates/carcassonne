@@ -1,6 +1,6 @@
 // Offline support: app files come from the network when it answers (falling back to
 // the copy kept here), Google Fonts from the copy kept here.
-const CACHE = 'carcassonne-v11';
+const CACHE = 'carcassonne-v12';
 const JS = ['main', 'game', 'tiles', 'art', 'layout', 'board', 'ai', 'rules', 'sound', 'ui', 'controller', 'lobby', 'net', 'expansions', 'pieces',
   'data/river', 'data/abbot', 'data/inns', 'data/traders', 'data/dragon', 'data/tower',
   'minis/assets', 'minis/catalog', 'minis/cache', 'minis/plan', 'minis/ground', 'minis/scene', 'minis/actors', 'minis/render'].map((f) => `js/${f}.js`);

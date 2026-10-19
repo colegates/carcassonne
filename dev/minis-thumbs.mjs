@@ -11,7 +11,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const p = await b.newPage();
 p.on('pageerror', (e) => console.log('pageerror:', e.message));
-await p.goto(base + 'dev/gallery.html?mode=painted&f=__none__');
+await p.goto(base + 'dev/gallery.html?mode=painted&f=__none__', { waitUntil: 'commit' }); await p.waitForTimeout(500);
 const res = await p.evaluate(async (size) => {
   const { TILE_TYPES } = await import('/public/js/tiles.js');
   const { getTileThumb } = await import('/public/js/art.js');
