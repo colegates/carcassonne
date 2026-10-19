@@ -1,0 +1,13 @@
+{
+ "file": "anim/handbarrow_labourers.webp",
+ "n": 12,
+ "fw": 320,
+ "fh": 220,
+ "foot": [
+  286.7,
+  212.9
+ ],
+ "scale": 2.25,
+ "period": 1.5,
+ "mode": "walk"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/sheaf_binder.webp",
+ "n": 12,
+ "fw": 211,
+ "fh": 260,
+ "foot": [
+  112.0,
+  252.3
+ ],
+ "scale": 2.4654,
+ "period": 1.125,
+ "mode": "idle"
+}

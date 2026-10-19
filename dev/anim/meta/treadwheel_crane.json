@@ -1,0 +1,13 @@
+{
+ "file": "anim/treadwheel_crane.webp",
+ "n": 12,
+ "fw": 209,
+ "fh": 260,
+ "foot": [
+  114.2,
+  253.9
+ ],
+ "scale": 3.1077,
+ "period": 2.708,
+ "mode": "idle"
+}

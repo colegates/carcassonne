@@ -1,0 +1,13 @@
+{
+ "file": "anim/porter_bread.webp",
+ "n": 12,
+ "fw": 274,
+ "fh": 260,
+ "foot": [
+  165.1,
+  252.2
+ ],
+ "scale": 2.1923,
+ "period": 1.833,
+ "mode": "idle"
+}

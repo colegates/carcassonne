@@ -1,0 +1,13 @@
+{
+ "file": "anim/goats.webp",
+ "n": 12,
+ "fw": 233,
+ "fh": 210,
+ "foot": [
+  110.1,
+  203.4
+ ],
+ "scale": 2.5714,
+ "period": 2.0,
+ "mode": "walk"
+}

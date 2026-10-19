@@ -1,0 +1,13 @@
+{
+ "file": "anim/monk_reading.webp",
+ "n": 8,
+ "fw": 222,
+ "fh": 260,
+ "foot": [
+  120.7,
+  252.1
+ ],
+ "scale": 2.1538,
+ "period": 2.792,
+ "mode": "idle"
+}

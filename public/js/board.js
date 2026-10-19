@@ -370,24 +370,29 @@ export class BoardView {
     const fy = this.state.fairy;
     if (fy && board[fy.key]) {
       const [fx, fyy] = this.fairyPos(fy.key, fy.f, fy.c);
-      drawPiece(this.ctx, 'fairy', fx, fyy, z * 0.3, FAIRY_COLOR);
+      // close up: the fairy miniature hovering and turning (sized like her piece)
+      const fs = z * 0.3;
+      if (!this.minis.drawLiving(this.ctx, 'fairy', fx, fyy - fs * 0.06, { h: fs * 1.25 }, false, [fx + fs * 0.08, fyy + fs * 0.52, fs * 0.24, fs * 0.08, 0.25])) drawPiece(this.ctx, 'fairy', fx, fyy, z * 0.3, FAIRY_COLOR);
     }
     const dk = this.vm.dragonAt || this.state.dragon;
     if (dk && board[dk]) {
       let [x, y] = parseKey(dk);
-      let lift = 0, grow = 1;
+      let lift = 0, grow = 1, toRight = 0;
       const fly = this.vm.dragonFly;
       if (fly && board[fly.from]) {
         // swoop from the previous tile: up, across and down again
         const t = clamp((now - fly.start) / fly.dur, 0, 1), e = easeInOut(t);
         const [fx, fy] = parseKey(fly.from);
+        toRight = Math.sign(x - fx);
         x = lerpN(fx, x, e); y = lerpN(fy, y, e);
         lift = Math.sin(t * Math.PI) * z * 0.45; grow = 1 + Math.sin(t * Math.PI) * 0.25;
         if (t >= 1) this.vm.dragonFly = null;
       }
       const [sx, sy] = this.toScreen(x, y);
       if (lift) { this.ctx.fillStyle = 'rgba(10,5,0,0.25)'; this.ctx.beginPath(); this.ctx.ellipse(sx + z * 0.06, sy + z * 0.12, z * 0.16, z * 0.06, 0, 0, 7); this.ctx.fill(); }
-      drawPiece(this.ctx, 'dragon', sx + z * 0.06, sy - z * 0.02 - lift, z * 0.4 * grow, DRAGON_COLOR);
+      // close up: the dragon miniature beating its wings (it faces left; turned to fly right)
+      const ds = z * 0.4 * grow, ddx = sx + z * 0.06, ddy = sy - z * 0.02 - lift;
+      if (!this.minis.drawLiving(this.ctx, 'dragon_wings_up', ddx, ddy - ds * 0.12, { w: ds * 1.38 }, toRight > 0, lift ? null : [ddx + ds * 0.16, ddy + ds * 0.5, ds * 0.55, ds * 0.16, 0.28])) drawPiece(this.ctx, 'dragon', sx + z * 0.06, sy - z * 0.02 - lift, z * 0.4 * grow, DRAGON_COLOR);
     }
     // ghost meeple choices
     if (this.vm.ghosts) this.drawGhosts(now);

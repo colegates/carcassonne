@@ -5,7 +5,7 @@
 import { rotUnit, bezierPoint } from '../layout.js';
 import * as A from './assets.js';
 import { CAT, sizeOf, GROUPS, ALT } from './catalog.js';
-import { getPlan, sampleSeg, riverCrossing } from './plan.js';
+import { getPlan, sampleSeg, riverCrossing, ploughAxis } from './plan.js';
 import { RIVER_W } from './ground.js';
 
 export const WALL_H = 0.072; // wall height on screen (tile units)
@@ -396,7 +396,9 @@ function buildScene(id, rot, variant) {
     const poly = p.poly.map(([x, y]) => R(x, y));
     const [cx, cy] = R(p.cx, p.cy);
     // axis of the plot after turning (for the ploughman)
-    const [ax, ay] = R(p.cx + Math.cos(p.ang) * p.hw, p.cy + Math.sin(p.ang) * p.hw);
+    // (ploughed plots: the side closest to the screen's horizontal, see ploughAxis)
+    const pa = p.kind === 'ploughed' ? ploughAxis(p, rot) : p.ang, half = pa === p.ang ? p.hw : p.hh;
+    const [ax, ay] = R(p.cx + Math.cos(pa) * half, p.cy + Math.sin(pa) * half);
     return { ...p, poly, cx, cy, ex: ax - cx, ey: ay - cy };
   });
   const inPoly = (poly, x, y) => {
@@ -452,7 +454,7 @@ function buildScene(id, rot, variant) {
   }
   // a water mill on some river banks (its wheel turns in the actors)
   if (A.hasSprite('mill_house') && rivers.length && rnd() < 0.55) {
-    for (const pts of riverPts) {
+    for (const [ri, pts] of riverPts.entries()) {
       for (const i of [15, 10, 20]) {
         const p = pts[i];
         let done = false;
@@ -463,7 +465,7 @@ function buildScene(id, rot, variant) {
           if (hx < 0.12 || hx > 0.88 || hy < 0.15 || hy > 0.9) continue;
           if (typeAt(hx, hy) !== 'field' || fieldClear(hx, hy) < 0.05 || rectHitsKeep(o.x, o.y, o.w * 0.8, o.h * 0.8) || clashes(o.x, o.y, o.w)) continue;
           put(o, 0.06);
-          marks.mill = { x: wx, y: wy, tx: p.tx, ty: p.ty, house: o };
+          marks.mill = { x: wx, y: wy, tx: p.tx, ty: p.ty, house: o, flow: rivers[ri]?.spring ? -1 : 1 }; // (flow: along the river's course, or against it from a spring)
           done = true; break;
         }
         if (done) break;

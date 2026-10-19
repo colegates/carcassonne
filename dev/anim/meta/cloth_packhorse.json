@@ -1,0 +1,13 @@
+{
+ "file": "anim/cloth_packhorse.webp",
+ "n": 12,
+ "fw": 286,
+ "fh": 200,
+ "foot": [
+  231.2,
+  193.3
+ ],
+ "scale": 2.405,
+ "period": 1.667,
+ "mode": "walk"
+}

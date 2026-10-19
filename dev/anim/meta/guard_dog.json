@@ -1,0 +1,13 @@
+{
+ "file": "anim/guard_dog.webp",
+ "n": 12,
+ "fw": 303,
+ "fh": 200,
+ "foot": [
+  119.2,
+  193.2
+ ],
+ "scale": 2.215,
+ "period": 1.208,
+ "mode": "walk"
+}

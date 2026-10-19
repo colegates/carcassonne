@@ -1,0 +1,13 @@
+{
+ "file": "anim/cooper.webp",
+ "n": 12,
+ "fw": 149,
+ "fh": 260,
+ "foot": [
+  74.6,
+  253.2
+ ],
+ "scale": 2.7885,
+ "period": 1.292,
+ "mode": "idle"
+}

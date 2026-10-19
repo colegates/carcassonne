@@ -1,0 +1,13 @@
+{
+ "file": "anim/lay_brother_beekeeper.webp",
+ "n": 12,
+ "fw": 252,
+ "fh": 260,
+ "foot": [
+  115.5,
+  252.9
+ ],
+ "scale": 2.4077,
+ "period": 2.792,
+ "mode": "idle"
+}

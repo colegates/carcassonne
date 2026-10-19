@@ -1,0 +1,13 @@
+{
+ "file": "anim/palfrey_rider.webp",
+ "n": 12,
+ "fw": 253,
+ "fh": 300,
+ "foot": [
+  84.3,
+  291.2
+ ],
+ "scale": 2.2767,
+ "period": 1.542,
+ "mode": "walk"
+}

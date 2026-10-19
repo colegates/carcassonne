@@ -1,0 +1,13 @@
+{
+ "file": "anim/ducklings.webp",
+ "n": 12,
+ "fw": 396,
+ "fh": 150,
+ "foot": [
+  355.4,
+  143.9
+ ],
+ "scale": 1.9667,
+ "period": 1.708,
+ "mode": "walk"
+}

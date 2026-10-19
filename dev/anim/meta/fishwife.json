@@ -1,0 +1,13 @@
+{
+ "file": "anim/fishwife.webp",
+ "n": 12,
+ "fw": 158,
+ "fh": 300,
+ "foot": [
+  68.3,
+  291.6
+ ],
+ "scale": 2.3867,
+ "period": 1.667,
+ "mode": "walk"
+}

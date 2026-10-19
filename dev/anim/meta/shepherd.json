@@ -1,0 +1,13 @@
+{
+ "file": "anim/shepherd.webp",
+ "n": 12,
+ "fw": 181,
+ "fh": 300,
+ "foot": [
+  71.9,
+  292.0
+ ],
+ "scale": 2.3633,
+ "period": 1.708,
+ "mode": "walk"
+}

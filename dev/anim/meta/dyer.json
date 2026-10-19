@@ -1,0 +1,13 @@
+{
+ "file": "anim/dyer.webp",
+ "n": 12,
+ "fw": 215,
+ "fh": 230,
+ "foot": [
+  125.0,
+  223.8
+ ],
+ "scale": 2.7435,
+ "period": 2.333,
+ "mode": "idle"
+}

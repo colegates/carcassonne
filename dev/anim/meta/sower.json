@@ -1,0 +1,13 @@
+{
+ "file": "anim/sower.webp",
+ "n": 12,
+ "fw": 229,
+ "fh": 260,
+ "foot": [
+  126.6,
+  243.2
+ ],
+ "scale": 2.7962,
+ "period": 1.833,
+ "mode": "idle"
+}

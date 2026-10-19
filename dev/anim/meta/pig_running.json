@@ -1,0 +1,13 @@
+{
+ "file": "anim/pig_running.webp",
+ "n": 12,
+ "fw": 350,
+ "fh": 220,
+ "foot": [
+  147.4,
+  212.5
+ ],
+ "scale": 1.7364,
+ "period": 1.417,
+ "mode": "walk"
+}

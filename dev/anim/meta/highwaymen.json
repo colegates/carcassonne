@@ -1,0 +1,13 @@
+{
+ "file": "anim/highwaymen.webp",
+ "n": 10,
+ "fw": 275,
+ "fh": 220,
+ "foot": [
+  162.9,
+  213.4
+ ],
+ "scale": 2.2591,
+ "period": 1.333,
+ "mode": "idle"
+}

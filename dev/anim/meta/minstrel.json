@@ -1,0 +1,13 @@
+{
+ "file": "anim/minstrel.webp",
+ "n": 12,
+ "fw": 207,
+ "fh": 300,
+ "foot": [
+  64.7,
+  291.1
+ ],
+ "scale": 2.1333,
+ "period": 1.375,
+ "mode": "walk"
+}

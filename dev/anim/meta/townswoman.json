@@ -1,0 +1,13 @@
+{
+ "file": "anim/townswoman.webp",
+ "n": 12,
+ "fw": 177,
+ "fh": 300,
+ "foot": [
+  65.9,
+  291.8
+ ],
+ "scale": 2.1867,
+ "period": 1.5,
+ "mode": "walk"
+}

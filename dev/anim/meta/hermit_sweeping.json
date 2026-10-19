@@ -1,0 +1,13 @@
+{
+ "file": "anim/hermit_sweeping.webp",
+ "n": 12,
+ "fw": 189,
+ "fh": 260,
+ "foot": [
+  111.1,
+  237.9
+ ],
+ "scale": 2.6192,
+ "period": 1.083,
+ "mode": "idle"
+}

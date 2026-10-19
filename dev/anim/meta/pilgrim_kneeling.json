@@ -1,0 +1,13 @@
+{
+ "file": "anim/pilgrim_kneeling.webp",
+ "n": 8,
+ "fw": 216,
+ "fh": 260,
+ "foot": [
+  79.1,
+  252.6
+ ],
+ "scale": 2.2885,
+ "period": 2.125,
+ "mode": "idle"
+}

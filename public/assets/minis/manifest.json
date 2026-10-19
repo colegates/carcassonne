@@ -2736,5 +2736,1477 @@
    "small": "textures/meadow_rough@512.webp",
    "size": 1024
   }
+ },
+ "anims": {
+  "angler": {
+   "file": "anim/angler.webp",
+   "n": 12,
+   "fw": 310,
+   "fh": 260,
+   "foot": [
+    90.8,
+    252.7
+   ],
+   "scale": 2.1808,
+   "period": 1.875,
+   "mode": "idle",
+   "hit": 0.583,
+   "mtime": 1792409881
+  },
+  "archer": {
+   "file": "anim/archer.webp",
+   "n": 12,
+   "fw": 216,
+   "fh": 260,
+   "foot": [
+    95.3,
+    252.9
+   ],
+   "scale": 2.5192,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.417,
+   "mtime": 1792409792
+  },
+  "baker_boy": {
+   "file": "anim/baker_boy.webp",
+   "n": 12,
+   "fw": 147,
+   "fh": 300,
+   "foot": [
+    106.9,
+    291.4
+   ],
+   "scale": 2.2067,
+   "period": 2.0,
+   "mode": "walk",
+   "cycle": 516.4,
+   "mtime": 1792394055
+  },
+  "banner_bearer": {
+   "file": "anim/banner_bearer.webp",
+   "n": 12,
+   "fw": 127,
+   "fh": 300,
+   "foot": [
+    38.5,
+    292.0
+   ],
+   "scale": 2.6233,
+   "period": 1.417,
+   "mode": "walk",
+   "cycle": 377.8,
+   "mtime": 1792394026
+  },
+  "bear_leader": {
+   "file": "anim/bear_leader.webp",
+   "n": 12,
+   "fw": 236,
+   "fh": 230,
+   "foot": [
+    94.0,
+    223.8
+   ],
+   "scale": 2.9043,
+   "period": 1.25,
+   "mode": "walk",
+   "mtime": 1792394124
+  },
+  "benedictine_monk": {
+   "file": "anim/benedictine_monk.webp",
+   "n": 12,
+   "fw": 154,
+   "fh": 300,
+   "foot": [
+    52.1,
+    291.4
+   ],
+   "scale": 2.2067,
+   "period": 1.625,
+   "mode": "walk",
+   "cycle": 317.8,
+   "mtime": 1792393927
+  },
+  "bishop": {
+   "file": "anim/bishop.webp",
+   "n": 12,
+   "fw": 128,
+   "fh": 300,
+   "foot": [
+    70.1,
+    291.4
+   ],
+   "scale": 2.0967,
+   "period": 2.0,
+   "mode": "walk",
+   "mtime": 1792394011
+  },
+  "blacksmith_up": {
+   "file": "anim/blacksmith_up.webp",
+   "n": 12,
+   "fw": 190,
+   "fh": 260,
+   "foot": [
+    103.9,
+    253.2
+   ],
+   "scale": 2.7808,
+   "period": 1.583,
+   "mode": "idle",
+   "hit": 0.583,
+   "mtime": 1792393927
+  },
+  "boy_running": {
+   "file": "anim/boy_running.webp",
+   "n": 12,
+   "fw": 262,
+   "fh": 300,
+   "foot": [
+    72.9,
+    291.2
+   ],
+   "scale": 1.9333,
+   "period": 1.333,
+   "mode": "walk",
+   "cycle": 580.0,
+   "mtime": 1792393998
+  },
+  "canon": {
+   "file": "anim/canon.webp",
+   "n": 12,
+   "fw": 142,
+   "fh": 300,
+   "foot": [
+    71.0,
+    292.2
+   ],
+   "scale": 2.4233,
+   "period": 2.0,
+   "mode": "walk",
+   "mtime": 1792394042
+  },
+  "capstan_a": {
+   "file": "anim/capstan_a.webp",
+   "n": 8,
+   "fw": 356,
+   "fh": 230,
+   "foot": [
+    180.3,
+    223.1
+   ],
+   "scale": 2.313,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.875,
+   "mtime": 1792409691
+  },
+  "carpenter": {
+   "file": "anim/carpenter.webp",
+   "n": 12,
+   "fw": 179,
+   "fh": 260,
+   "foot": [
+    47.6,
+    254.1
+   ],
+   "scale": 2.9,
+   "period": 1.208,
+   "mode": "idle",
+   "hit": 0.917,
+   "mtime": 1792394250
+  },
+  "cat_sitting": {
+   "file": "anim/cat_sitting.webp",
+   "n": 8,
+   "fw": 156,
+   "fh": 260,
+   "foot": [
+    80.8,
+    251.0
+   ],
+   "scale": 2.2154,
+   "period": 0.875,
+   "mode": "idle",
+   "hit": 0.625,
+   "mtime": 1792410903
+  },
+  "cat_stalking": {
+   "file": "anim/cat_stalking.webp",
+   "n": 12,
+   "fw": 376,
+   "fh": 200,
+   "foot": [
+    345.3,
+    193.2
+   ],
+   "scale": 1.9,
+   "period": 1.542,
+   "mode": "walk",
+   "cycle": 273.6,
+   "mtime": 1792410892
+  },
+  "chickens": {
+   "file": "anim/chickens.webp",
+   "n": 12,
+   "fw": 216,
+   "fh": 200,
+   "foot": [
+    107.8,
+    194.1
+   ],
+   "scale": 2.885,
+   "period": 2.208,
+   "mode": "walk",
+   "mtime": 1792410681
+  },
+  "children_knucklebones": {
+   "file": "anim/children_knucklebones.webp",
+   "n": 12,
+   "fw": 305,
+   "fh": 240,
+   "foot": [
+    145.5,
+    232.8
+   ],
+   "scale": 1.9375,
+   "period": 1.417,
+   "mode": "idle",
+   "hit": 0.833,
+   "mtime": 1792410529
+  },
+  "children_wading": {
+   "file": "anim/children_wading.webp",
+   "n": 10,
+   "fw": 280,
+   "fh": 230,
+   "foot": [
+    146.8,
+    224.4
+   ],
+   "scale": 2.5,
+   "period": 1.292,
+   "mode": "idle",
+   "hit": 0.5,
+   "mtime": 1792410292
+  },
+  "cloth_packhorse": {
+   "file": "anim/cloth_packhorse.webp",
+   "n": 12,
+   "fw": 286,
+   "fh": 200,
+   "foot": [
+    231.2,
+    193.3
+   ],
+   "scale": 2.405,
+   "period": 1.667,
+   "mode": "walk",
+   "cycle": 259.7,
+   "mtime": 1792410139
+  },
+  "cooper": {
+   "file": "anim/cooper.webp",
+   "n": 12,
+   "fw": 149,
+   "fh": 260,
+   "foot": [
+    74.6,
+    253.2
+   ],
+   "scale": 2.7885,
+   "period": 1.292,
+   "mode": "idle",
+   "hit": 0.583,
+   "mtime": 1792393954
+  },
+  "crossbowman_shooting": {
+   "file": "anim/crossbowman_shooting.webp",
+   "n": 12,
+   "fw": 238,
+   "fh": 260,
+   "foot": [
+    68.3,
+    252.4
+   ],
+   "scale": 2.2269,
+   "period": 1.208,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792394139
+  },
+  "crossbowman_spanning": {
+   "file": "anim/crossbowman_spanning.webp",
+   "n": 12,
+   "fw": 206,
+   "fh": 260,
+   "foot": [
+    113.3,
+    251.6
+   ],
+   "scale": 2.0308,
+   "period": 1.583,
+   "mode": "idle",
+   "hit": 0.25,
+   "mtime": 1792411748
+  },
+  "dominican_friar": {
+   "file": "anim/dominican_friar.webp",
+   "n": 12,
+   "fw": 186,
+   "fh": 300,
+   "foot": [
+    73.9,
+    291.5
+   ],
+   "scale": 1.8933,
+   "period": 1.5,
+   "mode": "walk",
+   "cycle": 227.2,
+   "mtime": 1792393810
+  },
+  "donkey_rider": {
+   "file": "anim/donkey_rider.webp",
+   "n": 12,
+   "fw": 242,
+   "fh": 260,
+   "foot": [
+    112.5,
+    252.6
+   ],
+   "scale": 2.4346,
+   "period": 1.375,
+   "mode": "walk",
+   "cycle": 233.7,
+   "mtime": 1792409625
+  },
+  "doves": {
+   "file": "anim/doves.webp",
+   "n": 12,
+   "fw": 279,
+   "fh": 260,
+   "foot": [
+    157.0,
+    254.2
+   ],
+   "scale": 2.5731,
+   "period": 1.875,
+   "mode": "idle",
+   "hit": 0.833,
+   "mtime": 1792410876
+  },
+  "dragon_wings_up": {
+   "file": "anim/dragon_wings_up.webp",
+   "n": 12,
+   "fw": 212,
+   "fh": 260,
+   "foot": [
+    174.7,
+    248.7
+   ],
+   "scale": 2.7538,
+   "period": 1.25,
+   "mode": "idle",
+   "hit": 0.917,
+   "mtime": 1792411179
+  },
+  "duck_dabbling": {
+   "file": "anim/duck_dabbling.webp",
+   "n": 8,
+   "fw": 188,
+   "fh": 220,
+   "foot": [
+    91.8,
+    211.0
+   ],
+   "scale": 1.8955,
+   "period": 1.167,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792411418
+  },
+  "ducklings": {
+   "file": "anim/ducklings.webp",
+   "n": 12,
+   "fw": 396,
+   "fh": 150,
+   "foot": [
+    355.4,
+    143.9
+   ],
+   "scale": 1.9667,
+   "period": 1.708,
+   "mode": "walk",
+   "mtime": 1792410773
+  },
+  "ducks": {
+   "file": "anim/ducks.webp",
+   "n": 12,
+   "fw": 425,
+   "fh": 150,
+   "foot": [
+    230.7,
+    146.4
+   ],
+   "scale": 1.66,
+   "period": 1.875,
+   "mode": "walk",
+   "mtime": 1792410395
+  },
+  "dyer": {
+   "file": "anim/dyer.webp",
+   "n": 12,
+   "fw": 215,
+   "fh": 230,
+   "foot": [
+    125.0,
+    223.8
+   ],
+   "scale": 2.7435,
+   "period": 2.333,
+   "mode": "idle",
+   "hit": 0.5,
+   "mtime": 1792410176
+  },
+  "engineer": {
+   "file": "anim/engineer.webp",
+   "n": 12,
+   "fw": 182,
+   "fh": 260,
+   "foot": [
+    65.9,
+    253.2
+   ],
+   "scale": 2.3385,
+   "period": 2.625,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792409638
+  },
+  "fairy": {
+   "file": "anim/fairy.webp",
+   "n": 12,
+   "fw": 173,
+   "fh": 260,
+   "foot": [
+    111.3,
+    258.0
+   ],
+   "scale": 2.5077,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.75,
+   "mtime": 1792410845
+  },
+  "fishwife": {
+   "file": "anim/fishwife.webp",
+   "n": 12,
+   "fw": 158,
+   "fh": 300,
+   "foot": [
+    68.3,
+    291.6
+   ],
+   "scale": 2.3867,
+   "period": 1.667,
+   "mode": "walk",
+   "cycle": 315.0,
+   "mtime": 1792393949
+  },
+  "frog": {
+   "file": "anim/frog.webp",
+   "n": 8,
+   "fw": 219,
+   "fh": 200,
+   "foot": [
+    109.4,
+    192.1
+   ],
+   "scale": 1.27,
+   "period": 1.917,
+   "mode": "idle",
+   "hit": 0.5,
+   "mtime": 1792411367
+  },
+  "girl_hoop": {
+   "file": "anim/girl_hoop.webp",
+   "n": 12,
+   "fw": 256,
+   "fh": 260,
+   "foot": [
+    95.3,
+    252.2
+   ],
+   "scale": 2.1731,
+   "period": 1.667,
+   "mode": "walk",
+   "mtime": 1792394070
+  },
+  "goats": {
+   "file": "anim/goats.webp",
+   "n": 12,
+   "fw": 233,
+   "fh": 210,
+   "foot": [
+    110.1,
+    203.4
+   ],
+   "scale": 2.5714,
+   "period": 2.0,
+   "mode": "walk",
+   "cycle": 246.9,
+   "mtime": 1792410427
+  },
+  "goose_girl": {
+   "file": "anim/goose_girl.webp",
+   "n": 12,
+   "fw": 240,
+   "fh": 300,
+   "foot": [
+    85.9,
+    288.9
+   ],
+   "scale": 1.4433,
+   "period": 1.208,
+   "mode": "walk",
+   "cycle": 277.1,
+   "mtime": 1792393787
+  },
+  "grain_cart": {
+   "file": "anim/grain_cart.webp",
+   "n": 12,
+   "fw": 258,
+   "fh": 200,
+   "foot": [
+    197.7,
+    194.3
+   ],
+   "scale": 2.625,
+   "period": 1.833,
+   "mode": "walk",
+   "cycle": 252.0,
+   "mtime": 1792410074
+  },
+  "guard_dog": {
+   "file": "anim/guard_dog.webp",
+   "n": 12,
+   "fw": 303,
+   "fh": 200,
+   "foot": [
+    119.2,
+    193.2
+   ],
+   "scale": 2.215,
+   "period": 1.208,
+   "mode": "walk",
+   "cycle": 305.7,
+   "mtime": 1792410201
+  },
+  "handbarrow_labourers": {
+   "file": "anim/handbarrow_labourers.webp",
+   "n": 12,
+   "fw": 320,
+   "fh": 220,
+   "foot": [
+    286.7,
+    212.9
+   ],
+   "scale": 2.25,
+   "period": 1.5,
+   "mode": "walk",
+   "cycle": 283.5,
+   "mtime": 1792409676
+  },
+  "hay_cart": {
+   "file": "anim/hay_cart.webp",
+   "n": 12,
+   "fw": 241,
+   "fh": 210,
+   "foot": [
+    65.1,
+    204.1
+   ],
+   "scale": 2.719,
+   "period": 1.167,
+   "mode": "walk",
+   "mtime": 1792394172
+  },
+  "hermit_sweeping": {
+   "file": "anim/hermit_sweeping.webp",
+   "n": 12,
+   "fw": 189,
+   "fh": 260,
+   "foot": [
+    111.1,
+    237.9
+   ],
+   "scale": 2.6192,
+   "period": 1.083,
+   "mode": "idle",
+   "hit": 0.417,
+   "mtime": 1792410346
+  },
+  "heron": {
+   "file": "anim/heron.webp",
+   "n": 12,
+   "fw": 140,
+   "fh": 260,
+   "foot": [
+    69.0,
+    252.0
+   ],
+   "scale": 2.2462,
+   "period": 2.458,
+   "mode": "idle",
+   "hit": 0.667,
+   "mtime": 1792411343
+  },
+  "heron_strike": {
+   "file": "anim/heron_strike.webp",
+   "n": 12,
+   "fw": 182,
+   "fh": 260,
+   "foot": [
+    162.1,
+    263.7
+   ],
+   "scale": 2.7077,
+   "period": 2.583,
+   "mode": "idle",
+   "hit": 0.083,
+   "mtime": 1792411531
+  },
+  "highwaymen": {
+   "file": "anim/highwaymen.webp",
+   "n": 10,
+   "fw": 275,
+   "fh": 220,
+   "foot": [
+    162.9,
+    213.4
+   ],
+   "scale": 2.2591,
+   "period": 1.333,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792410763
+  },
+  "horn_watchman": {
+   "file": "anim/horn_watchman.webp",
+   "n": 12,
+   "fw": 162,
+   "fh": 260,
+   "foot": [
+    39.6,
+    253.2
+   ],
+   "scale": 2.5,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.333,
+   "mtime": 1792411775
+  },
+  "hound_running": {
+   "file": "anim/hound_running.webp",
+   "n": 12,
+   "fw": 349,
+   "fh": 200,
+   "foot": [
+    318.1,
+    192.9
+   ],
+   "scale": 2.1,
+   "period": 0.625,
+   "mode": "walk",
+   "cycle": 252.0,
+   "mtime": 1792410638
+  },
+  "inn_toast_a": {
+   "file": "anim/inn_toast_a.webp",
+   "n": 12,
+   "fw": 254,
+   "fh": 240,
+   "foot": [
+    174.6,
+    232.8
+   ],
+   "scale": 2.5083,
+   "period": 2.083,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792410450
+  },
+  "juggler": {
+   "file": "anim/juggler.webp",
+   "n": 12,
+   "fw": 196,
+   "fh": 300,
+   "foot": [
+    102.0,
+    291.1
+   ],
+   "scale": 2.1367,
+   "period": 1.833,
+   "mode": "walk",
+   "cycle": 333.3,
+   "mtime": 1792394037
+  },
+  "knight_foot": {
+   "file": "anim/knight_foot.webp",
+   "n": 12,
+   "fw": 144,
+   "fh": 260,
+   "foot": [
+    48.5,
+    252.3
+   ],
+   "scale": 2.4731,
+   "period": 1.417,
+   "mode": "walk",
+   "cycle": 237.4,
+   "mtime": 1792409554
+  },
+  "knight_mounted": {
+   "file": "anim/knight_mounted.webp",
+   "n": 12,
+   "fw": 181,
+   "fh": 220,
+   "foot": [
+    54.4,
+    213.9
+   ],
+   "scale": 3.1273,
+   "period": 1.417,
+   "mode": "walk",
+   "cycle": 262.7,
+   "mtime": 1792409761
+  },
+  "knight_peeking": {
+   "file": "anim/knight_peeking.webp",
+   "n": 10,
+   "fw": 223,
+   "fh": 240,
+   "foot": [
+    117.1,
+    232.9
+   ],
+   "scale": 2.4083,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792411601
+  },
+  "laundry_drying": {
+   "file": "anim/laundry_drying.webp",
+   "n": 8,
+   "fw": 241,
+   "fh": 220,
+   "foot": [
+    97.3,
+    214.0
+   ],
+   "scale": 2.6727,
+   "period": 2.5,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792411231
+  },
+  "lay_brother_beekeeper": {
+   "file": "anim/lay_brother_beekeeper.webp",
+   "n": 12,
+   "fw": 252,
+   "fh": 260,
+   "foot": [
+    115.5,
+    252.9
+   ],
+   "scale": 2.4077,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.667,
+   "mtime": 1792409824
+  },
+  "lizard_stone": {
+   "file": "anim/lizard_stone.webp",
+   "n": 8,
+   "fw": 281,
+   "fh": 200,
+   "foot": [
+    113.1,
+    193.8
+   ],
+   "scale": 2.105,
+   "period": 2.625,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792411444
+  },
+  "mason": {
+   "file": "anim/mason.webp",
+   "n": 12,
+   "fw": 208,
+   "fh": 260,
+   "foot": [
+    80.8,
+    253.1
+   ],
+   "scale": 2.3154,
+   "period": 2.125,
+   "mode": "idle",
+   "hit": 0.167,
+   "mtime": 1792394222
+  },
+  "merchant": {
+   "file": "anim/merchant.webp",
+   "n": 12,
+   "fw": 167,
+   "fh": 300,
+   "foot": [
+    55.5,
+    291.6
+   ],
+   "scale": 2.27,
+   "period": 1.625,
+   "mode": "walk",
+   "cycle": 299.6,
+   "mtime": 1792393734
+  },
+  "minstrel": {
+   "file": "anim/minstrel.webp",
+   "n": 12,
+   "fw": 207,
+   "fh": 300,
+   "foot": [
+    64.7,
+    291.1
+   ],
+   "scale": 2.1333,
+   "period": 1.375,
+   "mode": "walk",
+   "cycle": 192.0,
+   "mtime": 1792393996
+  },
+  "money_changer": {
+   "file": "anim/money_changer.webp",
+   "n": 12,
+   "fw": 241,
+   "fh": 260,
+   "foot": [
+    60.4,
+    253.0
+   ],
+   "scale": 2.5654,
+   "period": 2.25,
+   "mode": "idle",
+   "hit": 0.167,
+   "mtime": 1792394185
+  },
+  "monk_hoeing": {
+   "file": "anim/monk_hoeing.webp",
+   "n": 12,
+   "fw": 195,
+   "fh": 260,
+   "foot": [
+    111.1,
+    253.4
+   ],
+   "scale": 2.5654,
+   "period": 1.25,
+   "mode": "idle",
+   "hit": 0.25,
+   "mtime": 1792394410
+  },
+  "monk_reading": {
+   "file": "anim/monk_reading.webp",
+   "n": 8,
+   "fw": 222,
+   "fh": 260,
+   "foot": [
+    120.7,
+    252.1
+   ],
+   "scale": 2.1538,
+   "period": 2.792,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792409937
+  },
+  "mule_packed": {
+   "file": "anim/mule_packed.webp",
+   "n": 12,
+   "fw": 248,
+   "fh": 240,
+   "foot": [
+    60.1,
+    232.5
+   ],
+   "scale": 2.2625,
+   "period": 1.5,
+   "mode": "walk",
+   "cycle": 312.2,
+   "mtime": 1792409939
+  },
+  "noble_lady": {
+   "file": "anim/noble_lady.webp",
+   "n": 12,
+   "fw": 206,
+   "fh": 300,
+   "foot": [
+    94.7,
+    291.0
+   ],
+   "scale": 2.3333,
+   "period": 1.917,
+   "mode": "walk",
+   "cycle": 224.0,
+   "mtime": 1792393862
+  },
+  "nobleman_falcon": {
+   "file": "anim/nobleman_falcon.webp",
+   "n": 12,
+   "fw": 182,
+   "fh": 300,
+   "foot": [
+    59.2,
+    292.0
+   ],
+   "scale": 2.3833,
+   "period": 1.042,
+   "mode": "walk",
+   "cycle": 328.9,
+   "mtime": 1792393980
+  },
+  "nun": {
+   "file": "anim/nun.webp",
+   "n": 12,
+   "fw": 164,
+   "fh": 300,
+   "foot": [
+    62.8,
+    291.0
+   ],
+   "scale": 1.99,
+   "period": 1.542,
+   "mode": "walk",
+   "cycle": 250.7,
+   "mtime": 1792393836
+  },
+  "old_woman_spinning": {
+   "file": "anim/old_woman_spinning.webp",
+   "n": 12,
+   "fw": 185,
+   "fh": 300,
+   "foot": [
+    78.0,
+    291.2
+   ],
+   "scale": 2.1533,
+   "period": 1.792,
+   "mode": "walk",
+   "cycle": 297.2,
+   "mtime": 1792393960
+  },
+  "onlookers_pointing": {
+   "file": "anim/onlookers_pointing.webp",
+   "n": 12,
+   "fw": 220,
+   "fh": 260,
+   "foot": [
+    121.0,
+    252.8
+   ],
+   "scale": 2.4885,
+   "period": 2.125,
+   "mode": "idle",
+   "hit": 0.917,
+   "mtime": 1792410117
+  },
+  "palfrey_rider": {
+   "file": "anim/palfrey_rider.webp",
+   "n": 12,
+   "fw": 253,
+   "fh": 300,
+   "foot": [
+    84.3,
+    291.2
+   ],
+   "scale": 2.2767,
+   "period": 1.542,
+   "mode": "walk",
+   "cycle": 273.2,
+   "mtime": 1792394124
+  },
+  "pig_running": {
+   "file": "anim/pig_running.webp",
+   "n": 12,
+   "fw": 350,
+   "fh": 220,
+   "foot": [
+    147.4,
+    212.5
+   ],
+   "scale": 1.7364,
+   "period": 1.417,
+   "mode": "walk",
+   "cycle": 333.4,
+   "mtime": 1792409966
+  },
+  "pilgrim": {
+   "file": "anim/pilgrim.webp",
+   "n": 12,
+   "fw": 189,
+   "fh": 300,
+   "foot": [
+    59.7,
+    292.3
+   ],
+   "scale": 2.3467,
+   "period": 1.208,
+   "mode": "walk",
+   "cycle": 366.1,
+   "mtime": 1792393709
+  },
+  "pilgrim_away": {
+   "file": "anim/pilgrim_away.webp",
+   "n": 12,
+   "fw": 181,
+   "fh": 300,
+   "foot": [
+    60.1,
+    292.1
+   ],
+   "scale": 2.28,
+   "period": 1.5,
+   "mode": "walk",
+   "mtime": 1792411241
+  },
+  "pilgrim_kneeling": {
+   "file": "anim/pilgrim_kneeling.webp",
+   "n": 8,
+   "fw": 216,
+   "fh": 260,
+   "foot": [
+    79.1,
+    252.6
+   ],
+   "scale": 2.2885,
+   "period": 2.125,
+   "mode": "idle",
+   "hit": 0.5,
+   "mtime": 1792410556
+  },
+  "pilgrim_toward": {
+   "file": "anim/pilgrim_toward.webp",
+   "n": 12,
+   "fw": 191,
+   "fh": 300,
+   "foot": [
+    58.2,
+    292.2
+   ],
+   "scale": 2.4233,
+   "period": 1.5,
+   "mode": "walk",
+   "mtime": 1792411208
+  },
+  "ploughman_oxen_ard": {
+   "file": "anim/ploughman_oxen_ard.webp",
+   "n": 12,
+   "fw": 278,
+   "fh": 200,
+   "foot": [
+    84.6,
+    194.4
+   ],
+   "scale": 2.85,
+   "period": 1.708,
+   "mode": "walk",
+   "cycle": 171.0,
+   "mtime": 1792410601
+  },
+  "porter_bread": {
+   "file": "anim/porter_bread.webp",
+   "n": 12,
+   "fw": 274,
+   "fh": 260,
+   "foot": [
+    165.1,
+    252.2
+   ],
+   "scale": 2.1923,
+   "period": 1.833,
+   "mode": "idle",
+   "hit": 0.833,
+   "mtime": 1792410090
+  },
+  "princess": {
+   "file": "anim/princess.webp",
+   "n": 12,
+   "fw": 193,
+   "fh": 300,
+   "foot": [
+    97.7,
+    291.1
+   ],
+   "scale": 2.3533,
+   "period": 1.458,
+   "mode": "walk",
+   "mtime": 1792393960
+  },
+  "punt_fishermen": {
+   "file": "anim/punt_fishermen.webp",
+   "n": 12,
+   "fw": 273,
+   "fh": 260,
+   "foot": [
+    198.2,
+    253.6
+   ],
+   "scale": 2.4923,
+   "period": 2.208,
+   "mode": "idle",
+   "hit": 0.917,
+   "mtime": 1792410665
+  },
+  "reaper": {
+   "file": "anim/reaper.webp",
+   "n": 12,
+   "fw": 187,
+   "fh": 260,
+   "foot": [
+    100.9,
+    228.8
+   ],
+   "scale": 2.8846,
+   "period": 1.833,
+   "mode": "idle",
+   "hit": 0.75,
+   "mtime": 1792394280
+  },
+  "rope_haulers": {
+   "file": "anim/rope_haulers.webp",
+   "n": 12,
+   "fw": 330,
+   "fh": 260,
+   "foot": [
+    161.6,
+    252.1
+   ],
+   "scale": 2.1654,
+   "period": 2.042,
+   "mode": "idle",
+   "hit": 0.583,
+   "mtime": 1792394384
+  },
+  "sentry_sleeping": {
+   "file": "anim/sentry_sleeping.webp",
+   "n": 8,
+   "fw": 160,
+   "fh": 260,
+   "foot": [
+    69.1,
+    252.6
+   ],
+   "scale": 2.9654,
+   "period": 2.667,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792410402
+  },
+  "sergeant_spear": {
+   "file": "anim/sergeant_spear.webp",
+   "n": 12,
+   "fw": 149,
+   "fh": 300,
+   "foot": [
+    47.2,
+    291.5
+   ],
+   "scale": 2.4567,
+   "period": 1.583,
+   "mode": "walk",
+   "cycle": 353.8,
+   "mtime": 1792393891
+  },
+  "sheaf_binder": {
+   "file": "anim/sheaf_binder.webp",
+   "n": 12,
+   "fw": 211,
+   "fh": 260,
+   "foot": [
+    112.0,
+    252.3
+   ],
+   "scale": 2.4654,
+   "period": 1.125,
+   "mode": "idle",
+   "hit": 0.417,
+   "mtime": 1792394326
+  },
+  "sheep_group": {
+   "file": "anim/sheep_group.webp",
+   "n": 12,
+   "fw": 300,
+   "fh": 200,
+   "foot": [
+    100.0,
+    192.7
+   ],
+   "scale": 2.18,
+   "period": 1.208,
+   "mode": "walk",
+   "cycle": 130.8,
+   "mtime": 1792410250
+  },
+  "shepherd": {
+   "file": "anim/shepherd.webp",
+   "n": 12,
+   "fw": 181,
+   "fh": 300,
+   "foot": [
+    71.9,
+    292.0
+   ],
+   "scale": 2.3633,
+   "period": 1.708,
+   "mode": "walk",
+   "cycle": 312.0,
+   "mtime": 1792393763
+  },
+  "sow_piglets": {
+   "file": "anim/sow_piglets.webp",
+   "n": 12,
+   "fw": 284,
+   "fh": 200,
+   "foot": [
+    137.3,
+    193.1
+   ],
+   "scale": 2.615,
+   "period": 1.875,
+   "mode": "walk",
+   "cycle": 156.9,
+   "mtime": 1792410855
+  },
+  "sower": {
+   "file": "anim/sower.webp",
+   "n": 12,
+   "fw": 229,
+   "fh": 260,
+   "foot": [
+    126.6,
+    243.2
+   ],
+   "scale": 2.7962,
+   "period": 1.833,
+   "mode": "idle",
+   "hit": 0.583,
+   "mtime": 1792394302
+  },
+  "sparrows_mouse": {
+   "file": "anim/sparrows_mouse.webp",
+   "n": 8,
+   "fw": 389,
+   "fh": 220,
+   "foot": [
+    160.1,
+    212.5
+   ],
+   "scale": 1.8545,
+   "period": 0.875,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792411485
+  },
+  "stork_wings_up": {
+   "file": "anim/stork_wings_up.webp",
+   "n": 12,
+   "fw": 227,
+   "fh": 260,
+   "foot": [
+    16.4,
+    251.2
+   ],
+   "scale": 2.7385,
+   "period": 1.083,
+   "mode": "idle",
+   "hit": 0.75,
+   "mtime": 1792411152
+  },
+  "townsman": {
+   "file": "anim/townsman.webp",
+   "n": 12,
+   "fw": 230,
+   "fh": 360,
+   "foot": [
+    60.7,
+    349.0
+   ],
+   "scale": 1.8111,
+   "period": 1.458,
+   "mode": "walk",
+   "cycle": 326.0,
+   "mtime": 1792393289
+  },
+  "townsman_away": {
+   "file": "anim/townsman_away.webp",
+   "n": 12,
+   "fw": 171,
+   "fh": 300,
+   "foot": [
+    61.3,
+    291.3
+   ],
+   "scale": 2.1867,
+   "period": 0.917,
+   "mode": "walk",
+   "mtime": 1792410998
+  },
+  "townsman_toward": {
+   "file": "anim/townsman_toward.webp",
+   "n": 12,
+   "fw": 173,
+   "fh": 300,
+   "foot": [
+    37.7,
+    291.6
+   ],
+   "scale": 2.2567,
+   "period": 1.417,
+   "mode": "walk",
+   "mtime": 1792410967
+  },
+  "townswoman": {
+   "file": "anim/townswoman.webp",
+   "n": 12,
+   "fw": 177,
+   "fh": 300,
+   "foot": [
+    65.9,
+    291.8
+   ],
+   "scale": 2.1867,
+   "period": 1.5,
+   "mode": "walk",
+   "cycle": 236.2,
+   "mtime": 1792393682
+  },
+  "townswoman_away": {
+   "file": "anim/townswoman_away.webp",
+   "n": 12,
+   "fw": 146,
+   "fh": 300,
+   "foot": [
+    47.5,
+    291.7
+   ],
+   "scale": 2.1667,
+   "period": 1.208,
+   "mode": "walk",
+   "mtime": 1792411104
+  },
+  "townswoman_toward": {
+   "file": "anim/townswoman_toward.webp",
+   "n": 12,
+   "fw": 124,
+   "fh": 300,
+   "foot": [
+    38.6,
+    291.8
+   ],
+   "scale": 2.33,
+   "period": 1.417,
+   "mode": "walk",
+   "mtime": 1792411080
+  },
+  "treadwheel_crane": {
+   "file": "anim/treadwheel_crane.webp",
+   "n": 12,
+   "fw": 209,
+   "fh": 260,
+   "foot": [
+    114.2,
+    253.9
+   ],
+   "scale": 3.1077,
+   "period": 2.708,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792410695
+  },
+  "tumbler": {
+   "file": "anim/tumbler.webp",
+   "n": 12,
+   "fw": 116,
+   "fh": 260,
+   "foot": [
+    53.7,
+    253.3
+   ],
+   "scale": 2.6808,
+   "period": 1.5,
+   "mode": "idle",
+   "hit": 0.5,
+   "mtime": 1792409847
+  },
+  "washerwomen": {
+   "file": "anim/washerwomen.webp",
+   "n": 8,
+   "fw": 326,
+   "fh": 230,
+   "foot": [
+    162.9,
+    224.8
+   ],
+   "scale": 2.1304,
+   "period": 1.333,
+   "mode": "idle",
+   "hit": 0.0,
+   "mtime": 1792394050
+  },
+  "water_carrier": {
+   "file": "anim/water_carrier.webp",
+   "n": 12,
+   "fw": 191,
+   "fh": 260,
+   "foot": [
+    66.9,
+    252.3
+   ],
+   "scale": 2.4654,
+   "period": 1.708,
+   "mode": "walk",
+   "cycle": 295.8,
+   "mtime": 1792393999
+  },
+  "wine_cart": {
+   "file": "anim/wine_cart.webp",
+   "n": 12,
+   "fw": 284,
+   "fh": 190,
+   "foot": [
+    218.5,
+    183.5
+   ],
+   "scale": 2.6,
+   "period": 1.875,
+   "mode": "walk",
+   "cycle": 218.4,
+   "mtime": 1792410176
+  },
+  "women_chatting": {
+   "file": "anim/women_chatting.webp",
+   "n": 12,
+   "fw": 209,
+   "fh": 260,
+   "foot": [
+    107.4,
+    253.2
+   ],
+   "scale": 2.3654,
+   "period": 1.333,
+   "mode": "idle",
+   "hit": 0.75,
+   "mtime": 1792409909
+  }
  }
 }

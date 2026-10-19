@@ -1,0 +1,13 @@
+{
+ "file": "anim/grain_cart.webp",
+ "n": 12,
+ "fw": 258,
+ "fh": 200,
+ "foot": [
+  197.7,
+  194.3
+ ],
+ "scale": 2.625,
+ "period": 1.833,
+ "mode": "walk"
+}

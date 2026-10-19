@@ -1,0 +1,13 @@
+{
+ "file": "anim/bishop.webp",
+ "n": 12,
+ "fw": 128,
+ "fh": 300,
+ "foot": [
+  70.1,
+  291.4
+ ],
+ "scale": 2.0967,
+ "period": 2.0,
+ "mode": "walk"
+}

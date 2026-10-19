@@ -1,0 +1,13 @@
+{
+ "file": "anim/chickens.webp",
+ "n": 12,
+ "fw": 216,
+ "fh": 200,
+ "foot": [
+  107.8,
+  194.1
+ ],
+ "scale": 2.885,
+ "period": 2.208,
+ "mode": "walk"
+}

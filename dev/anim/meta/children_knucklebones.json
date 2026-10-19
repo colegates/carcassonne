@@ -1,0 +1,13 @@
+{
+ "file": "anim/children_knucklebones.webp",
+ "n": 12,
+ "fw": 305,
+ "fh": 240,
+ "foot": [
+  145.5,
+  232.8
+ ],
+ "scale": 1.9375,
+ "period": 1.417,
+ "mode": "idle"
+}

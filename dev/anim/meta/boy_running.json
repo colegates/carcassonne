@@ -1,0 +1,13 @@
+{
+ "file": "anim/boy_running.webp",
+ "n": 12,
+ "fw": 262,
+ "fh": 300,
+ "foot": [
+  72.9,
+  291.2
+ ],
+ "scale": 1.9333,
+ "period": 1.333,
+ "mode": "walk"
+}

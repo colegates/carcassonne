@@ -4,7 +4,10 @@
 // lookup for something not (yet) in the manifest returns null and the caller falls back.
 //
 // manifest: { version, sprites: { id: { file, w, h, foot: [x, y], kind, sheet, flat?, desc } },
-//             textures: { id: { file, small, size } } }
+//             textures: { id: { file, small, size } },
+//             anims: { id: { file, n, fw, fh, foot: [x, y], scale, period, mode, cycle?, face? } } }
+// (anims: looping frame strips of a still sprite, merged in by dev/anim/manifest.py)
+import { cacheGet, cachePeek, cachePut } from './cache.js';
 
 const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 // ?minis=off keeps the painted tiles; ?minis=<folder> loads another asset folder (dev)
@@ -35,7 +38,7 @@ export function loadManifest() {
     .then((r) => (r.ok ? r.json() : null))
     .then((m) => {
       if (!m || (!m.sprites && !m.textures)) { status = 'none'; return; }
-      manifest = { version: m.version || 0, sprites: m.sprites || {}, textures: m.textures || {} };
+      manifest = { version: m.version || 0, sprites: m.sprites || {}, textures: m.textures || {}, anims: m.anims || {} };
       status = 'ready';
       generation++;
       changed();
@@ -47,6 +50,9 @@ export const hasSprite = (id) => !!manifest?.sprites[id];
 export const hasTexture = (id) => !!manifest?.textures[id];
 export const spriteInfo = (id) => manifest?.sprites[id] || null;
 export const spriteIds = () => (manifest ? Object.keys(manifest.sprites) : []);
+// An animation strip's numbers, or null when the figure has none (yet).
+export const animInfo = (id) => manifest?.anims[id] || null;
+export const animIds = () => (manifest ? Object.keys(manifest.anims) : []);
 
 // ---------- image loading ----------
 const images = new Map(); // url -> { img, state }
@@ -162,6 +168,71 @@ function fullImage(id) {
   (f.img.decode ? f.img.decode() : new Promise((res, rej) => { f.img.onload = res; f.img.onerror = rej; })).then(() => { f.ready = true; generation++; changed(); }, () => {});
   fulls.set(id, f);
   while (fulls.size > 28) fulls.delete(fulls.keys().next().value);
+  return null;
+}
+
+// ---------- animation strips ----------
+// A strip (n frames side by side) is fetched only when an animated figure is first drawn big
+// enough for its frames to matter, then kept as graded copies at the halvings actually
+// drawn ('levels': level L has frames fh / 2^L px tall), in the renderer's shared LRU canvas
+// budget, so a long session never holds more than its share. The decoded original is kept
+// only for the few most recent strips and fetched again (from the HTTP cache) when needed.
+const stripSrc = new Map(); // id -> url of a decoded strip still held (most recent last)
+const stripUrl = (info) => BASE + info.file + (info.mtime ? `?v=${info.mtime}` : '');
+const akey = (id, L) => `a|${id}|${L}`;
+function stripSource(id, info) {
+  const url = stripUrl(info);
+  const img = image(url.slice(BASE.length));
+  if (img) {
+    stripSrc.delete(id); stripSrc.set(id, url);
+    while (stripSrc.size > 2) {
+      const [old, u] = stripSrc.entries().next().value;
+      stripSrc.delete(old); images.delete(u); // (fetched again if ever needed)
+    }
+  }
+  return img;
+}
+function buildLevel(img, info, L) {
+  const k = 1 / (1 << L);
+  let src = img, w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  const W = Math.max(1, Math.round(w * k)), H = Math.max(1, Math.round(h * k));
+  // halve step by step for a clean small copy
+  while (w / 2 >= W * 1.02 && w > 2) {
+    const nw = Math.max(W, Math.round(w / 2)), nh = Math.max(H, Math.round(h / 2));
+    const c = document.createElement('canvas'); c.width = nw; c.height = nh;
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, nw, nh);
+    src = c; w = nw; h = nh;
+  }
+  let c = src;
+  if (src === img || w !== W) {
+    c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H);
+  }
+  grade(c);
+  return c;
+}
+// The strip of anim id to draw frames devH device px tall: { img, k } where k is the strip's
+// scale (frame i is at x = i * fw * k, size fw * k by fh * k), or null while none is ready.
+// Builds the right halving when there is time this frame, else draws a cached neighbour.
+export function animStrip(id, devH) {
+  const info = manifest?.anims[id];
+  if (!info) return null;
+  let L = 0;
+  while (L < 4 && info.fh / (1 << (L + 1)) >= devH * 0.92 && info.fh / (1 << (L + 1)) >= 20) L++;
+  const want = cacheGet(akey(id, L));
+  if (want) return { img: want, k: 1 / (1 << L) };
+  const img = stripSource(id, info);
+  if (img && performance.now() <= mipBudget) {
+    const c = buildLevel(img, info, L);
+    cachePut(akey(id, L), c, c.width * c.height * 4);
+    return { img: c, k: 1 / (1 << L) };
+  }
+  // meanwhile: any other halving already made
+  for (let d = 1; d < 5; d++) for (const M of [L - d, L + d]) {
+    if (M < 0 || M > 4) continue;
+    const c = cachePeek(akey(id, M));
+    if (c && c.width) return { img: c, k: 1 / (1 << M) };
+  }
   return null;
 }
 

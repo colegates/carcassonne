@@ -1,0 +1,13 @@
+{
+ "file": "anim/mule_packed.webp",
+ "n": 12,
+ "fw": 248,
+ "fh": 240,
+ "foot": [
+  60.1,
+  232.5
+ ],
+ "scale": 2.2625,
+ "period": 1.5,
+ "mode": "walk"
+}

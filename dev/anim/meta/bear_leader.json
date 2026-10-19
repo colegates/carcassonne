@@ -1,0 +1,13 @@
+{
+ "file": "anim/bear_leader.webp",
+ "n": 12,
+ "fw": 236,
+ "fh": 230,
+ "foot": [
+  94.0,
+  223.8
+ ],
+ "scale": 2.9043,
+ "period": 1.25,
+ "mode": "walk"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/sow_piglets.webp",
+ "n": 12,
+ "fw": 284,
+ "fh": 200,
+ "foot": [
+  137.3,
+  193.1
+ ],
+ "scale": 2.615,
+ "period": 1.875,
+ "mode": "walk"
+}

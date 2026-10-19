@@ -5,7 +5,7 @@
 import { bezierPoint } from '../layout.js';
 import { drawTileSymbols, ART_SIZE } from '../art.js';
 import * as A from './assets.js';
-import { getPlan, sampleSeg, riverCrossing } from './plan.js';
+import { getPlan, sampleSeg, riverCrossing, ploughAxis } from './plan.js';
 
 export const ROAD_W = 0.11;
 export const RIVER_W = 0.13;
@@ -265,7 +265,7 @@ function neededTextures(plan) {
   if (lay.rivers.length || lay.lake || lay.inns.length) { t.push('riverbed'); for (const x of ['river_bank', 'river_water']) if (A.hasTexture(x)) t.push(x); }
   if (lay.roads.length || lay.stubs.length) t.push('dirt_road');
   if (lay.cities.length) t.push('town_lane', 'wall_walk');
-  if (lay.village || lay.house || lay.farmhouse || lay.inns.length) t.push('farmyard');
+  if (lay.village || lay.house || lay.farmhouse || lay.inns.length || lay.highwaymen) t.push('farmyard');
   if (lay.bazaar) t.push('market_ground');
   if (lay.monastery || lay.garden) t.push('garden_path');
   if (lay.rock) t.push('garrigue');
@@ -343,7 +343,10 @@ export function* groundSteps(id, S, options = {}) {
     const path = new Path2D(); p.poly.forEach(([x, y], i) => (i ? path.lineTo(x * S, y * S) : path.moveTo(x * S, y * S))); path.closePath();
     // a soft trodden margin, then the crop
     g.save(); g.globalAlpha = 0.28; g.lineWidth = 0.022 * S; g.lineJoin = 'round'; g.strokeStyle = '#6b5a3c'; g.stroke(path); g.restore();
-    lg.fillStyle = pattern(lg, T(texId), texId === 'vineyard' ? 0.34 : 0.28, S, { rot: p.ang, ox: p.cx, oy: p.cy });
+    // ploughed: the furrows (drawn ~0.4 rad off the texture's x axis) run along the ploughman's
+    // track, which keeps to the screen's horizontal whatever the tile's rotation
+    const frot = p.kind === 'ploughed' ? ploughAxis(p, V.r) + (texId === 'ploughed' ? 0.4 : 0) : p.ang;
+    lg.fillStyle = pattern(lg, T(texId), texId === 'vineyard' ? 0.34 : 0.28, S, { rot: frot, ox: p.cx, oy: p.cy });
     lg.fill(path);
     if (tint) { lg.fillStyle = tint; lg.fill(path); }
     blit(g, l);

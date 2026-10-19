@@ -1,0 +1,13 @@
+{
+ "file": "anim/money_changer.webp",
+ "n": 12,
+ "fw": 241,
+ "fh": 260,
+ "foot": [
+  60.4,
+  253.0
+ ],
+ "scale": 2.5654,
+ "period": 2.25,
+ "mode": "idle"
+}

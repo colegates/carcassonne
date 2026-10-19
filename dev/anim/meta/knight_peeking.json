@@ -1,0 +1,13 @@
+{
+ "file": "anim/knight_peeking.webp",
+ "n": 10,
+ "fw": 223,
+ "fh": 240,
+ "foot": [
+  117.1,
+  232.9
+ ],
+ "scale": 2.4083,
+ "period": 2.792,
+ "mode": "idle"
+}

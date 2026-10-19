@@ -1,0 +1,13 @@
+{
+ "file": "anim/baker_boy.webp",
+ "n": 12,
+ "fw": 147,
+ "fh": 300,
+ "foot": [
+  106.9,
+  291.4
+ ],
+ "scale": 2.2067,
+ "period": 2.0,
+ "mode": "walk"
+}

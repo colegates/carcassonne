@@ -1,0 +1,13 @@
+{
+ "file": "anim/doves.webp",
+ "n": 12,
+ "fw": 279,
+ "fh": 260,
+ "foot": [
+  157.0,
+  254.2
+ ],
+ "scale": 2.5731,
+ "period": 1.875,
+ "mode": "idle"
+}

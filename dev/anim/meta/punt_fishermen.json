@@ -1,0 +1,13 @@
+{
+ "file": "anim/punt_fishermen.webp",
+ "n": 12,
+ "fw": 273,
+ "fh": 260,
+ "foot": [
+  198.2,
+  253.6
+ ],
+ "scale": 2.4923,
+ "period": 2.208,
+ "mode": "idle"
+}

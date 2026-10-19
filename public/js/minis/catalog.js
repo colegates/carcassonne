@@ -64,6 +64,12 @@ export const CAT = {
   baker_boy: { h: 0.03, walk: true }, frog: { w: 0.006 }, lizard_stone: { w: 0.016 }, dragonflies: { w: 0.024 }, monk_reading: { w: 0.034 }, porter_bread: { w: 0.045 },
 };
 
+// The miniatures that face right as painted (checked by eye; every other moving figure faces
+// left). A figure is mirrored when it moves the other way; an animation strip may say
+// otherwise with its own `face`.
+export const FACES_RIGHT = new Set(['stork_wings_up', 'stork_wings_down', 'cat_stalking', 'cat_bread', 'wine_cart', 'grain_cart', 'cloth_packhorse',
+  'crossbowman_shooting', 'crossbowman_spanning', 'hound_running', 'sow_piglets', 'heron', 'heron_strike', 'goats', 'sower', 'bear_leader', 'handbarrow_labourers', 'engineer', 'rope_haulers']);
+
 // Width and height (tile units) of a sprite from its catalogue size and pixel aspect.
 export function sizeOf(id, info, scale = 1) {
   // a second walking pose ('townsman_b') is drawn at exactly the first pose's pixel scale
@@ -87,9 +93,12 @@ export const GROUPS = {
   riverTrees: ['black_poplar', 'white_poplar', 'pollard_willow', 'pollard_willow'],
   bushes: ['broom', 'garrigue_clump', 'broom'],
   stalls: ['wine_stall', 'cloth_stall', 'grain_stall', 'pottery_stall', 'woad_stall', 'spice_salt_stall', 'poultry_produce', 'money_changer'],
-  townsfolk: ['townsman', 'townswoman', 'merchant', 'water_carrier', 'old_woman_spinning', 'boy_running', 'girl_hoop', 'noble_lady', 'townsman', 'townswoman', 'fishwife', 'mason', 'baker_boy', 'benedictine_monk'],
-  travellers: ['pilgrim', 'townsman', 'mule_packed', 'hay_cart', 'merchant', 'donkey_rider', 'palfrey_rider', 'pilgrim', 'knight_mounted', 'dominican_friar', 'townswoman', 'sergeant_spear'],
-  clergy: ['benedictine_monk', 'dominican_friar', 'nun', 'canon', 'benedictine_monk'],
+  townsfolk: ['townsman', 'townswoman', 'merchant', 'water_carrier', 'old_woman_spinning', 'boy_running', 'girl_hoop', 'noble_lady', 'townsman', 'townswoman', 'fishwife', 'baker_boy', 'benedictine_monk'],
+  travellers: ['pilgrim', 'townsman', 'mule_packed', 'hay_cart', 'merchant', 'donkey_rider', 'palfrey_rider', 'pilgrim', 'knight_mounted', 'dominican_friar', 'townswoman', 'sergeant_spear',
+    'knight_foot', 'banner_bearer', 'nobleman_falcon', 'goose_girl', 'bear_leader', 'handbarrow_labourers', 'townsman', 'pilgrim'],
+  clergy: ['benedictine_monk', 'dominican_friar', 'nun', 'canon', 'benedictine_monk', 'bishop'],
+  // beasts loose in the meadows (each wanders its patch)
+  fieldBeasts: ['goats', 'sow_piglets', 'pig_running', 'chickens'],
   soldiers: ['sergeant_spear', 'sergeant_spear', 'crossbowman_shooting', 'horn_watchman', 'archer'],
   fieldFolk: ['reaper', 'sheaf_binder', 'sower'],
 };

@@ -1,0 +1,13 @@
+{
+ "file": "anim/dominican_friar.webp",
+ "n": 12,
+ "fw": 186,
+ "fh": 300,
+ "foot": [
+  73.9,
+  291.5
+ ],
+ "scale": 1.8933,
+ "period": 1.5,
+ "mode": "walk"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/cat_sitting.webp",
+ "n": 8,
+ "fw": 156,
+ "fh": 260,
+ "foot": [
+  80.8,
+  251.0
+ ],
+ "scale": 2.2154,
+ "period": 0.875,
+ "mode": "idle"
+}

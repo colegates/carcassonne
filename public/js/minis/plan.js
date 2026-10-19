@@ -142,3 +142,12 @@ export function sampleSeg(seg, n = 24) {
   }
   return pts;
 }
+
+// The working axis of a farm plot seen with the tile turned r quarter turns: whichever of its
+// two sides runs closer to the screen's horizontal (the ploughman and his oxen are a side-on
+// miniature, so they must travel left and right on screen, and the furrows follow them).
+// Returns the axis angle in tile space.
+export function ploughAxis(p, r = 0) {
+  const turn = (((r % 4) + 4) % 4) * Math.PI / 2;
+  return Math.abs(Math.cos(p.ang + turn)) >= Math.abs(Math.cos(p.ang + Math.PI / 2 + turn)) ? p.ang : p.ang + Math.PI / 2;
+}

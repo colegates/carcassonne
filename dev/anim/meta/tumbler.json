@@ -1,0 +1,13 @@
+{
+ "file": "anim/tumbler.webp",
+ "n": 12,
+ "fw": 116,
+ "fh": 260,
+ "foot": [
+  53.7,
+  253.3
+ ],
+ "scale": 2.6808,
+ "period": 1.5,
+ "mode": "idle"
+}

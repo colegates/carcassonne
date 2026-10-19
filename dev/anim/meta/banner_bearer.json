@@ -1,0 +1,13 @@
+{
+ "file": "anim/banner_bearer.webp",
+ "n": 12,
+ "fw": 127,
+ "fh": 300,
+ "foot": [
+  38.5,
+  292.0
+ ],
+ "scale": 2.6233,
+ "period": 1.417,
+ "mode": "walk"
+}

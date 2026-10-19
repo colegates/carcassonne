@@ -1,0 +1,13 @@
+{
+ "file": "anim/girl_hoop.webp",
+ "n": 12,
+ "fw": 256,
+ "fh": 260,
+ "foot": [
+  95.3,
+  252.2
+ ],
+ "scale": 2.1731,
+ "period": 1.667,
+ "mode": "walk"
+}

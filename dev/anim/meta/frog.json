@@ -1,0 +1,13 @@
+{
+ "file": "anim/frog.webp",
+ "n": 8,
+ "fw": 219,
+ "fh": 200,
+ "foot": [
+  109.4,
+  192.1
+ ],
+ "scale": 1.27,
+ "period": 1.917,
+ "mode": "idle"
+}

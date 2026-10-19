@@ -1,0 +1,13 @@
+{
+ "file": "anim/heron.webp",
+ "n": 12,
+ "fw": 140,
+ "fh": 260,
+ "foot": [
+  69.0,
+  252.0
+ ],
+ "scale": 2.2462,
+ "period": 2.458,
+ "mode": "idle"
+}

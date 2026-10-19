@@ -1,0 +1,13 @@
+{
+ "file": "anim/knight_foot.webp",
+ "n": 12,
+ "fw": 144,
+ "fh": 260,
+ "foot": [
+  48.5,
+  252.3
+ ],
+ "scale": 2.4731,
+ "period": 1.417,
+ "mode": "walk"
+}

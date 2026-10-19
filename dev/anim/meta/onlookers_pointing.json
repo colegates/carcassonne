@@ -1,0 +1,13 @@
+{
+ "file": "anim/onlookers_pointing.webp",
+ "n": 12,
+ "fw": 220,
+ "fh": 260,
+ "foot": [
+  121.0,
+  252.8
+ ],
+ "scale": 2.4885,
+ "period": 2.125,
+ "mode": "idle"
+}
