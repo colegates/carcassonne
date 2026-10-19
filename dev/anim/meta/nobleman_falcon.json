@@ -1,0 +1,13 @@
+{
+ "file": "anim/nobleman_falcon.webp",
+ "n": 12,
+ "fw": 182,
+ "fh": 300,
+ "foot": [
+  59.2,
+  292.0
+ ],
+ "scale": 2.3833,
+ "period": 1.042,
+ "mode": "walk"
+}

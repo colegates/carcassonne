@@ -1,0 +1,13 @@
+{
+ "file": "anim/horn_watchman.webp",
+ "n": 12,
+ "fw": 162,
+ "fh": 260,
+ "foot": [
+  39.6,
+  253.2
+ ],
+ "scale": 2.5,
+ "period": 2.792,
+ "mode": "idle"
+}

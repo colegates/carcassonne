@@ -1,0 +1,13 @@
+{
+ "file": "anim/canon.webp",
+ "n": 12,
+ "fw": 142,
+ "fh": 300,
+ "foot": [
+  71.0,
+  292.2
+ ],
+ "scale": 2.4233,
+ "period": 2.0,
+ "mode": "walk"
+}

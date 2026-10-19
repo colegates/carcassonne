@@ -1,0 +1,13 @@
+{
+ "file": "anim/noble_lady.webp",
+ "n": 12,
+ "fw": 206,
+ "fh": 300,
+ "foot": [
+  94.7,
+  291.0
+ ],
+ "scale": 2.3333,
+ "period": 1.917,
+ "mode": "walk"
+}

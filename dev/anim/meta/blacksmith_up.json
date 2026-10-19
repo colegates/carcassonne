@@ -1,0 +1,13 @@
+{
+ "file": "anim/blacksmith_up.webp",
+ "n": 12,
+ "fw": 190,
+ "fh": 260,
+ "foot": [
+  103.9,
+  253.2
+ ],
+ "scale": 2.7808,
+ "period": 1.583,
+ "mode": "idle"
+}

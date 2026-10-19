@@ -1,0 +1,13 @@
+{
+ "file": "anim/ploughman_oxen_ard.webp",
+ "n": 12,
+ "fw": 278,
+ "fh": 200,
+ "foot": [
+  84.6,
+  194.4
+ ],
+ "scale": 2.85,
+ "period": 1.708,
+ "mode": "walk"
+}

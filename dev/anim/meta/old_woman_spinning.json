@@ -1,0 +1,13 @@
+{
+ "file": "anim/old_woman_spinning.webp",
+ "n": 12,
+ "fw": 185,
+ "fh": 300,
+ "foot": [
+  78.0,
+  291.2
+ ],
+ "scale": 2.1533,
+ "period": 1.792,
+ "mode": "walk"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/wine_cart.webp",
+ "n": 12,
+ "fw": 284,
+ "fh": 190,
+ "foot": [
+  218.5,
+  183.5
+ ],
+ "scale": 2.6,
+ "period": 1.875,
+ "mode": "walk"
+}

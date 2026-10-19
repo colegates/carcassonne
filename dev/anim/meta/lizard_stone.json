@@ -1,0 +1,13 @@
+{
+ "file": "anim/lizard_stone.webp",
+ "n": 8,
+ "fw": 281,
+ "fh": 200,
+ "foot": [
+  113.1,
+  193.8
+ ],
+ "scale": 2.105,
+ "period": 2.625,
+ "mode": "idle"
+}

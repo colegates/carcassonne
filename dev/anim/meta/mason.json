@@ -1,0 +1,13 @@
+{
+ "file": "anim/mason.webp",
+ "n": 12,
+ "fw": 208,
+ "fh": 260,
+ "foot": [
+  80.8,
+  253.1
+ ],
+ "scale": 2.3154,
+ "period": 2.125,
+ "mode": "idle"
+}

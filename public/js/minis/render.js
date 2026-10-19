@@ -5,7 +5,7 @@
 // jobs between frames, and caches are bounded.
 import * as A from './assets.js';
 import { getScene, minisUsable, landmarkFallbacks, groundSymbols, WALL_H, WALL_W } from './scene.js';
-import { groundSteps, groundReady, buildGround } from './ground.js';
+import { groundSteps, groundReady, buildGround, Wait } from './ground.js';
 import { getActors, drawWater } from './actors.js';
 import { cacheGet, cachePeek, cachePut, cacheBytes, cacheCount, setBudget } from './cache.js';
 import { getTileArt, setThumbProvider, ART_SIZE, drawSymbolAt } from '../art.js';
@@ -43,7 +43,7 @@ function runJobs(budgetMs) {
       if (!current.gen) { jobs.delete(current.key); current = null; continue; }
     }
     let r;
-    try { r = current.gen.next(); } catch (e) { console.error(e); r = { done: true }; }
+    try { r = current.gen.next(); } catch (e) { if (!(e instanceof Wait)) console.error(e); r = { done: true }; } // Wait: a texture is still loading, the job is asked for again
     if (r.done) { jobs.delete(current.key); current = null; notifyThumbs(); }
   }
   return true;
@@ -161,28 +161,58 @@ function drawShadows(ctx, items, dpr) {
   ctx.save();
   for (const it of items) {
     if (it.t === 'wall' || !it.id || it.shadow === false || it.lift > 0.004 || it.alpha === 0) continue;
-    const info = A.spriteInfo(it.id); if (!info) continue;
+    // (an animated figure close up: the still's own silhouette, steady under the frames)
+    const sid = animOn(it) ? it.astill : it.id;
+    const info = A.spriteInfo(sid); if (!info) continue;
     const [X, Y] = screen(it);
-    const W = it.w * it.z, H = it.h * it.z;
+    const W = (sid === it.id ? it.w : it.aw) * it.z, H = sid === it.id ? it.h * it.z : (W * info.h) / info.w;
     const a = it.alpha ?? 1;
     // contact shadow at the foot
     ctx.globalAlpha = 0.32 * a * Math.min(1, 0.1 / it.w);
     ctx.fillStyle = '#1a1206';
     ctx.beginPath(); ctx.ellipse(X + W * 0.04, Y - H * 0.01, W * 0.42, Math.max(0.8, W * 0.11), 0, 0, TAU); ctx.fill();
-    const sh = A.shadowFor(it.id);
+    const sh = A.shadowFor(sid);
     if (!sh) continue;
     ctx.globalAlpha = 0.3 * a;
     ctx.setTransform(dpr, 0, -SHX * dpr, -SHY * dpr, X * dpr, Y * dpr);
-    const fx = it.flip ? 1 - sh.fx : sh.fx;
-    if (it.flip) { ctx.scale(-1, 1); ctx.drawImage(sh.canvas, -(1 - fx) * W, -sh.fy * H, W, H); } else ctx.drawImage(sh.canvas, -fx * W, -sh.fy * H, W, H);
+    const flip = sid === it.id ? it.flip : it.aflip ?? it.flip;
+    const fx = flip ? 1 - sh.fx : sh.fx;
+    if (flip) { ctx.scale(-1, 1); ctx.drawImage(sh.canvas, -(1 - fx) * W, -sh.fy * H, W, H); } else ctx.drawImage(sh.canvas, -fx * W, -sh.fy * H, W, H);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   ctx.restore();
+}
+// Animated figures: frame it.frame of strip it.anim, scaled like the still it.astill. Only
+// close up (where live actors are drawn at LOD.close and the figure is big enough for its
+// frames to show); anywhere else, or while the strip loads, the still or its two poses.
+const ANIM_MIN_PX = 9; // CSS px: the smallest frame box worth animating
+const animOn = (it) => it.anim && it.z >= LOD.close;
+function drawAnim(ctx, it, X, Y, dpr) {
+  const a = A.animInfo(it.anim), info = A.spriteInfo(it.astill);
+  if (!a || !info) return false;
+  const k = (it.aw * it.z) / info.w; // CSS px per still-sprite px
+  const dw = a.fw * a.scale * k, dh = a.fh * a.scale * k;
+  if (dh < ANIM_MIN_PX) return false;
+  const st = A.animStrip(it.anim, dh * dpr);
+  if (!st) return false;
+  const fx = a.foot[0] * a.scale * k, fy = a.foot[1] * a.scale * k;
+  const sw = a.fw * st.k, sh = a.fh * st.k;
+  const a0 = it.alpha ?? 1;
+  if (a0 < 1) ctx.globalAlpha = a0;
+  const top = Y - (it.lift || 0) * it.z;
+  if (it.aflip ?? it.flip) {
+    ctx.save(); ctx.translate(X, top); ctx.scale(-1, 1);
+    ctx.drawImage(st.img, it.frame * sw, 0, sw, sh, -fx, -fy, dw, dh);
+    ctx.restore();
+  } else ctx.drawImage(st.img, it.frame * sw, 0, sw, sh, X - fx, top - fy, dw, dh);
+  if (a0 < 1) ctx.globalAlpha = 1;
+  return true;
 }
 function drawItem(ctx, it, dpr) {
   if (it.t === 'wall') { drawWall(ctx, it); return; }
   const [X, Y] = screen(it);
   if (it.draw) { it.draw(ctx, X, Y, it.z, it); return; }
+  if (animOn(it) && drawAnim(ctx, it, X, Y, dpr)) return;
   const info = A.spriteInfo(it.id); if (!info) return;
   const W = it.w * it.z, H = it.h * it.z;
   if (W < 0.6) return;
@@ -472,7 +502,15 @@ export class MinisRenderer {
           const X = v.sx + (o.x - 0.5) * z, Y = v.sy + (o.y - 0.5) * z;
           if (X < -0.3 * z || X > this.view.w + 0.3 * z || Y < -0.05 * z || Y > this.view.h + 0.6 * z) continue;
           const it = Object.create(o); it.tx = v.sx; it.ty = v.sy; it.z = z;
-          if (o.tag === 'laundry' && !this.still) it.skew = Math.sin(t * 2.2 + o.x * 9) * 0.08 + 0.06; // flapping in the Cers
+          // a set piece with its own loop (the crane's treadwheel, the brigands' fire, washing
+          // on the line, the money-changer): played by time, each at its own point of the loop
+          const an = !this.still && o.id && A.animInfo(o.id);
+          if (an && A.hasSprite(o.id)) {
+            if (o._ao === undefined) o._ao = (A.hash(o.id, o.x, o.y) % 997) / 997;
+            it.anim = o.id; it.astill = o.id; it.aw = o.w;
+            it.frame = Math.floor(((t / an.period + o._ao) % 1) * an.n) % an.n;
+            this.live = true;
+          } else if (o.tag === 'laundry' && !this.still) it.skew = Math.sin(t * 2.2 + o.x * 9) * 0.08 + 0.06; // flapping in the Cers
           items.push(it);
         }
       }
@@ -508,6 +546,30 @@ export class MinisRenderer {
     this.stats = { items: items.length + over.length, actors: actorCount, ms: performance.now() - t0, cache: cacheBytes(), entries: cacheCount(), jobs: jobs.size };
   }
 
+  // A game piece shown as its living miniature close up (the dragon beating its wings, the
+  // fairy hovering): the strip of id drawn h CSS px tall, its middle at (x, y). False when it
+  // cannot be (far away, reduced motion, no strip or not loaded yet): draw the piece instead.
+  drawLiving(ctx, id, x, y, h, flip = false) {
+    if (this.still || !this.active() || this.view.cam.z < LOD.close) return false;
+    const a = A.animInfo(id), info = A.spriteInfo(id);
+    if (!a || !info) return false;
+    const k = h / info.h;
+    const dw = a.fw * a.scale * k, dh = a.fh * a.scale * k;
+    if (dh < ANIM_MIN_PX) return false;
+    const st = A.animStrip(id, dh * this.view.dpr);
+    if (!st) return false;
+    const frame = Math.floor(((performance.now() / 1000 / a.period) % 1) * a.n) % a.n;
+    // the still's middle on (x, y): its foot, then the frame's corner from the strip's foot
+    const footX = x - (info.w / 2 - info.foot[0]) * k * (flip ? -1 : 1), footY = y - (info.h / 2 - info.foot[1]) * k;
+    const fx = a.foot[0] * a.scale * k, fy = a.foot[1] * a.scale * k;
+    const sw = a.fw * st.k, sh = a.fh * st.k;
+    ctx.save(); ctx.translate(footX, footY); if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(st.img, frame * sw, 0, sw, sh, -fx, -fy, dw, dh);
+    ctx.restore();
+    this.live = true;
+    return true;
+  }
+
   // The tile being placed: its composite, turned by what is left of its rotation animation.
   drawTentative(ctx, t, rot, sx, sy, z) {
     const dpr = this.view.dpr;
@@ -533,7 +595,7 @@ export class MinisRenderer {
     let c = getComposite(id, r, 0, res, res > 256 && !sync);
     if (!c && (res <= 256 || sync)) {
       // small pictures are cheap: build now when the art has arrived
-      try { const gen = compositeJob(id, r, 0, res)(); while (!gen.next().done); } catch (e) { console.error(e); }
+      try { const gen = compositeJob(id, r, 0, res)(); while (!gen.next().done); } catch (e) { if (!(e instanceof Wait)) console.error(e); }
       c = cacheGet(ckey(id, r, 0, res));
       if (!c) request(ckey(id, r, 0, res), compositeJob(id, r, 0, res));
     }

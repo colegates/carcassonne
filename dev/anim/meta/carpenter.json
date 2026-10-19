@@ -1,0 +1,13 @@
+{
+ "file": "anim/carpenter.webp",
+ "n": 12,
+ "fw": 179,
+ "fh": 260,
+ "foot": [
+  47.6,
+  254.1
+ ],
+ "scale": 2.9,
+ "period": 1.208,
+ "mode": "idle"
+}

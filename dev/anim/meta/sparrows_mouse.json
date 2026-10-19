@@ -1,0 +1,13 @@
+{
+ "file": "anim/sparrows_mouse.webp",
+ "n": 8,
+ "fw": 389,
+ "fh": 220,
+ "foot": [
+  160.1,
+  212.5
+ ],
+ "scale": 1.8545,
+ "period": 0.875,
+ "mode": "idle"
+}

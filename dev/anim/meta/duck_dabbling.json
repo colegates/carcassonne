@@ -1,0 +1,13 @@
+{
+ "file": "anim/duck_dabbling.webp",
+ "n": 8,
+ "fw": 188,
+ "fh": 220,
+ "foot": [
+  91.8,
+  211.0
+ ],
+ "scale": 1.8955,
+ "period": 1.167,
+ "mode": "idle"
+}

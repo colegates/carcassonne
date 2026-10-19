@@ -1,0 +1,13 @@
+{
+ "file": "anim/water_carrier.webp",
+ "n": 12,
+ "fw": 191,
+ "fh": 260,
+ "foot": [
+  66.9,
+  252.3
+ ],
+ "scale": 2.4654,
+ "period": 1.708,
+ "mode": "walk"
+}

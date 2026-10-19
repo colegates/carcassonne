@@ -1,0 +1,13 @@
+{
+ "file": "anim/engineer.webp",
+ "n": 12,
+ "fw": 182,
+ "fh": 260,
+ "foot": [
+  65.9,
+  253.2
+ ],
+ "scale": 2.3385,
+ "period": 2.625,
+ "mode": "idle"
+}

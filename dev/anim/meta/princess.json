@@ -1,0 +1,13 @@
+{
+ "file": "anim/princess.webp",
+ "n": 12,
+ "fw": 193,
+ "fh": 300,
+ "foot": [
+  97.7,
+  291.1
+ ],
+ "scale": 2.3533,
+ "period": 1.458,
+ "mode": "walk"
+}

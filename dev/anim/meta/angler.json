@@ -1,0 +1,13 @@
+{
+ "file": "anim/angler.webp",
+ "n": 12,
+ "fw": 310,
+ "fh": 260,
+ "foot": [
+  90.8,
+  252.7
+ ],
+ "scale": 2.1808,
+ "period": 1.875,
+ "mode": "idle"
+}

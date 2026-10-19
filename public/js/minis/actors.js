@@ -3,7 +3,7 @@
 // Each actor pushes draw items in the tile's screen-oriented unit space:
 //   { x, y (foot), id | draw, w, h, flip, alpha, lift, angle, pivot, shadow, sort, over }
 import * as A from './assets.js';
-import { CAT, GROUPS, sizeOf } from './catalog.js';
+import { CAT, GROUPS, sizeOf, FACES_RIGHT } from './catalog.js';
 import { sampleSeg } from './plan.js';
 import { avail, WALL_H } from './scene.js';
 import { RIVER_W } from './ground.js';
@@ -12,6 +12,7 @@ const TAU = Math.PI * 2;
 const frac = (v) => v - Math.floor(v);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const smooth = (t) => t * t * (3 - 2 * t);
+const ANIM_Z = 110; // (render.LOD.close: where figures play their strips)
 const step12 = (t) => Math.floor(t * 12) / 12; // stop-motion poses at 12 fps
 
 // ---------- path helpers ----------
@@ -43,7 +44,92 @@ function walkPose(id, t, seed = 0) {
 }
 function fig(id, x, y, o = {}) {
   const [w, h] = sizeFor(id, o.scale || 1);
-  return { x, y, id, w, h, flip: !!o.flip, alpha: o.alpha ?? 1, lift: o.lift || 0, shadow: o.shadow !== false, sort: o.sort || 0, angle: o.angle || 0, skew: o.skew || 0, squash: o.squash || 0 };
+  const it = { x, y, id, w, h, flip: !!o.flip, alpha: o.alpha ?? 1, lift: o.lift || 0, shadow: o.shadow !== false, sort: o.sort || 0, angle: o.angle || 0, skew: o.skew || 0, squash: o.squash || 0 };
+  if (o.anim) animate(it, o.anim, o.ph, o.scale || 1);
+  return it;
+}
+
+// ---------- facing ----------
+// Sprites never turn, they only mirror: a figure is flipped when it moves against the way it
+// was painted facing (most face left; catalog.FACES_RIGHT lists the others).
+const baseOf = (id) => (id.endsWith('_b') && A.hasSprite(id.slice(0, -2)) ? id.slice(0, -2) : id);
+function facesRight(id) {
+  const a = A.animInfo(id);
+  if (a?.face) return a.face === 'right';
+  return FACES_RIGHT.has(baseOf(id));
+}
+// flip for a figure moving with screen x velocity vx (vx = 0: as painted)
+const faceFlip = (id, vx) => (vx === 0 ? false : (vx > 0) !== facesRight(id));
+
+// ---------- frame animation ----------
+// A figure with a strip in the manifest (anims) plays it instead of its still: the renderer
+// draws frame `frame` of strip `anim` (scaled like the still `astill`) when the figure is big
+// enough for frames to matter and the strip has loaded, else the still `id` as before.
+function animate(it, animId, ph, scale = 1) {
+  const a = A.animInfo(animId);
+  if (!a) return it;
+  const still = A.hasSprite(animId) ? animId : animId.replace(/_(toward|away)$/, '');
+  if (!A.hasSprite(still)) return it;
+  it.anim = animId; it.astill = still;
+  it.frame = Math.floor(frac(ph || 0) * a.n) % a.n;
+  it.aw = sizeFor(still, scale)[0];
+  return it;
+}
+// A looping animation id for a figure, if its strip is listed (mode: 'walk' | 'idle' | null)
+function animFor(id, mode = null) {
+  const a = A.animInfo(id);
+  return a && (!mode || a.mode === mode) && A.hasSprite(id) ? id : null;
+}
+// Options for fig() that play id's strip (any mode) by time, if it has one; T in seconds.
+const byTime = (id, T) => { const an = animFor(id); return an ? { anim: an, ph: T / A.animInfo(an).period } : {}; };
+// A walker's gait: with a walk strip the frames advance by distance walked, one loop per
+// `cycle` of ground (measured from the footage's planted foot), so the feet do not slide;
+// the walking speed is kept near the filmed cadence (at most 1.5x faster). Without a strip:
+// the two-pose stop motion, at the speed asked.
+function gait(id, scale, speed) {
+  const walk = animFor(id, 'walk');
+  if (!walk) return { speed, cycle: 0, walk: null };
+  const a = A.animInfo(id), info = A.spriteInfo(id);
+  const [w] = sizeFor(id, scale);
+  const cycle = a.cycle ? (a.cycle * w) / info.w : speed * a.period;
+  const nominal = cycle / a.period;
+  const toward = A.animInfo(id + '_toward') ? id + '_toward' : null, away = A.animInfo(id + '_away') ? id + '_away' : null;
+  return { speed: clamp(speed, nominal * 0.9, nominal * 1.5), cycle, walk, toward, away };
+}
+// Which way a walker shows, with hysteresis so curvy roads do not make it chatter: it turns
+// round only when clearly heading the other way, keeps its side view through short
+// up-and-down stretches, and switches to a toward/away strip (if it has one) only on a
+// clearly vertical heading. state: { flip, vert } kept per walker.
+function heading(state, id, g, vx, vy, fallbackFlip) {
+  const l = Math.hypot(vx, vy) || 1, nx = vx / l, ny = vy / l;
+  if (state.flip === null) state.flip = Math.abs(nx) > 0.05 ? faceFlip(id, nx) : fallbackFlip;
+  else if (Math.abs(nx) > 0.3) state.flip = faceFlip(id, nx);
+  if (g && (g.toward || g.away)) {
+    const want = ny > 0 ? (g.toward ? 1 : 0) : (g.away ? -1 : 0);
+    if (!state.vert) { if (want && Math.abs(ny) > 1.2 * Math.abs(nx)) state.vert = want; } else if (Math.abs(ny) < Math.abs(nx) || want !== state.vert) state.vert = Math.abs(ny) > 1.2 * Math.abs(nx) ? want : 0;
+  } else state.vert = 0;
+  return state;
+}
+// The draw item of a walker: animated frames while moving (no artificial bob: the footage
+// has its own), the stop-motion pair as a fallback, the still when standing.
+function walkerFig(id, g, x, y, moving, dist, state, seed, T, o) {
+  const it = walkerItem(id, g, x, y, moving, dist, state, seed, T, o);
+  it.moving = moving; it.trav = dist;
+  return it;
+}
+function walkerItem(id, g, x, y, moving, dist, state, seed, T, o) {
+  if (!moving) return fig(id, x, y, { ...o, flip: state.flip });
+  if (g.walk) {
+    const animId = state.vert > 0 ? g.toward : state.vert < 0 ? g.away : g.walk;
+    const ai = A.animInfo(animId);
+    // (a toward/away strip is drawn as filmed unless it says which way it faces)
+    const right = state.flip !== facesRight(id); // heading right on screen
+    const it = fig(walkPose(id, T, seed), x, y, { ...o, flip: state.flip, anim: animId, ph: dist / g.cycle });
+    if (state.vert) it.aflip = ai.face ? faceFlip(animId, right ? 1 : -1) : false;
+    return it;
+  }
+  const bob = Math.abs(Math.sin(step12(T) * 9)) * (o.bobAmp ?? 0.0022);
+  return fig(walkPose(id, T, seed), x, y, { ...o, flip: state.flip, lift: (o.lift || 0) + bob * 0.5 });
 }
 
 // ---------- reusable soft puff for smoke and dust ----------
@@ -81,33 +167,40 @@ function roadWalker(road, id, seed, o = {}) {
   const pts = sampleSeg(road.seg, 24);
   const L = pts[pts.length - 1].s;
   const r = A.rng(seed);
-  const speed = (o.speed || 0.03) * (0.85 + r() * 0.3);
+  let speed = (o.speed || 0.03) * (0.85 + r() * 0.3);
   const gap = 1 + r() * 5; // seconds off-tile between passes
   const lane = (r() - 0.5) * 0.04;
   const reverse = r() < 0.5;
   const phase = r() * 100;
   const scale = 0.92 + r() * 0.14;
   const dead = road.dead;
+  const g = gait(id, scale, speed);
+  speed = g.speed;
+  const state = { flip: null, vert: 0, pass: -1 };
   return {
     lod: o.lod || 1,
     update(t, out) {
       const T = t + phase;
-      let d, dir;
+      let d, dir, trav, pass;
       if (dead) {
         const cycle = (2 * L) / speed + 4 + gap;
         const u = T % cycle, walk = L / speed;
-        if (u < walk) { d = u * speed; dir = 1; } else if (u < walk + 4) { d = L; dir = 0; } else if (u < 2 * walk + 4) { d = L - (u - walk - 4) * speed; dir = -1; } else return;
+        pass = Math.floor(T / cycle) * 2;
+        if (u < walk) { d = u * speed; dir = 1; trav = d; } else if (u < walk + 4) { d = L; dir = 0; trav = L; } else if (u < 2 * walk + 4) { trav = (u - walk - 4) * speed; d = L - trav; dir = -1; pass++; } else return;
       } else {
         const cycle = L / speed + gap;
         const u = T % cycle;
         if (u * speed > L) return;
-        d = reverse ? L - u * speed : u * speed; dir = reverse ? -1 : 1;
+        pass = Math.floor(T / cycle);
+        trav = u * speed;
+        d = reverse ? L - trav : trav; dir = reverse ? -1 : 1;
       }
       const p = along(pts, d);
       const edgeFade = dead ? clamp(d / 0.05, 0, 1) : clamp(Math.min(d, L - d) / 0.05, 0, 1);
       if (edgeFade <= 0) return;
-      const vx = p.tx * (dir || 1);
-      const bob = dir ? Math.abs(Math.sin(step12(T) * 9)) * 0.0022 : 0;
+      // the heading on screen, smoothed over a little of the road (a new pass starts afresh)
+      if (pass !== state.pass) { state.pass = pass; state.flip = null; state.vert = 0; }
+      if (dir) { const a0 = along(pts, d - 0.04), a1 = along(pts, d + 0.04); heading(state, id, g, (a1.x - a0.x) * dir, (a1.y - a0.y) * dir, (seed & 1) === 1); } else if (state.flip === null) state.flip = (seed & 1) === 1;
       const x = p.x + p.nx * lane, y = p.y + p.ny * lane;
       // over a bridge: up on its humped deck
       let deck = 0, sort = 0;
@@ -115,7 +208,7 @@ function roadWalker(road, id, seed, o = {}) {
         const f = d / L, [s0, s1] = road.span;
         if (f > s0 - 0.04 && f < s1 + 0.04) { deck = 0.035 * Math.sin(Math.PI * clamp((f - s0 + 0.04) / (s1 - s0 + 0.08), 0, 1)); sort = 0.09; }
       }
-      out.push(fig(dir ? walkPose(id, T, seed) : id, x, y, { flip: vx > 0.05 ? true : vx < -0.05 ? false : (seed & 1) === 1, alpha: edgeFade, lift: bob * 0.5 + deck, scale, sort }));
+      out.push(walkerFig(id, g, x, y, !!dir, trav, state, seed, T, { alpha: edgeFade, lift: deck, scale, sort }));
     },
   };
 }
@@ -125,7 +218,7 @@ function wanderer(points, id, seed, o = {}) {
   const r = A.rng(seed);
   const n = points.length;
   const legT = o.leg || 7 + r() * 5;
-  const speed = o.speed || 0.025;
+  let speed = o.speed || 0.025;
   const phase = r() * 1000;
   const scale = o.scale || 0.92 + r() * 0.14;
   const reach = o.reach || 0.22;
@@ -134,20 +227,25 @@ function wanderer(points, id, seed, o = {}) {
   let near = points.filter((q) => Math.hypot(q[0] - home[0], q[1] - home[1]) < reach);
   if (near.length < 2) near = points;
   const at = (k) => near[A.hash(seed, k) % near.length];
+  const gaits = new Map();
+  const gaitOf = (who) => { let g = gaits.get(who); if (!g) { g = gait(who, scale, speed); gaits.set(who, g); } return g; };
+  const state = { flip: null, vert: 0 };
   return {
     lod: o.lod || 2,
     update(t, out) {
       const T = (t + phase) / legT;
       const k = Math.floor(T), u = T - k;
       const a = at(k), b = at(k + 1);
-      const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      const walkU = clamp(dist / speed / legT, 0, 0.95);
-      let x, y, moving = false;
-      if (u < walkU) { const v = u / walkU; x = a[0] + (b[0] - a[0]) * v; y = a[1] + (b[1] - a[1]) * v; moving = true; } else { x = b[0]; y = b[1]; }
-      const bob = moving ? Math.abs(Math.sin(step12(t + phase) * 9)) * 0.002 : 0;
-      const flip = b[0] - a[0] > 0.002;
       const who = o.idAt ? o.idAt(k) : id;
-      out.push(fig(moving ? walkPose(who, t + phase, seed) : who, x, y, { flip, lift: bob * 0.5 + (o.lift || 0), scale }));
+      const g = gaitOf(who);
+      const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const walkU = clamp(dist / g.speed / legT, 0, 0.95);
+      let x, y, moving = false, trav = dist;
+      if (u < walkU) { const v = u / walkU; x = a[0] + (b[0] - a[0]) * v; y = a[1] + (b[1] - a[1]) * v; moving = true; trav = dist * v; } else { x = b[0]; y = b[1]; }
+      // (a leg goes in a straight line: face its way; stand still facing it at the stop)
+      state.flip = null; state.vert = 0;
+      heading(state, who, g, b[0] - a[0], b[1] - a[1], false);
+      out.push(walkerFig(who, g, x, y, moving, trav, state, seed, t + phase, { lift: o.lift || 0, scale, bobAmp: 0.002 }));
     },
   };
 }
@@ -158,21 +256,39 @@ function wallPatrol(wall, id, seed) {
   const pts = wall.pts;
   const L = pts[pts.length - 1].s;
   const a = L * (0.15 + r() * 0.2), b = L * (0.6 + r() * 0.25);
-  const speed = 0.018, phase = r() * 100;
+  const g = gait(id, 0.95, 0.018);
+  const speed = g.speed, phase = r() * 100;
   const span = b - a, cycle = (2 * span) / speed + 6;
+  const state = { flip: null, vert: 0, leg: -1 };
   return {
     lod: 1,
     update(t, out) {
       const u = (t + phase) % cycle;
       const walk = span / speed;
-      let d, dir;
-      if (u < walk) { d = a + u * speed; dir = 1; } else if (u < walk + 3) { d = b; dir = 0; } else if (u < 2 * walk + 3) { d = b - (u - walk - 3) * speed; dir = -1; } else { d = a; dir = 0; }
+      let d, dir, trav = 0;
+      if (u < walk) { d = a + u * speed; dir = 1; trav = u * speed; } else if (u < walk + 3) { d = b; dir = 0; } else if (u < 2 * walk + 3) { trav = (u - walk - 3) * speed; d = b - trav; dir = -1; } else { d = a; dir = 0; }
       const p = along(pts, d);
       const inward = -wall.side * 0.008;
-      const vx = p.tx * dir;
-      const bob = dir ? Math.abs(Math.sin(step12(t + phase) * 8)) * 0.0018 : 0;
-      out.push(fig(dir ? walkPose(id, t + phase, seed) : id, p.x + p.nx * inward, p.y + p.ny * inward, { flip: vx > 0.05, lift: WALL_H + bob * 0.5, sort: 0.045, scale: 0.95 }));
+      const leg = dir || (u < walk + 3 ? 1 : -1);
+      if (leg !== state.leg) { state.leg = leg; state.flip = null; }
+      const a0 = along(pts, d - 0.04), a1 = along(pts, d + 0.04);
+      heading(state, id, null, (a1.x - a0.x) * leg, (a1.y - a0.y) * leg, false);
+      out.push(walkerFig(id, g, p.x + p.nx * inward, p.y + p.ny * inward, !!dir, trav, state, seed, t + phase, { lift: WALL_H, sort: 0.045, scale: 0.95, bobAmp: 0.0018 }));
     },
+  };
+}
+
+// A guard at his post on the wall-walk, looking out (outwards and to one side).
+function wallGuard(wall, id, seed) {
+  const r = A.rng(seed);
+  const pts = wall.pts;
+  const L = pts[pts.length - 1].s;
+  const p = along(pts, L * (0.3 + r() * 0.4));
+  const inward = -wall.side * 0.008;
+  const flip = r() < 0.5, ph = r() * 20;
+  return {
+    lod: 1,
+    update(t, out) { out.push(fig(id, p.x + p.nx * inward, p.y + p.ny * inward, { flip, lift: WALL_H, sort: 0.045, scale: 0.95, ...byTime(id, t + ph) })); },
   };
 }
 
@@ -184,6 +300,7 @@ function riverCraft(river, id, seed, o = {}) {
   const speed = o.speed || 0.012, phase = r() * 200, lane = (r() - 0.5) * RIVER_W * 0.35;
   const a = L * 0.12, b = L * 0.88, span = b - a;
   const cycle = (2 * span) / speed + 8;
+  const state = { flip: null, vert: 0, leg: 0 };
   return {
     lod: o.lod || 1,
     update(t, out) {
@@ -193,7 +310,14 @@ function riverCraft(river, id, seed, o = {}) {
       const p = along(pts, d);
       const bob = Math.sin((t + phase) * 2.2) * 0.0012;
       const x = p.x + p.nx * lane, y = p.y + p.ny * lane;
-      const item = fig(id, x, y + 0.008, { flip: p.tx * (dir || 1) > 0, lift: bob, shadow: false, scale: o.scale || 1 });
+      // facing the way it drifts (held through the river's bends, turned round at each end)
+      const leg = dir || (u < walk + 4 ? 1 : -1);
+      if (leg !== state.leg) { state.leg = leg; state.flip = null; }
+      const a0 = along(pts, d - 0.05), a1 = along(pts, d + 0.05);
+      heading(state, id, null, (a1.x - a0.x) * leg, (a1.y - a0.y) * leg, false);
+      // (a swimming / punting strip plays by time; no extra bob then)
+      const sw = byTime(id, t + phase);
+      const item = fig(id, x, y + 0.008, { flip: state.flip, lift: sw.anim ? 0 : bob, shadow: false, scale: o.scale || 1, ...sw });
       out.push(item);
       // a little wake
       if (dir) out.push({ x, y: y + 0.004, sort: -0.01, shadow: false, draw: (ctx, X, Y, z) => {
@@ -213,6 +337,7 @@ function smoke(x, y, lift, o = {}) {
     lod: o.lod || 1,
     update(t, out) {
       out.push({ x, y, sort: 0.002, shadow: false, over: !!o.over, draw: (ctx, X, Y, z) => {
+        if (o.maxZ && z >= o.maxZ) return; // (close up, the set piece's own footage has its smoke)
         for (let k = 0; k < n; k++) {
           const age = frac((t + (k * P) / n + seed) / P);
           const px = X + (age * 0.055 + Math.sin(age * 5 + k) * 0.006) * z * (o.wind ?? 1);
@@ -237,7 +362,8 @@ function birds(cx, cy, seed, o = {}) {
       for (const b of list) {
         const a = t * b.w * 0.6 + b.ph;
         const x = cx + Math.cos(a) * b.rx, y = cy + Math.sin(a) * b.ry;
-        const flap = Math.sin(t * b.fl + b.ph);
+        // swallows beat their wings; a kite soars on held wings with a few slow beats now and then
+        const flap = o.glide ? (frac(t * 0.12 + b.ph) < 0.15 ? Math.sin(t * 4 + b.ph) : 0.2 + Math.sin(t * 0.7 + b.ph) * 0.08) : Math.sin(t * b.fl + b.ph);
         const head = Math.atan2(Math.cos(a) * b.ry * b.w, -Math.sin(a) * b.rx * b.w);
         out.push({ x, y, over: true, shadow: false, draw: (ctx, X, Y, z) => {
           // shadow on the ground, then the bird high above it
@@ -326,17 +452,37 @@ function flag(x, y, lift, lord, seed, o = {}) {
   };
 }
 
-// A two-pose figure (alternating sprites) or a figure that sways in place.
+// A two-pose figure (alternating sprites) or a figure that sways in place. With a strip for
+// idA the figure plays it by time instead (each one at its own point of the loop, so
+// neighbours are not in step), with no artificial bob; o.anim: 'all' (the strip is the whole
+// action, e.g. the smith's hammer stroke) or 'a' (it replaces only pose A, the default when
+// the two poses differ, e.g. the heron preening before its strike).
 function twoPose(idA, idB, x, y, period, seed, o = {}) {
   const ph = (seed % 1000) / 100;
+  // (a walk strip only for performers who step about on the spot, o.walkOk)
+  const anim = animFor(idA, o.walkOk ? null : 'idle');
+  const scope = o.anim || (idA === idB ? 'all' : 'a');
+  const aOff = ((seed >>> 3) % 997) / 997;
+  const animB = idB !== idA && scope !== 'all' ? animFor(idB, o.walkOk ? null : 'idle') : null;
   return {
     lod: o.lod || 2,
     update(t, out) {
       const u = frac((t + ph) / period);
       const id = u < (o.split ?? 0.5) ? idA : idB;
+      if (animB && id === idB) { // (pose B's own strip, e.g. the heron's strike)
+        out.push(fig(idB, x, y, { flip: o.flip, lift: o.lift || 0, scale: o.scale || 1, sort: o.sort || 0, anim: animB, ph: t / A.animInfo(animB).period + aOff }));
+        if (o.extra) o.extra(t + ph, u, out, null);
+        return;
+      }
+      if (anim && (scope === 'all' || id === idA)) {
+        const a = A.animInfo(anim);
+        out.push(fig(idA, x, y, { flip: o.flip, lift: o.lift || 0, scale: o.scale || 1, sort: o.sort || 0, anim, ph: t / a.period + aOff }));
+        if (o.extra) o.extra(t + ph, scope === 'all' ? frac(t / a.period + aOff) : u, out, a);
+        return;
+      }
       const bob = o.bob ? Math.abs(Math.sin(step12(t + ph) * (o.bobRate || 6))) * o.bob : 0;
       out.push(fig(id, x, y, { flip: o.flip, lift: (o.lift || 0) + bob, scale: o.scale || 1, sort: o.sort || 0 }));
-      if (o.extra) o.extra(t + ph, u, out);
+      if (o.extra) o.extra(t + ph, u, out, null);
     },
   };
 }
@@ -396,9 +542,14 @@ function trebuchet(v, seed) {
       } });
       if (hauler) {
         const lean = haul ? 0.004 : 0;
-        out.push(fig(hauler, f.x - dirX * (0.045 + lean), f.y + 0.012, { flip: dirX < 0, lift: haul ? Math.abs(Math.sin(u * 9)) * 0.002 : 0 }));
+        // (their heave strip, one pull from just before the release, else a jolt)
+        const ha = animFor(hauler), hp = ha ? A.animInfo(ha).period : 1;
+        const heave = ha && u > 1.6 - hp * 0.6 && u < 1.6 + hp * 0.4;
+        out.push(fig(hauler, f.x - dirX * (0.045 + lean), f.y + 0.012, { flip: faceFlip(hauler, dirX), lift: haul && !ha ? Math.abs(Math.sin(u * 9)) * 0.002 : 0, anim: heave ? ha : null, ph: (u - 1.6) / hp + 0.6 }));
       }
-      if (eng) out.push(fig(eng, f.x + dirX * 0.05, f.y + 0.018, { flip: dirX > 0 }));
+      // the engineer by the frame, calling the shots (his own loop, if he has one)
+      const ea = eng && animFor(eng);
+      if (eng) out.push(fig(eng, f.x + dirX * 0.05, f.y + 0.018, { flip: dirX > 0, anim: ea, ph: ea ? (t + ph) / A.animInfo(ea).period : 0 }));
       // the stone in flight and the dust when it lands
       if (u >= 1.75 && u < 3.4) {
         const k = (u - 1.75) / 1.65;
@@ -439,7 +590,9 @@ function butts(v, seed) {
       for (const m of men) {
         const u = (t + ph + m.d) % 5.2;
         const id = u < 2.4 && span ? span : shoot;
-        out.push(fig(id, m.x, m.y, { flip: v.bx > m.x }));
+        // (both face the butts; spanning: one pass of his strip over the 2.4 s, if he has one)
+        const sa = id === span && animFor(span);
+        out.push(fig(id, m.x, m.y, { flip: faceFlip(id, v.bx - m.x), anim: sa || null, ph: u / 2.4 }));
         if (u >= 3.6 && u < 3.85) {
           const k = (u - 3.6) / 0.25;
           const x = m.x + 0.02 + (v.bx - m.x - 0.03) * k, y = m.y + (v.by - m.y) * k;
@@ -463,7 +616,9 @@ function juggler(x, y, seed) {
     lod: 2,
     update(t, out) {
       const T = t + ph;
-      out.push(fig(id, x, y, { lift: Math.abs(Math.sin(step12(T) * 4)) * 0.001 }));
+      // (his strip, stepping about as he juggles, or the still with a little hop)
+      const an = animFor(id);
+      out.push(an ? fig(id, x, y, { anim: an, ph: t / A.animInfo(an).period + (seed % 97) / 97 }) : fig(id, x, y, { lift: Math.abs(Math.sin(step12(T) * 4)) * 0.001 }));
       const [, h] = sizeFor(id);
       out.push({ x, y, sort: 0.001, shadow: false, draw: (ctx, X, Y, z) => {
         for (let i = 0; i < 3; i++) {
@@ -499,8 +654,7 @@ function bees(x, y, seed, n = 9) {
 function sparks(x, y, lift, period, seed) {
   const r = A.rng(seed);
   const list = Array.from({ length: 8 }, () => ({ a: -Math.PI / 2 + (r() - 0.5) * 2.4, v: 0.02 + r() * 0.03 }));
-  return (t, out) => {
-    const k = frac(t / period);
+  return (k, out) => { // k: how far into the stroke since the hammer fell (0..1)
     if (k > 0.35) return;
     const age = k / 0.35;
     out.push({ x, y, sort: 0.003, shadow: false, draw: (ctx, X, Y, z) => {
@@ -521,44 +675,59 @@ function flock(points, seed) {
   const shepherd = avail('shepherd'), dog = avail('guard_dog');
   const n = 3 + Math.floor(r() * 3);
   const offs = Array.from({ length: n }, () => [(r() - 0.5) * 0.09, (r() - 0.5) * 0.05, r() * TAU, r() < 0.5]);
-  const centre = wanderer(points, 'x', seed + 1, { leg: 26, speed: 0.006, reach: 0.18 });
+  // the shepherd ambles from spot to spot (walking, facing his way) and the flock drifts after
+  const centre = wanderer(points, shepherd || 'x', seed + 1, { leg: 26, speed: 0.006, reach: 0.18 });
+  const sheepGait = gait(sheep, 0.85, 0.006);
+  const dogGait = dog ? gait(dog, 1, 0.04) : null;
   const tmp = [];
   return {
     lod: 1,
     update(t, out) {
       tmp.length = 0; centre.update(t, tmp);
-      const c = tmp[0];
+      const s0 = tmp[0];
+      if (shepherd) out.push(s0);
+      // the flock grazes ahead of him
+      const c = { x: s0.x + (s0.flip !== false ? 0.07 : -0.07) * (shepherd ? 1 : 0), y: s0.y - 0.02 };
+      // grazing (stills, each its own way) while he stands; walking after him when he moves
+      const right = s0.flip !== facesRight(shepherd || sheep);
       for (const [ox, oy, ph, fl] of offs) {
         const x = c.x + ox + Math.sin(t * 0.13 + ph) * 0.012, y = c.y + oy + Math.cos(t * 0.11 + ph) * 0.008;
-        out.push(fig(sheep, x, y, { flip: fl, scale: 0.75 + (ph % 0.3), lift: Math.abs(Math.sin(t * 0.6 + ph)) * 0.0006 }));
+        const walking = shepherd && s0.moving && sheepGait.walk;
+        out.push(fig(sheep, x, y, { flip: walking ? faceFlip(sheep, right ? 1 : -1) : fl, scale: 0.75 + (ph % 0.3), lift: walking ? 0 : Math.abs(Math.sin(t * 0.6 + ph)) * 0.0006, anim: walking ? sheepGait.walk : null, ph: walking ? (s0.trav || 0) / sheepGait.cycle + ph : 0 }));
       }
-      if (shepherd) out.push(fig(shepherd, c.x - 0.07, c.y + 0.02, { flip: true }));
       if (dog) {
+        // circling the flock at a trot (its two poses), facing the way it runs
         const a = t * 0.5 + seed;
-        out.push(fig(dog, c.x + Math.cos(a) * 0.08, c.y + Math.sin(a) * 0.045 + 0.01, { flip: Math.sin(a) < 0 }));
+        const da = dogGait.walk;
+        out.push(fig(walkPose(dog, t, seed), c.x + Math.cos(a) * 0.08, c.y + Math.sin(a) * 0.045 + 0.01, { flip: faceFlip(dog, -Math.sin(a)), anim: da, ph: da ? (t * 0.5 * 0.065) / dogGait.cycle : 0 }));
       }
     },
   };
 }
 
 // The ploughman and his oxen working a plot up and down; dust follows the share.
+// (the plot's axis is the side nearest the screen's horizontal, see plan.ploughAxis: the team
+// is a side-on miniature, so it works left and right across the screen, turning at the ends)
 function plough(p, seed) {
   const id = avail('ploughman_oxen_ard');
   if (!id) return null;
   const ph = (seed % 1000) / 10;
   const len = Math.hypot(p.ex, p.ey) * 0.8;
   const ux = p.ex / (len / 0.8 || 1), uy = p.ey / (len / 0.8 || 1);
+  // a furrow there and back in C s; with a strip, at the oxen's own pace (no sliding hooves)
+  const g = gait(id, 1, (4 * len) / 24);
+  const C = (4 * len) / g.speed;
   return {
     lod: 1,
     update(t, out) {
-      const C = 24;
       const u = ((t + ph) % C) / C;
       const s = u < 0.5 ? -1 + u * 4 : 3 - u * 4; // -1..1..-1
       const dir = u < 0.5 ? 1 : -1;
       const lane = (Math.floor((t + ph) / C) % 3 - 1) * 0.015;
       const x = p.cx + ux * len * s + uy * lane, y = p.cy + uy * len * s - ux * lane;
       const vx = ux * dir;
-      out.push(fig(id, x, y, { flip: vx > 0, lift: Math.abs(Math.sin(step12(t) * 5)) * 0.001 }));
+      const trav = u * C * g.speed;
+      out.push(fig(id, x, y, { flip: faceFlip(id, vx), lift: g.walk ? 0 : Math.abs(Math.sin(step12(t) * 5)) * 0.001, anim: g.walk, ph: g.walk ? trav / g.cycle : 0 }));
       out.push({ x: x - vx * 0.04, y, sort: -0.002, shadow: false, draw: (ctx, X, Y, z) => drawPuff(ctx, X, Y - 0.006 * z, 0.012 * z, '#b39570', 0.25) });
     },
   };
@@ -579,7 +748,8 @@ function bankFigure(river, id, seed, kind) {
     update(t, out) {
       const T = t + ph;
       if (kind === 'wash') {
-        out.push(fig(id, x, y + 0.004, { flip: p.nx * side > 0, lift: Math.abs(Math.sin(step12(T) * 7)) * 0.0015 }));
+        const wa = animFor(id, 'idle');
+        out.push(fig(id, x, y + 0.004, { flip: p.nx * side > 0, lift: wa ? 0 : Math.abs(Math.sin(step12(T) * 7)) * 0.0015, anim: wa, ph: wa ? T / A.animInfo(wa).period : 0 }));
         // soap foam drifting downstream
         for (let k = 0; k < 5; k++) {
           const age = frac(T / 7 + k / 5);
@@ -587,7 +757,8 @@ function bankFigure(river, id, seed, kind) {
           out.push({ x: q.x - p.nx * side * RIVER_W * 0.25, y: q.y - p.ny * side * RIVER_W * 0.25, sort: -0.05, shadow: false, draw: (ctx, X, Y, z) => drawPuff(ctx, X, Y, 0.005 * z, '#f4f4ee', 0.5 * (1 - age)) });
         }
       } else {
-        out.push(fig(id, x, y + 0.004, { flip: p.nx * side > 0 }));
+        out.push(fig(id, x, y + 0.004, { flip: p.nx * side > 0, ...byTime(id, T) }));
+        if (kind !== 'fish') return;
         const k = frac(T / 9);
         if (k < 0.12) {
           const a = k / 0.12;
@@ -646,7 +817,9 @@ function stork(tower, seed) {
         const a = k * TAU;
         const x = tower.x + Math.sin(a) * 0.3, y = tower.y - 0.1 + (1 - Math.cos(a)) * 0.12;
         const lift = top + 0.12 * Math.sin(k * Math.PI) + 0.02;
-        out.push({ ...fig(Math.floor(t * 4) % 2 ? up : down, x, y, { flip: Math.cos(a) > 0, lift, shadow: false }), over: true });
+        // (the stork faces right as painted; its wing-beat strip if it has one, else two poses)
+        const flap = animFor(up);
+        out.push({ ...fig(Math.floor(t * 4) % 2 ? up : down, x, y, { flip: faceFlip(up, Math.cos(a)), lift, shadow: false, anim: flap, ph: flap ? t / A.animInfo(flap).period : 0 }), over: true });
       }
     },
   };
@@ -692,7 +865,7 @@ function dabbler(x, y, seed) {
     lod: 2,
     update(t, out) {
       const u = (t + ph) % 7;
-      if (u < 3) out.push(fig(id, x, y, { shadow: false, lift: Math.sin(u * 3) * 0.0006 }));
+      if (u < 3) { const da = byTime(id, u); out.push(fig(id, x, y, { shadow: false, lift: da.anim ? 0 : Math.sin(u * 3) * 0.0006, ...da })); }
       const k = ((u + 4) % 7) / 2.5;
       if (k < 1) out.push({ x, y, sort: -0.01, shadow: false, draw: (ctx, X, Y, z) => {
         ctx.strokeStyle = `rgba(235,242,236,${(0.4 * (1 - k)).toFixed(3)})`; ctx.lineWidth = Math.max(0.5, z * 0.0012);
@@ -708,14 +881,18 @@ function sleepingSentry(x, y, seed, flip) {
   if (!sleep) return null;
   const stalk = avail('cat_stalking'), thief = avail('cat_bread');
   const ph = (seed % 1000) / 30, d = flip ? -1 : 1;
+  let catGait = null;
   return {
     lod: 2,
     update(t, out) {
       const u = (t + ph) % 32;
       const awake = angry && u > 21 && u < 25.5;
-      out.push(fig(awake ? angry : sleep, x, y, { flip, lift: awake ? Math.abs(Math.sin(step12(u) * 7)) * 0.0012 : Math.sin(u * 1.6) * 0.0003 }));
-      if (stalk && u > 11 && u < 20) { const k = (u - 11) / 9; out.push(fig(stalk, x + d * (0.07 - 0.05 * k), y + 0.008, { flip: d < 0, lift: 0 })); }
-      if (thief && u >= 20 && u < 25) { const k = (u - 20) / 5; out.push(fig(thief, x + d * (0.02 + 0.12 * k), y + 0.01 + 0.02 * k, { flip: d > 0, alpha: Math.min(1, (1 - k) * 4) })); }
+      const za = !awake && animFor(sleep, 'idle');
+      out.push(fig(awake ? angry : sleep, x, y, { flip, lift: awake ? Math.abs(Math.sin(step12(u) * 7)) * 0.0012 : za ? 0 : Math.sin(u * 1.6) * 0.0003, ...(za ? byTime(sleep, t + ph) : {}) }));
+      // the cat creeps in towards him (moving -d), then runs off with the loaf (moving +d)
+      // (the stalking cat's strip advances with the ground it covers)
+      if (stalk && u > 11 && u < 20) { const k = (u - 11) / 9; const cg = catGait || (catGait = gait(stalk, 1, 0.0056)); out.push(fig(stalk, x + d * (0.07 - 0.05 * k), y + 0.008, { flip: faceFlip(stalk, -d), lift: 0, anim: cg.walk, ph: cg.walk ? (0.05 * k) / cg.cycle : 0 })); }
+      if (thief && u >= 20 && u < 25) { const k = (u - 20) / 5; out.push(fig(thief, x + d * (0.02 + 0.12 * k), y + 0.01 + 0.02 * k, { flip: faceFlip(thief, d), alpha: Math.min(1, (1 - k) * 4) })); }
     },
   };
 }
@@ -748,7 +925,9 @@ function trabuquet(v, seed) {
         ctx.drawImage(img, -0.33 * W, -0.12 * Hh, W, Hh);
         ctx.restore();
       } });
-      if (capA) out.push(fig(u < 9 ? (Math.floor(u * 1.6) % 2 ? capB : capA) : capA, f.x - dirX * 0.07, f.y + 0.018, { flip: dirX > 0 }));
+      // the crew walks the capstan round while the arm winds down (their strip, or two poses)
+      const capAnim = capA && animFor(capA);
+      if (capA) out.push(fig(u < 9 ? (Math.floor(u * 1.6) % 2 ? capB : capA) : capA, f.x - dirX * 0.07, f.y + 0.018, { flip: dirX > 0, anim: u < 9 ? capAnim : null, ph: capAnim ? u / A.animInfo(capAnim).period : 0 }));
       if (u >= 11.4 && u < 13.2) {
         const q = (u - 11.4) / 1.8;
         const sx0 = pivX + dirX * 0.05, x = sx0 + (v.tx - sx0) * q, y = f.y + (v.ty - f.y) * q;
@@ -813,10 +992,11 @@ function buildActors(key, scene) {
     const n = road.dead ? 1 : 1 + (r() < 0.6 ? 1 : 0);
     for (let k = 0; k < n; k++) {
       const id = travellers[Math.floor(r() * travellers.length)];
-      const slow = id === 'hay_cart' || id === 'mule_packed' || id === 'donkey_rider';
+      const slow = id === 'hay_cart' || id === 'mule_packed' || id === 'donkey_rider' || id === 'bear_leader' || id === 'handbarrow_labourers';
       add(roadWalker(road, id, A.hash(seed, 'road', i, k), { speed: slow ? 0.018 : id === 'knight_mounted' || id === 'palfrey_rider' ? 0.04 : 0.026 }));
     }
   });
+  if (scene.roads.length && avail('hound_running') && r() < 0.2) add(roadWalker(scene.roads[Math.floor(r() * scene.roads.length)], 'hound_running', A.hash(seed, 'hound'), { speed: 0.08 }));
   // townsfolk in the lanes, sentries on the walls, flags and storks on the towers
   const folk = any(GROUPS.townsfolk);
   for (const [fi, pts] of scene.cityFree) {
@@ -831,16 +1011,27 @@ function buildActors(key, scene) {
     if (pts.length > 2) {
       const w = wanderer(pts, 'princess', A.hash(seed, 'princess'), { leg: 9, speed: 0.012, lod: 1 });
       const lady = avail('noble_lady');
+      let ladyGait = null;
       add({ lod: 1, update(t, out) {
         const n = out.length; w.update(t, out);
         const p = out[n];
-        if (p && lady) out.push(fig(lady, p.x + (p.flip ? -0.025 : 0.025), p.y - 0.006, { flip: p.flip, lift: p.lift }));
+        // (she walks when the princess walks, half a stride out of step)
+        if (p && lady) {
+          const lg = ladyGait || (ladyGait = gait(lady, 1, 0.012));
+          const lst = { flip: p.flip, vert: 0 };
+          out.push(walkerFig(lady, lg, p.x + (p.flip !== facesRight('princess') ? -0.025 : 0.025), p.y - 0.006, p.moving, (p.trav || 0) + (lg.cycle || 0) * 0.5, lst, 5, t + 0.3, { lift: p.lift }));
+        }
       } });
     }
   }
   const sentry = avail('sergeant_spear');
   scene.walls.forEach((w, i) => {
-    if (sentry && w.pts[w.pts.length - 1].s > 0.35 && r() < 0.85) add(wallPatrol(w, i % 3 === 2 && avail('crossbowman_shooting') ? avail('crossbowman_shooting') : sentry, A.hash(seed, 'wall', i)));
+    if (!sentry || w.pts[w.pts.length - 1].s <= 0.35 || r() >= 0.85) return;
+    // every third wall: a guard standing at his post (crossbowman, archer or horn watchman,
+    // playing their own loops) rather than a pacing sentry
+    const guards = any(['crossbowman_shooting', 'archer', 'horn_watchman']);
+    if (i % 3 === 2 && guards.length) add(wallGuard(w, guards[A.hash(seed, 'guard', i) % guards.length], A.hash(seed, 'wall', i)));
+    else add(wallPatrol(w, sentry, A.hash(seed, 'wall', i)));
   });
   scene.towers.forEach((tw, i) => {
     if (i === 0 || r() < 0.3) add(flag(tw.x, tw.y, tw.h * 0.86, lord, A.hash(seed, 'flag', i), { sort: 0.001 }));
@@ -855,7 +1046,8 @@ function buildActors(key, scene) {
       const up = avail('blacksmith_up'), down = avail('blacksmith_down');
       const sx = o.x + o.w * 0.28, sy = o.y + 0.012;
       const sp = sparks(sx - 0.008, sy, 0.02, 0.8, seed);
-      if (up) add(twoPose(up, down || up, sx, sy, 0.8, seed, { flip: true, split: 0.6, extra: (t, u, out) => sp(t, out) }));
+      // (the hammer-stroke strip has its own sparks; the two stills get them as he strikes)
+      if (up) add(twoPose(up, down || up, sx, sy, 0.8, seed, { flip: true, split: 0.6, anim: 'all', extra: (t, u, out, a) => { if (!a) sp(frac(u - 0.6), out); } }));
       add(smoke(o.x - o.w * 0.1, o.y - o.h * 0.05, o.h * 0.75, { seed: 3, n: 5, alpha: 0.3 }));
     } else if (o.tag === 'bakehouse') {
       add(smoke(o.x + o.w * 0.15, o.y - o.h * 0.1, o.h * 0.7, { seed: 5, n: 7, alpha: 0.45 }));
@@ -879,7 +1071,7 @@ function buildActors(key, scene) {
         } });
       } });
     } else if (o.tag === 'highwaymen') {
-      add(smoke(o.x + 0.02, o.y + 0.01, 0.005, { seed: 17, n: 5, alpha: 0.3, rise: 0.07, r1: 0.014, lod: 2 }));
+      add(smoke(o.x + 0.02, o.y + 0.01, 0.005, { seed: 17, n: 5, alpha: 0.3, rise: 0.07, r1: 0.014, lod: 2, maxZ: A.animInfo(o.id) ? ANIM_Z : 0 }));
     } else if (o.tag === 'portal') {
       add({ lod: 1, update(t, out) {
         const p = 0.55 + 0.45 * Math.sin(t * 1.7);
@@ -898,12 +1090,14 @@ function buildActors(key, scene) {
   if (scene.marks.mill && A.hasSprite('mill_wheel')) {
     const m = scene.marks.mill;
     const sq = 0.3 + 0.7 * Math.abs(m.tx);
+    const spin = (m.tx * (m.flow || 1)) >= 0 ? 1 : -1; // water heading right on screen: anticlockwise
     add({ lod: 1, update(t, out) {
       out.push({ x: m.x, y: m.y + 0.002, sort: 0.001, shadow: false, draw: (ctx, X, Y, z) => {
         const img = A.spriteFor('mill_wheel', 0.07 * z * 2);
         if (!img) return;
         const W = 0.07 * z;
-        ctx.save(); ctx.translate(X, Y - W * 0.3); ctx.scale(sq, 1); ctx.rotate(t * 1.4);
+        // undershot: the paddles at the bottom go with the current
+        ctx.save(); ctx.translate(X, Y - W * 0.3); ctx.scale(sq, 1); ctx.rotate(-spin * t * 1.4);
         ctx.drawImage(img, -W / 2, -W / 2, W, W);
         ctx.restore();
         for (let k = 0; k < 5; k++) { const age = frac(t * 0.8 + k / 5); drawPuff(ctx, X + (k - 2) * 0.006 * z, Y - age * 0.02 * z, (0.004 + age * 0.008) * z, '#f2f5f2', 0.45 * (1 - age)); }
@@ -918,7 +1112,8 @@ function buildActors(key, scene) {
     for (let k = 0; k < 9 && folk.length; k++) add(wanderer(pts, folk[Math.floor(r() * folk.length)], A.hash(seed, 'market', k), { leg: 5 + r() * 4, reach: 0.12, lod: k < 3 ? 1 : 2 }));
     add(juggler(cx + 0.01, cy + 0.03, seed));
     const minstrel = avail('minstrel');
-    if (minstrel) add(twoPose(minstrel, minstrel, cx - 0.06, cy + 0.06, 1, seed, { bob: 0.0012, bobRate: 3 }));
+    if (minstrel) add(twoPose(minstrel, minstrel, cx - 0.06, cy + 0.06, 1, seed, { bob: 0.0012, bobRate: 3, walkOk: true }));
+    if (avail('tumbler') && animFor('tumbler')) add(twoPose('tumbler', 'tumbler', cx + 0.07, cy + 0.07, 2, seed + 2, { flip: true }));
   }
   // the monastery: monks walking round, the beekeeper by his hives
   if (scene.marks.monasteryAt) {
@@ -926,7 +1121,7 @@ function buildActors(key, scene) {
     const clergy = any(GROUPS.clergy);
     const ring = [];
     for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU; const x = mx + Math.cos(a) * 0.24 * ms, y = my + 0.08 + Math.sin(a) * 0.08 * ms; if (x > 0.05 && x < 0.95 && y > 0.05 && y < 0.97 && scene.typeAt(x, y) !== 'road') ring.push([x, y]); }
-    for (let k = 0; k < 3 && clergy.length && ring.length > 3; k++) add(wanderer(ring, clergy[k % clergy.length], A.hash(seed, 'monk', k), { leg: 8, reach: 0.2, lod: 1 }));
+    for (let k = 0; k < 3 && clergy.length && ring.length > 3; k++) add(wanderer(ring, clergy[(k + (seed >>> 5)) % clergy.length], A.hash(seed, 'monk', k), { leg: 8, reach: 0.2, lod: 1 }));
   }
   if (scene.marks.gardenAt || scene.marks.monasteryAt) {
     const [gx, gy] = scene.marks.gardenAt || [scene.marks.monasteryAt[0] + 0.2, scene.marks.monasteryAt[1] + 0.2];
@@ -940,6 +1135,12 @@ function buildActors(key, scene) {
   }
   // the country: flocks, ploughing, reapers, kites, butterflies
   if (scene.fieldFree.length > 10 && r() < 0.5) add(flock(scene.fieldFree, seed));
+  // goats, a sow and her piglets, a runaway pig or a few hens, pottering about the meadow
+  const beasts = any(GROUPS.fieldBeasts);
+  if (beasts.length && scene.fieldFree.length > 8 && r() < 0.4) {
+    const who = beasts[Math.floor(r() * beasts.length)];
+    add(wanderer(scene.fieldFree, who, A.hash(seed, 'beast'), { leg: who === 'pig_running' ? 6 : 14, speed: who === 'pig_running' ? 0.05 : 0.008, reach: 0.15, lod: 2 }));
+  }
   for (const p of scene.patches) {
     if (p.kind === 'ploughed') add(plough(p, A.hash(seed, p.seed)));
     else if (p.kind === 'wheat_ripe') {
@@ -953,7 +1154,7 @@ function buildActors(key, scene) {
   }
   if (scene.fieldFree.length > 4 && r() < 0.25) {
     const [cx, cy] = scene.fieldFree[0];
-    add(birds(cx, cy, A.hash(seed, 'kite'), { n: 1, size: 0.03, color: '#5a3a22', lod: 1 }));
+    add(birds(cx, cy, A.hash(seed, 'kite'), { n: 1, size: 0.03, color: '#5a3a22', lod: 1, glide: true }));
   }
   // the river: ducks, punts, an angler, washerwomen
   scene.rivers.forEach((rv, i) => {
@@ -964,6 +1165,11 @@ function buildActors(key, scene) {
     const angler = avail('angler'), wash = avail('washerwomen');
     if (angler && r() < 0.5) add(bankFigure(rv, angler, A.hash(seed, 'angler', i), 'fish'));
     else if (wash && r() < 0.6) add(bankFigure(rv, wash, A.hash(seed, 'wash', i), 'wash'));
+    else if (avail('dyer') && r() < 0.4) add(bankFigure(rv, 'dyer', A.hash(seed, 'dyer', i), 'work'));
+    if (avail('children_wading') && r() < 0.3) {
+      const pts = sampleSeg(rv.seg, 24), q = pts[5 + Math.floor(r() * 14)];
+      if (q.x > 0.1 && q.x < 0.9 && q.y > 0.1 && q.y < 0.92) add(twoPose('children_wading', 'children_wading', q.x, q.y + 0.004, 3, A.hash(seed, 'wade', i), { lod: 2, flip: r() < 0.5 }));
+    }
   });
 
   // ---- more life (only where there is room: off the meeple spots and printed symbols)
@@ -979,13 +1185,42 @@ function buildActors(key, scene) {
     const w = firstFree([[cx - 0.045, cy + 0.035], [cx + 0.045, cy + 0.035], [cx, cy + 0.05]], 0.01, scene.typeAt(cx, cy));
     if (w && avail('women_chatting')) add(twoPose('women_chatting', 'women_chatting', w[0], w[1], 3, seed, { bob: 0.0008, bobRate: 2, flip: (seed & 4) > 0 }));
   }
+  if (scene.marks.village && avail('doves')) {
+    const [cx, cy] = scene.marks.village;
+    const d = firstFree([[cx + 0.05, cy + 0.06], [cx - 0.06, cy + 0.06], [cx, cy + 0.08]], 0.01, scene.typeAt(cx, cy));
+    if (d) add(twoPose('doves', 'doves', d[0], d[1], 2, seed + 5, { lod: 3, flip: r() < 0.5 }));
+  }
+  for (const [lane, who] of [['cat', 'cat_sitting'], ['sparrows', 'sparrows_mouse']]) {
+    if (!avail(who) || r() > 0.3) continue;
+    for (const [, pts] of scene.cityFree) if (pts.length > 6) { const [x, y] = pts[A.hash(seed, lane) % pts.length]; add(twoPose(who, who, x, y, 3, A.hash(seed, lane), { lod: 3, flip: r() < 0.5 })); break; }
+  }
   // a pilgrim kneeling at the wayside cross
-  for (const o of scene.statics) if (o.id === 'wayside_cross' && avail('pilgrim_kneeling') && freeAt(o.x + 0.03, o.y + 0.012, 0.01)) { add(twoPose('pilgrim_kneeling', 'pilgrim_kneeling', o.x + 0.03, o.y + 0.012, 4, seed, { flip: true, bob: 0.0006, bobRate: 1.5 })); break; }
+  for (const o of scene.statics) {
+    if (o.id !== 'wayside_cross' || !avail('pilgrim_kneeling')) continue;
+    // (kneeling facing the cross, on whichever side has room)
+    const k = [[o.x + 0.03, o.y + 0.012], [o.x - 0.03, o.y + 0.012], [o.x + 0.02, o.y + 0.025]].find(([x, y]) => freeAt(x, y, 0.01) || freeAt(x, y, 0.01, scene.typeAt(x, y)));
+    if (k) { add(twoPose('pilgrim_kneeling', 'pilgrim_kneeling', k[0], k[1], 4, seed, { flip: faceFlip('pilgrim_kneeling', o.x - k[0]), bob: 0.0006, bobRate: 1.5 })); break; }
+  }
   // travellers toasting on the bench outside the inn
   for (const o of scene.marks.inns || []) {
     if (!o.id || !avail('inn_toast_a')) continue;
     const p2 = firstFree([[o.x + o.w * 0.5, o.y + 0.02], [o.x - o.w * 0.5, o.y + 0.02], [o.x, o.y + 0.05]], 0.02);
-    if (p2) add(twoPose('inn_toast_a', avail('inn_toast_b') || 'inn_toast_a', p2[0], p2[1], 4.5, seed, { split: 0.7, flip: p2[0] < o.x }));
+    const p3 = avail('cooper') && firstFree([[o.x - o.w * 0.5, o.y + 0.03], [o.x + o.w * 0.5, o.y + 0.03]].filter(([x]) => !p2 || Math.abs(x - p2[0]) > 0.05), 0.02);
+    if (p3) add(twoPose('cooper', 'cooper', p3[0], p3[1], 1.3, seed + 4, { flip: p3[0] > o.x, lod: 2 }));
+    if (p2) add(twoPose('inn_toast_a', avail('inn_toast_b') || 'inn_toast_a', p2[0], p2[1], 4.5, seed, { split: 0.7, flip: p2[0] < o.x, anim: 'all' }));
+  }
+  // the building site (a tower's foundation): the mason dressing a stone, the carpenter at work
+  if (scene.marks.foundation) {
+    const [fx, fy] = scene.marks.foundation;
+    const spots = [[fx - 0.12, fy + 0.13], [fx + 0.12, fy + 0.13], [fx - 0.17, fy + 0.02], [fx + 0.17, fy + 0.02], [fx, fy + 0.16]];
+    let used = null;
+    for (const who of ['mason', 'carpenter']) {
+      if (!avail(who)) continue;
+      const p = spots.find(([x, y]) => (!used || Math.hypot(x - used[0], y - used[1]) > 0.08) && freeAt(x, y, 0.02));
+      if (!p) continue;
+      used = p;
+      add(twoPose(who, who, p[0], p[1], 2, A.hash(seed, who), { flip: faceFlip(who, fx - p[0]), lod: 2 }));
+    }
   }
   // the sleeping sentry by a tower inside the walls
   if (scene.towers.length && r() < 0.55) {
@@ -1008,7 +1243,7 @@ function buildActors(key, scene) {
   if (scene.marks.volcanoAt) {
     const [vx, vy] = scene.marks.volcanoAt;
     const a = firstFree([[vx + 0.2, vy + 0.12], [vx - 0.2, vy + 0.12], [vx + 0.2, vy - 0.05], [vx - 0.2, vy - 0.05]], 0.02);
-    if (a && avail('onlookers_pointing')) add(twoPose('onlookers_pointing', 'onlookers_pointing', a[0], a[1], 2.5, seed, { flip: a[0] > vx, bob: 0.001, bobRate: 2 }));
+    if (a && avail('onlookers_pointing')) add(twoPose('onlookers_pointing', 'onlookers_pointing', a[0], a[1], 2.5, seed, { flip: faceFlip('onlookers_pointing', vx - a[0]), bob: 0.001, bobRate: 2 }));
     const h = firstFree([[vx - 0.22, vy + 0.2], [vx + 0.22, vy + 0.2], [vx, vy + 0.24]], 0.02);
     if (h && avail('hermit_sweeping')) add(twoPose('hermit_sweeping', 'hermit_sweeping', h[0], h[1], 1.6, seed + 3, { flip: true, bob: 0.0012, bobRate: 4 }));
   }
@@ -1017,7 +1252,7 @@ function buildActors(key, scene) {
   if (dragonSym && avail('knight_peeking')) {
     const [dx, dy] = [dragonSym.x, dragonSym.y];
     const k2 = firstFree([[dx + 0.13, dy + 0.06], [dx - 0.13, dy + 0.06], [dx, dy + 0.14], [dx + 0.1, dy - 0.1]], 0.02);
-    if (k2) add({ lod: 2, update(t, out) { const u = (t + (seed % 50)) % 6; out.push(fig('knight_peeking', k2[0], k2[1], { flip: k2[0] > dx, lift: u < 4 ? 0 : -0.004 * Math.sin(((u - 4) / 2) * Math.PI), squash: 0 })); } });
+    if (k2) add({ lod: 2, update(t, out) { const u = (t + (seed % 50)) % 6; const ka = byTime('knight_peeking', t + (seed % 50)); out.push(fig('knight_peeking', k2[0], k2[1], { flip: faceFlip('knight_peeking', dx - k2[0]), lift: ka.anim || u < 4 ? 0 : -0.004 * Math.sin(((u - 4) / 2) * Math.PI), squash: 0, ...ka })); } });
   }
   // the monastery: a monk reading on a bench, the porter at the gate
   if (scene.marks.monasteryAt) {
@@ -1043,7 +1278,7 @@ function buildActors(key, scene) {
   for (const lk of scene.lakes) {
     if (!lk.pond && avail('ducklings')) {
       const ph = r() * TAU, rx = lk.rx * 0.5, ry = lk.ry * 0.45;
-      add({ lod: 2, update(t, out) { const a = t * 0.06 + ph; out.push(fig('ducklings', lk.x + Math.cos(a) * rx, lk.y + Math.sin(a) * ry + 0.008, { flip: Math.sin(a) < 0, shadow: false, lift: Math.sin(t * 2) * 0.0008 })); } });
+      add({ lod: 2, update(t, out) { const a = t * 0.06 + ph; const sw = byTime('ducklings', t + ph); out.push(fig('ducklings', lk.x + Math.cos(a) * rx, lk.y + Math.sin(a) * ry + 0.008, { flip: faceFlip('ducklings', -Math.sin(a)), shadow: false, lift: sw.anim ? 0 : Math.sin(t * 2) * 0.0008, ...sw })); } });
     }
     if (r() < 0.6) add(dabbler(lk.x - lk.rx * 0.3, lk.y + lk.ry * 0.25, A.hash(seed, 'ldab')));
     add(dragonflies(lk.x, lk.y, A.hash(seed, 'lfly')));

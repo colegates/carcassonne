@@ -1,0 +1,13 @@
+{
+ "file": "anim/goose_girl.webp",
+ "n": 12,
+ "fw": 240,
+ "fh": 300,
+ "foot": [
+  85.9,
+  288.9
+ ],
+ "scale": 1.4433,
+ "period": 1.208,
+ "mode": "walk"
+}

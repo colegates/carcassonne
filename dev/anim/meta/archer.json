@@ -1,0 +1,13 @@
+{
+ "file": "anim/archer.webp",
+ "n": 12,
+ "fw": 216,
+ "fh": 260,
+ "foot": [
+  95.3,
+  252.9
+ ],
+ "scale": 2.5192,
+ "period": 2.792,
+ "mode": "idle"
+}

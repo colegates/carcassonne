@@ -1,0 +1,13 @@
+{
+ "file": "anim/washerwomen.webp",
+ "n": 8,
+ "fw": 326,
+ "fh": 230,
+ "foot": [
+  162.9,
+  224.8
+ ],
+ "scale": 2.1304,
+ "period": 1.333,
+ "mode": "idle"
+}

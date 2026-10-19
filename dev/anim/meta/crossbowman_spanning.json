@@ -1,0 +1,13 @@
+{
+ "file": "anim/crossbowman_spanning.webp",
+ "n": 12,
+ "fw": 206,
+ "fh": 260,
+ "foot": [
+  113.3,
+  251.6
+ ],
+ "scale": 2.0308,
+ "period": 1.583,
+ "mode": "idle"
+}

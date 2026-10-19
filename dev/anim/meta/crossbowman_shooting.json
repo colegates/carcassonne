@@ -1,0 +1,13 @@
+{
+ "file": "anim/crossbowman_shooting.webp",
+ "n": 12,
+ "fw": 238,
+ "fh": 260,
+ "foot": [
+  68.3,
+  252.4
+ ],
+ "scale": 2.2269,
+ "period": 1.208,
+ "mode": "idle"
+}

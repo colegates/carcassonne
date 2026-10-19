@@ -1,0 +1,13 @@
+{
+ "file": "anim/juggler.webp",
+ "n": 12,
+ "fw": 196,
+ "fh": 300,
+ "foot": [
+  102.0,
+  291.1
+ ],
+ "scale": 2.1367,
+ "period": 1.833,
+ "mode": "walk"
+}

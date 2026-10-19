@@ -1,0 +1,13 @@
+{
+ "file": "anim/hay_cart.webp",
+ "n": 12,
+ "fw": 241,
+ "fh": 210,
+ "foot": [
+  65.1,
+  204.1
+ ],
+ "scale": 2.719,
+ "period": 1.167,
+ "mode": "walk"
+}

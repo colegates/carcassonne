@@ -1,0 +1,13 @@
+{
+ "file": "anim/reaper.webp",
+ "n": 12,
+ "fw": 187,
+ "fh": 260,
+ "foot": [
+  100.9,
+  228.8
+ ],
+ "scale": 2.8846,
+ "period": 1.833,
+ "mode": "idle"
+}

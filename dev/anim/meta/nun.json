@@ -1,0 +1,13 @@
+{
+ "file": "anim/nun.webp",
+ "n": 12,
+ "fw": 164,
+ "fh": 300,
+ "foot": [
+  62.8,
+  291.0
+ ],
+ "scale": 1.99,
+ "period": 1.542,
+ "mode": "walk"
+}

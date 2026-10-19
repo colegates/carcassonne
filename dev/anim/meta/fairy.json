@@ -1,0 +1,13 @@
+{
+ "file": "anim/fairy.webp",
+ "n": 12,
+ "fw": 173,
+ "fh": 260,
+ "foot": [
+  111.3,
+  258.0
+ ],
+ "scale": 2.5077,
+ "period": 2.792,
+ "mode": "idle"
+}

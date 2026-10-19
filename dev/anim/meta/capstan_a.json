@@ -1,0 +1,13 @@
+{
+ "file": "anim/capstan_a.webp",
+ "n": 8,
+ "fw": 356,
+ "fh": 230,
+ "foot": [
+  180.3,
+  223.1
+ ],
+ "scale": 2.313,
+ "period": 2.792,
+ "mode": "idle"
+}

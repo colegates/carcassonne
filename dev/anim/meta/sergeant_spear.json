@@ -1,0 +1,13 @@
+{
+ "file": "anim/sergeant_spear.webp",
+ "n": 12,
+ "fw": 149,
+ "fh": 300,
+ "foot": [
+  47.2,
+  291.5
+ ],
+ "scale": 2.4567,
+ "period": 1.583,
+ "mode": "walk"
+}

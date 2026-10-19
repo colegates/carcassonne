@@ -1,0 +1,13 @@
+{
+ "file": "anim/merchant.webp",
+ "n": 12,
+ "fw": 167,
+ "fh": 300,
+ "foot": [
+  55.5,
+  291.6
+ ],
+ "scale": 2.27,
+ "period": 1.625,
+ "mode": "walk"
+}

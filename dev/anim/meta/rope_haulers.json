@@ -1,0 +1,13 @@
+{
+ "file": "anim/rope_haulers.webp",
+ "n": 12,
+ "fw": 330,
+ "fh": 260,
+ "foot": [
+  161.6,
+  252.1
+ ],
+ "scale": 2.1654,
+ "period": 2.042,
+ "mode": "idle"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/ducks.webp",
+ "n": 12,
+ "fw": 425,
+ "fh": 150,
+ "foot": [
+  230.7,
+  146.4
+ ],
+ "scale": 1.66,
+ "period": 1.875,
+ "mode": "walk"
+}

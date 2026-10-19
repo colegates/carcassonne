@@ -1,0 +1,13 @@
+{
+ "file": "anim/pilgrim_toward.webp",
+ "n": 12,
+ "fw": 191,
+ "fh": 300,
+ "foot": [
+  58.2,
+  292.2
+ ],
+ "scale": 2.4233,
+ "period": 1.5,
+ "mode": "walk"
+}

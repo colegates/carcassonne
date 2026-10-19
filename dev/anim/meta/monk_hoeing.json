@@ -1,0 +1,13 @@
+{
+ "file": "anim/monk_hoeing.webp",
+ "n": 12,
+ "fw": 195,
+ "fh": 260,
+ "foot": [
+  111.1,
+  253.4
+ ],
+ "scale": 2.5654,
+ "period": 1.25,
+ "mode": "idle"
+}

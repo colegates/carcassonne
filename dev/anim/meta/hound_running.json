@@ -1,0 +1,13 @@
+{
+ "file": "anim/hound_running.webp",
+ "n": 12,
+ "fw": 349,
+ "fh": 200,
+ "foot": [
+  318.1,
+  192.9
+ ],
+ "scale": 2.1,
+ "period": 0.625,
+ "mode": "walk"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/inn_toast_a.webp",
+ "n": 12,
+ "fw": 254,
+ "fh": 240,
+ "foot": [
+  174.6,
+  232.8
+ ],
+ "scale": 2.5083,
+ "period": 2.083,
+ "mode": "idle"
+}

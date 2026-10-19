@@ -1,0 +1,13 @@
+{
+ "file": "anim/children_wading.webp",
+ "n": 10,
+ "fw": 280,
+ "fh": 230,
+ "foot": [
+  146.8,
+  224.4
+ ],
+ "scale": 2.5,
+ "period": 1.292,
+ "mode": "idle"
+}

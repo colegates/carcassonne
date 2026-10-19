@@ -1,0 +1,13 @@
+{
+ "file": "anim/sheep_group.webp",
+ "n": 12,
+ "fw": 300,
+ "fh": 200,
+ "foot": [
+  100.0,
+  192.7
+ ],
+ "scale": 2.18,
+ "period": 1.208,
+ "mode": "walk"
+}

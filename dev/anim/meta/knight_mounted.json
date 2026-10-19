@@ -1,0 +1,13 @@
+{
+ "file": "anim/knight_mounted.webp",
+ "n": 12,
+ "fw": 181,
+ "fh": 220,
+ "foot": [
+  54.4,
+  213.9
+ ],
+ "scale": 3.1273,
+ "period": 1.417,
+ "mode": "walk"
+}

@@ -1,0 +1,13 @@
+{
+ "file": "anim/cat_stalking.webp",
+ "n": 12,
+ "fw": 376,
+ "fh": 200,
+ "foot": [
+  345.3,
+  193.2
+ ],
+ "scale": 1.9,
+ "period": 1.542,
+ "mode": "walk"
+}

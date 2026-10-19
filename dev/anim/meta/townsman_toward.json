@@ -1,0 +1,13 @@
+{
+ "file": "anim/townsman_toward.webp",
+ "n": 12,
+ "fw": 173,
+ "fh": 300,
+ "foot": [
+  37.7,
+  291.6
+ ],
+ "scale": 2.2567,
+ "period": 1.417,
+ "mode": "walk"
+}

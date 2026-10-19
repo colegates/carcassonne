@@ -1,0 +1,13 @@
+{
+ "file": "anim/sentry_sleeping.webp",
+ "n": 8,
+ "fw": 160,
+ "fh": 260,
+ "foot": [
+  69.1,
+  252.6
+ ],
+ "scale": 2.9654,
+ "period": 2.667,
+ "mode": "idle"
+}
