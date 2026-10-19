@@ -124,7 +124,19 @@ function buildScene(id, rot, variant) {
         const piece = pts.slice(i, i + 5);
         const c = piece[2];
         if (gates.some((gt) => Math.hypot(gt.x - c.x, gt.y - c.y) < 0.07)) continue;
-        statics.push({ t: 'wall', pts: piece, side, x: c.x, y: Math.max(...piece.map((p) => p.y)), shadow: false });
+        statics.push({ t: 'wall', pts: piece, side, x: c.x, y: Math.max(...piece.map((p) => p.y)), shadow: false, first: i === 0 });
+      }
+      // where the wall runs off the tile it meets its neighbour's wall, often at an angle: a
+      // round turret stands on the joint, the same one on both tiles (same sprite, size and
+      // spot), so the walls join cleanly whatever the neighbour does
+      const jt = avail('turret_small');
+      for (const p of [pts[0], pts[pts.length - 1]]) {
+        const onEdge = p.x < 0.012 || p.x > 0.988 || p.y < 0.012 || p.y > 0.988;
+        if (!jt || !onEdge || gates.some((gt) => Math.hypot(gt.x - p.x, gt.y - p.y) < 0.1)) continue;
+        const ex = p.x < 0.012 ? 0 : p.x > 0.988 ? 1 : p.x, ey = p.y < 0.012 ? 0 : p.y > 0.988 ? 1 : p.y;
+        const o = make(jt, ex, ey + 0.016, { tag: 'joint', scale: 0.82 });
+        statics.push(o); placed.push({ x: o.x, y: o.y, w: o.w, d: 0.04 });
+        towers.push(o);
       }
       // towers: at intervals, never at the tile edge (the neighbour carries on the wall)
       const L = pts[pts.length - 1].s;
@@ -182,7 +194,9 @@ function buildScene(id, rot, variant) {
         break;
       }
     }
-    const frame = best && (rnd() < 0.8 || variant === 0) ? avail('pierriere_frame') || avail('trabuquet_frame') : null;
+    // the big counterweight trabuquet now and then (it needs its capstan crew), else the pierrière
+    const big = A.hasSprite('trabuquet_frame') && A.hasSprite('trabuquet_arm') && A.hasSprite('capstan_a') && rnd() < 0.35;
+    const frame = best && (rnd() < 0.8 || variant === 0) ? (big ? 'trabuquet_frame' : avail('pierriere_frame') || avail('trabuquet_frame')) : null;
     if (frame) {
       const o = make(frame, best.x, best.y + 0.02, { tag: 'pierriere', flip: best.tx > best.x });
       put(o, 0.05);
@@ -483,6 +497,35 @@ function buildScene(id, rot, variant) {
     }
   }
 
+  // water lilies on the lake and the inn ponds
+  if (A.hasSprite('lily_pads')) {
+    const pads = [];
+    if (lay.lake) { const [lx, ly, rx, ry] = lay.lake; pads.push([lx + rx * 0.45, ly - ry * 0.35, 1], [lx - rx * 0.5, ly + ry * 0.3, 0.8]); }
+    for (const [, , lx, ly] of lay.inns) pads.push([lx + 0.03, ly, 0.6]);
+    for (const [u, v, sc] of pads) {
+      const [x, y] = R(u, v);
+      if (x < 0.04 || x > 0.96 || y < 0.04 || y > 0.96 || rectHitsKeep(x, y, 0.03, 0.02, -0.01)) continue;
+      statics.push({ ...make('lily_pads', x, y, { shadow: false, scale: sc, flip: rnd() < 0.5 }), sort: -0.05 });
+    }
+  }
+  // a merchant's stall of the town's trade beside its goods sign (Traders & Builders)
+  for (const sy of plan.symbols) {
+    if (sy.kind !== 'goods') continue;
+    const stall = avail({ wine: 'wine_stall', grain: 'grain_stall', cloth: 'cloth_stall' }[sy.goods] || 'wine_stall');
+    if (!stall) continue;
+    const [sx0, sy0] = R(sy.x, sy.y);
+    for (const [dx, dy] of [[0.11, 0.05], [-0.11, 0.05], [0.0, 0.12], [0.11, -0.06], [-0.11, -0.06]]) {
+      const x = sx0 + dx, y = sy0 + dy;
+      if (x < 0.06 || x > 0.94 || y < 0.08 || y > 0.96) continue;
+      const fi = labelAt(sx0, sy0);
+      if (labelAt(x, y) !== fi && typeAt(x, y) !== 'field') continue;
+      const o = make(stall, x, y, { tag: 'stall', flip: dx > 0, scale: 1.1 });
+      if (rectHitsKeep(x, y, o.w * 0.7, o.h * 0.7)) continue;
+      // make room among the houses: drop any that stand where the stall goes
+      for (let i = statics.length - 1; i >= 0; i--) { const q = statics[i]; if (q.tag === 'house' && Math.abs(q.x - x) < (q.w + o.w) * 0.42 && Math.abs(q.y - y) < 0.05) statics.splice(i, 1); }
+      statics.push(o); break;
+    }
+  }
   statics.sort((a, b) => a.y - b.y);
   const lakes = [];
   if (lay.lake) { const [x, y] = R(lay.lake[0], lay.lake[1]); lakes.push({ x, y, rx: rot % 2 ? lay.lake[3] : lay.lake[2], ry: rot % 2 ? lay.lake[2] : lay.lake[3] }); }

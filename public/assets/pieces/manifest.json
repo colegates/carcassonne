@@ -1,0 +1,80 @@
+{
+ "version": 1,
+ "pieces": {
+  "meeple": {
+   "file": "meeple.webp",
+   "w": 665,
+   "h": 768,
+   "tint": true,
+   "lum": [
+    0.604,
+    0.885
+   ]
+  },
+  "large": {
+   "file": "large.webp",
+   "w": 669,
+   "h": 768,
+   "tint": true,
+   "lum": [
+    0.611,
+    0.873
+   ]
+  },
+  "abbot": {
+   "file": "abbot.webp",
+   "w": 517,
+   "h": 768,
+   "tint": true,
+   "lum": [
+    0.576,
+    0.843
+   ]
+  },
+  "builder": {
+   "file": "builder.webp",
+   "w": 472,
+   "h": 768,
+   "tint": true,
+   "lum": [
+    0.603,
+    0.851
+   ]
+  },
+  "pig": {
+   "file": "pig.webp",
+   "w": 768,
+   "h": 522,
+   "tint": true,
+   "lum": [
+    0.635,
+    0.866
+   ]
+  },
+  "meeple_lying": {
+   "file": "meeple_lying.webp",
+   "w": 768,
+   "h": 633,
+   "tint": true,
+   "lum": [
+    0.558,
+    0.867
+   ]
+  },
+  "castle": {
+   "file": "castle.webp",
+   "w": 888,
+   "h": 1024
+  },
+  "bridge_across": {
+   "file": "bridge_across.webp",
+   "w": 1280,
+   "h": 590
+  },
+  "bridge_along": {
+   "file": "bridge_along.webp",
+   "w": 507,
+   "h": 1280
+  }
+ }
+}

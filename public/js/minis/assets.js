@@ -30,6 +30,7 @@ export const assetGeneration = () => generation;
 export function loadManifest() {
   if (status !== 'idle' || MINIS_OFF) return;
   status = 'loading';
+  loadAtlas();
   fetch(BASE + 'manifest.json', { cache: 'no-cache' })
     .then((r) => (r.ok ? r.json() : null))
     .then((m) => {
@@ -145,8 +146,23 @@ export function spriteFor(id, devH) {
     if (rec) rec.img = null;
   }
   let best = m[0];
+  // deep zoom: bigger than our largest copy, and the source has more to give
+  if (devH > best.height * 1.12 && manifest.sprites[id].h > best.height * 1.12) return fullImage(id) || best;
   for (const c of m) { if (c.height >= devH) best = c; else break; }
   return best;
+}
+// Full-resolution sprites for deep zoom, decoded on demand; only the most recent few are kept.
+const fulls = new Map(); // id -> { img, ready }
+function fullImage(id) {
+  let f = fulls.get(id);
+  if (f) { fulls.delete(id); fulls.set(id, f); return f.ready ? f.img : null; }
+  f = { img: new Image(), ready: false };
+  f.img.decoding = 'async';
+  f.img.src = BASE + manifest.sprites[id].file;
+  (f.img.decode ? f.img.decode() : new Promise((res, rej) => { f.img.onload = res; f.img.onerror = rej; })).then(() => { f.ready = true; generation++; changed(); }, () => {});
+  fulls.set(id, f);
+  while (fulls.size > 28) fulls.delete(fulls.keys().next().value);
+  return null;
 }
 
 // ---------- soft cast shadows ----------
@@ -207,4 +223,38 @@ export function pickSprite(ids, seed = 0, any = true) {
 export function spritesOfKind(kind) {
   if (!manifest) return [];
   return Object.entries(manifest.sprites).filter(([, s]) => s.kind === kind).map(([id]) => id);
+}
+
+// ---------- baked thumbnails ----------
+// Small pictures of every tile type baked offline (dev/minis-thumbs.mjs): shown at once in the
+// rules, the dock and the bazaar while the live renderer is still loading.
+let atlas = null; // { size, cols, index: Map, img }
+const atlasTurned = new Map();
+function loadAtlas() {
+  fetch(BASE + 'thumbs/atlas.json').then((r) => (r.ok ? r.json() : null)).then((a) => {
+    if (!a) return;
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = BASE + 'thumbs/atlas.webp';
+    (img.decode ? img.decode() : new Promise((res, rej) => { img.onload = res; img.onerror = rej; })).then(() => {
+      atlas = { size: a.size, cols: a.cols, index: new Map(a.ids.map((id, i) => [id, i])), img };
+      generation++; changed();
+    }, () => {});
+  }).catch(() => {});
+}
+export function atlasThumb(id, r = 0) {
+  if (!atlas || status === 'none') return null;
+  const i = atlas.index.get(id);
+  if (i === undefined) return null;
+  const k = `${id}|${r}`;
+  let c = atlasTurned.get(k);
+  if (!c) {
+    const S = atlas.size;
+    c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d');
+    g.translate(S / 2, S / 2); g.rotate((r * Math.PI) / 2);
+    g.drawImage(atlas.img, (i % atlas.cols) * S, Math.floor(i / atlas.cols) * S, S, S, -S / 2, -S / 2, S, S);
+    atlasTurned.set(k, c);
+  }
+  return c;
 }

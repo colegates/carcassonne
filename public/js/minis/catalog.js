@@ -1,3 +1,4 @@
+import * as A from './assets.js';
 // Real sizes of the miniature sprites, as a fraction of a tile edge (a tile is about 48 m of
 // countryside, so a person of 1.7 m is 0.035). `w` = width of the trimmed sprite, `h` = height;
 // the other dimension follows the sprite's own aspect. `walk`: a figure that walks (sheet
@@ -52,10 +53,24 @@ export const CAT = {
   hound_running: { w: 0.032, walk: true }, sparrows_mouse: { w: 0.02 }, banner_france: { w: 0.03, flat: true }, banner_toulouse: { w: 0.03, flat: true },
   banner_trencavel: { w: 0.03, flat: true }, banner_foix: { w: 0.03, flat: true }, pennons: { w: 0.04, flat: true }, laundry_pieces: { w: 0.05, flat: true },
   butterflies_bee: { w: 0.015 }, props: { w: 0.045 },
+  // P15 banners and life
+  banner_pole_france: { h: 0.042 }, banner_pole_toulouse: { h: 0.042 }, banner_pole_trencavel: { h: 0.042 }, banner_pole_foix: { h: 0.042 },
+  bell_frame: { w: 0.034, flat: true }, ducklings: { w: 0.05, walk: true }, duck_dabbling: { w: 0.011 },
+  sentry_sleeping: { h: 0.031 }, sentry_angry: { h: 0.037 }, cat_bread: { w: 0.019 }, capstan_a: { w: 0.07 }, capstan_b: { w: 0.064 },
+  wine_cart: { w: 0.08, walk: true }, grain_cart: { w: 0.078, walk: true }, cloth_packhorse: { w: 0.066, walk: true }, knight_peeking: { w: 0.036 },
+  // P16 vignettes
+  heron_strike: { h: 0.04 }, inn_toast_a: { w: 0.05 }, inn_toast_b: { w: 0.049 }, women_chatting: { w: 0.04 }, children_knucklebones: { w: 0.036 },
+  hermit_sweeping: { h: 0.034 }, onlookers_pointing: { w: 0.04 }, lily_pads: { w: 0.045, flat: true }, pilgrim_kneeling: { w: 0.03 },
+  baker_boy: { h: 0.03, walk: true }, frog: { w: 0.006 }, lizard_stone: { w: 0.016 }, dragonflies: { w: 0.024 }, monk_reading: { w: 0.034 }, porter_bread: { w: 0.045 },
 };
 
 // Width and height (tile units) of a sprite from its catalogue size and pixel aspect.
 export function sizeOf(id, info, scale = 1) {
+  // a second walking pose ('townsman_b') is drawn at exactly the first pose's pixel scale
+  if (!CAT[id] && id.endsWith('_b') && CAT[id.slice(0, -2)] && info) {
+    const base = id.slice(0, -2), bi = A.spriteInfo(base);
+    if (bi) { const [bw] = sizeOf(base, bi, scale); const k = bw / bi.w; return [info.w * k, info.h * k]; }
+  }
   const c = CAT[id] || { h: 0.05 };
   const asp = info ? info.h / info.w : 1;
   if (c.w) return [c.w * scale, c.w * asp * scale];
@@ -72,7 +87,7 @@ export const GROUPS = {
   riverTrees: ['black_poplar', 'white_poplar', 'pollard_willow', 'pollard_willow'],
   bushes: ['broom', 'garrigue_clump', 'broom'],
   stalls: ['wine_stall', 'cloth_stall', 'grain_stall', 'pottery_stall', 'woad_stall', 'spice_salt_stall', 'poultry_produce', 'money_changer'],
-  townsfolk: ['townsman', 'townswoman', 'merchant', 'water_carrier', 'old_woman_spinning', 'boy_running', 'girl_hoop', 'noble_lady', 'townsman', 'townswoman', 'fishwife', 'mason'],
+  townsfolk: ['townsman', 'townswoman', 'merchant', 'water_carrier', 'old_woman_spinning', 'boy_running', 'girl_hoop', 'noble_lady', 'townsman', 'townswoman', 'fishwife', 'mason', 'baker_boy', 'benedictine_monk'],
   travellers: ['pilgrim', 'townsman', 'mule_packed', 'hay_cart', 'merchant', 'donkey_rider', 'palfrey_rider', 'pilgrim', 'knight_mounted', 'dominican_friar', 'townswoman', 'sergeant_spear'],
   clergy: ['benedictine_monk', 'dominican_friar', 'nun', 'canon', 'benedictine_monk'],
   soldiers: ['sergeant_spear', 'sergeant_spear', 'crossbowman_shooting', 'horn_watchman', 'archer'],

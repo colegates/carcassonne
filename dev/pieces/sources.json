@@ -1,0 +1,121 @@
+{
+ "_note": "Raw renders (gpt_image_2_5, high, 2k, transparent background), their 4k upscales (bytedance, flattened on black: build.py takes the colour from the upscale and the alpha from the render), and which grid cell of each becomes which piece. build.py downloads missing files into $PIECES_WORK (default /tmp/claude-0/pieces-raw).",
+ "sheets": {
+  "sheetA1": {
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_180131_b4a312ec-ba3d-42ff-9452-9ac9e6daee7f.png",
+   "grid": [
+    2,
+    3
+   ],
+   "prompt": "six premium hand-crafted beech-wood board-game pieces painted satin pale ivory: meeple, big meeple, abbot / builder, pig, meeple lying on its back; ~35 degrees from above, soft key light upper left, no shadows",
+   "hires": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_183048_ae56311e-8a1e-4ad6-a1c6-451b8418a8f5.png"
+  },
+  "sheetA2": {
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_180132_52084347-71f5-442a-9451-968b09d33e64.png",
+   "grid": [
+    2,
+    3
+   ],
+   "prompt": "(second roll of the same prompt)",
+   "hires": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_182822_47f09eaf-590e-4627-a0ac-3fcb4581805b.png"
+  },
+  "sheetB1": {
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_180132_1e929d54-1d91-4438-b638-634f4e031356.png",
+   "grid": [
+    1,
+    3
+   ],
+   "prompt": "hand-painted resin limestone pieces: castle token (keep, curtain wall, gate between two round towers), humped one-arch bridge spanning left-right, the same bridge running away from the camera; ~55 degrees from above, soft key light upper left, no shadows",
+   "hires": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_183051_bb6d0add-ac90-4b48-b904-0bfa7f110a76.png"
+  },
+  "builderH1": {
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_182233_e77adf88-65d6-4fc0-b4eb-e757b7b9c6fb.png",
+   "grid": [
+    1,
+    1
+   ],
+   "prompt": "single tall slim meeple-style builder in the same painted ivory beech wood, holding up a chunky mallet carved from the same piece; same camera and light",
+   "hires": "https://d8j0ntlcm91z4.cloudfront.net/user_3Kik67oEWoKQh9imhfJQej77Odr/hf_20261018_183049_ce0e784a-62da-4413-afa9-a135c1d1d756.png"
+  }
+ },
+ "pieces": {
+  "meeple": {
+   "sheet": "sheetA2",
+   "cell": [
+    0,
+    0
+   ],
+   "tint": true,
+   "cap": 768
+  },
+  "large": {
+   "sheet": "sheetA1",
+   "cell": [
+    0,
+    1
+   ],
+   "tint": true,
+   "cap": 768
+  },
+  "abbot": {
+   "sheet": "sheetA1",
+   "cell": [
+    0,
+    2
+   ],
+   "tint": true,
+   "cap": 768
+  },
+  "builder": {
+   "sheet": "builderH1",
+   "cell": [
+    0,
+    0
+   ],
+   "tint": true,
+   "cap": 768
+  },
+  "pig": {
+   "sheet": "sheetA2",
+   "cell": [
+    1,
+    1
+   ],
+   "tint": true,
+   "cap": 768
+  },
+  "meeple_lying": {
+   "sheet": "sheetA1",
+   "cell": [
+    1,
+    2
+   ],
+   "tint": true,
+   "cap": 768
+  },
+  "castle": {
+   "sheet": "sheetB1",
+   "cell": [
+    0,
+    0
+   ],
+   "cap": 1024
+  },
+  "bridge_across": {
+   "sheet": "sheetB1",
+   "cell": [
+    0,
+    1
+   ],
+   "cap": 1280
+  },
+  "bridge_along": {
+   "sheet": "sheetB1",
+   "cell": [
+    0,
+    2
+   ],
+   "cap": 1280
+  }
+ }
+}

@@ -3,6 +3,7 @@
 // orientation) and then blitted/rotated by the board renderer.
 import { TILE_TYPES } from './tiles.js';
 import { layoutOf, bezierPoint, rotUnit } from './layout.js';
+import { drawPieceImage, drawCastleImage, drawBridgeImage, drawTowerImage } from './pieces.js';
 
 export const ART_SIZE = 576; // px per tile in the cached artwork
 const HIT = 96; // resolution of the feature hit-map
@@ -1582,8 +1583,12 @@ export function drawMeeple(ctx, x, y, size, color, opts = {}) {
   drawPiece(ctx, 'meeple', x, y, size, color, opts);
 }
 
-// Draw any player figure: meeple, large (big meeple), builder, pig, abbot.
+// Draw any player figure: meeple, large (big meeple), builder, pig, abbot, and the
+// dragon and fairy: the photographed pieces (pieces.js), or until they have loaded the
+// painted wooden silhouettes below. (x, y) is the figure's centre, size its height.
+// opts: lying (farmer), alpha, ghost, icon (a UI icon: no shadow), procedural.
 export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
+  if (!opts.procedural && drawPieceImage(ctx, kind, x, y, size, color, opts)) return;
   ctx.save();
   ctx.translate(x, y);
   ctx.globalAlpha = opts.alpha ?? 1;
@@ -1623,6 +1628,7 @@ export function drawPiece(ctx, kind, x, y, size, color, opts = {}) {
 // tile, from one edge to the opposite one (axis 0 = up–down on screen, 1 = across),
 // seen from above like the tiles; (cx, cy) is the tile's centre.
 export function drawBridge(ctx, cx, cy, size, axis, opts = {}) {
+  if (!opts.procedural && drawBridgeImage(ctx, cx, cy, size, axis, opts)) return;
   ctx.save();
   ctx.translate(cx, cy);
   if (axis === 0) ctx.rotate(Math.PI / 2);
@@ -1667,7 +1673,12 @@ export function drawBridge(ctx, cx, cy, size, axis, opts = {}) {
 }
 
 // Bridges, Castles & Bazaars: a little wooden castle standing at (x, y) (its base).
+// Returns the y where its castellan stands.
 export function drawCastle(ctx, x, y, size, opts = {}) {
+  if (!opts.procedural) {
+    const top = drawCastleImage(ctx, x, y, size, opts);
+    if (top !== null) return top;
+  }
   ctx.save();
   ctx.translate(x, y);
   ctx.globalAlpha = opts.alpha ?? 1;
@@ -1711,6 +1722,10 @@ export function drawCastle(ctx, x, y, size, opts = {}) {
 export function drawTower(ctx, x, y, size, h, opts = {}) {
   const w = size * 0.24, fh = opts.fh ?? size * 0.075;
   const shown = Math.min(h, 7);
+  if (!opts.procedural && drawTowerImage(ctx, x, y, w, h, fh, opts)) {
+    if (opts.badge) drawTowerBadge(ctx, x, y, size, h, fh);
+    return y - shown * fh - fh * 0.45;
+  }
   ctx.save();
   ctx.globalAlpha = opts.alpha ?? 1;
   ctx.save();

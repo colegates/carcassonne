@@ -301,42 +301,6 @@
    "sheet": "P03-walls-gates",
    "desc": "two labourers carrying a handbarrow of squared stones"
   },
-  "townsman": {
-   "file": "sprites/townsman.webp",
-   "w": 356,
-   "h": 660,
-   "foot": [
-    111,
-    642
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "a townsman in a knee-length belted wool tunic of faded woad blue"
-  },
-  "townswoman": {
-   "file": "sprites/townswoman.webp",
-   "w": 333,
-   "h": 645,
-   "foot": [
-    155,
-    627
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "married townswoman in a madder-red gown and wimple, jug on her hip"
-  },
-  "boy_running": {
-   "file": "sprites/boy_running.webp",
-   "w": 470,
-   "h": 521,
-   "foot": [
-    223,
-    506
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "barefoot boy in a russet tunic running, arms outstretched"
-  },
   "girl_hoop": {
    "file": "sprites/girl_hoop.webp",
    "w": 549,
@@ -348,18 +312,6 @@
    "kind": "person",
    "sheet": "P04-townsfolk-clergy",
    "desc": "barefoot girl with braids driving a wooden hoop with a stick"
-  },
-  "pilgrim": {
-   "file": "sprites/pilgrim.webp",
-   "w": 419,
-   "h": 708,
-   "foot": [
-    135,
-    689
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "a pilgrim to Santiago in a coarse grey-brown wool cloak"
   },
   "princess": {
    "file": "sprites/princess.webp",
@@ -373,66 +325,6 @@
    "sheet": "P04-townsfolk-clergy",
    "desc": "young princess with gold circlet, rose gown and ermine-lined azure mantle"
   },
-  "merchant": {
-   "file": "sprites/merchant.webp",
-   "w": 283,
-   "h": 692,
-   "foot": [
-    107,
-    673
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "prosperous merchant in green tunic and surcoat with purse and wax tablet"
-  },
-  "noble_lady": {
-   "file": "sprites/noble_lady.webp",
-   "w": 387,
-   "h": 714,
-   "foot": [
-    205,
-    695
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "a noblewoman in a long scarlet gown with tight sleeves and a sleeveless surcoat"
-  },
-  "benedictine_monk": {
-   "file": "sprites/benedictine_monk.webp",
-   "w": 314,
-   "h": 667,
-   "foot": [
-    138,
-    649
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "a Benedictine monk in a black wool habit and cowl"
-  },
-  "water_carrier": {
-   "file": "sprites/water_carrier.webp",
-   "w": 512,
-   "h": 682,
-   "foot": [
-    160,
-    663
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "a water carrier with two wooden buckets hanging from a shoulder yoke"
-  },
-  "old_woman_spinning": {
-   "file": "sprites/old_woman_spinning.webp",
-   "w": 424,
-   "h": 668,
-   "foot": [
-    202,
-    650
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "old woman in a brown gown spinning with distaff and drop spindle"
-  },
   "nobleman_falcon": {
    "file": "sprites/nobleman_falcon.webp",
    "w": 392,
@@ -444,30 +336,6 @@
    "kind": "person",
    "sheet": "P04-townsfolk-clergy",
    "desc": "young nobleman in blue tunic and red surcoat with a hooded falcon"
-  },
-  "dominican_friar": {
-   "file": "sprites/dominican_friar.webp",
-   "w": 370,
-   "h": 656,
-   "foot": [
-    169,
-    638
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "Dominican friar in white habit and black cloak with staff and book"
-  },
-  "nun": {
-   "file": "sprites/nun.webp",
-   "w": 345,
-   "h": 644,
-   "foot": [
-    155,
-    626
-   ],
-   "kind": "person",
-   "sheet": "P04-townsfolk-clergy",
-   "desc": "a nun in a black habit with a black veil over a white wimple"
   },
   "bishop": {
    "file": "sprites/bishop.webp",
@@ -517,42 +385,6 @@
    "sheet": "P05-field-folk-animals",
    "desc": "three small coarse-wooled sheep: cream ewe, brown ewe, dark ram"
   },
-  "shepherd": {
-   "file": "sprites/shepherd.webp",
-   "w": 304,
-   "h": 614,
-   "foot": [
-    96,
-    597
-   ],
-   "kind": "person",
-   "sheet": "P05-field-folk-animals",
-   "desc": "shepherd in a hooded cloak with a spade-tipped crook and satchel"
-  },
-  "hay_cart": {
-   "file": "sprites/hay_cart.webp",
-   "w": 768,
-   "h": 611,
-   "foot": [
-    399,
-    594
-   ],
-   "kind": "animal",
-   "sheet": "P05-field-folk-animals",
-   "desc": "two-wheeled hay cart pulled by a mule, carter walking beside"
-  },
-  "mule_packed": {
-   "file": "sprites/mule_packed.webp",
-   "w": 613,
-   "h": 564,
-   "foot": [
-    181,
-    548
-   ],
-   "kind": "animal",
-   "sheet": "P05-field-folk-animals",
-   "desc": "dark bay pack mule with panniers, wineskins and a bell"
-  },
   "reaper": {
    "file": "sprites/reaper.webp",
    "w": 548,
@@ -565,18 +397,6 @@
    "sheet": "P05-field-folk-animals",
    "desc": "a reaper bending to cut wheat with a toothed sickle"
   },
-  "pig_running": {
-   "file": "sprites/pig_running.webp",
-   "w": 718,
-   "h": 475,
-   "foot": [
-    161,
-    460
-   ],
-   "kind": "animal",
-   "sheet": "P05-field-folk-animals",
-   "desc": "dark bristly long-legged medieval pig trotting"
-  },
   "chickens": {
    "file": "sprites/chickens.webp",
    "w": 569,
@@ -588,18 +408,6 @@
    "kind": "animal",
    "sheet": "P05-field-folk-animals",
    "desc": "hens, a rooster and three chicks"
-  },
-  "palfrey_rider": {
-   "file": "sprites/palfrey_rider.webp",
-   "w": 639,
-   "h": 688,
-   "foot": [
-    244,
-    669
-   ],
-   "kind": "animal",
-   "sheet": "P05-field-folk-animals",
-   "desc": "traveller in a hooded cloak riding a bay palfrey"
   },
   "sower": {
    "file": "sprites/sower.webp",
@@ -625,30 +433,6 @@
    "sheet": "P05-field-folk-animals",
    "desc": "woman in a straw hat tying a wheat sheaf"
   },
-  "guard_dog": {
-   "file": "sprites/guard_dog.webp",
-   "w": 642,
-   "h": 590,
-   "foot": [
-    350,
-    573
-   ],
-   "kind": "animal",
-   "sheet": "P05-field-folk-animals",
-   "desc": "a large shaggy white Pyrenean flock-guarding dog wearing a spiked iron collar"
-  },
-  "goose_girl": {
-   "file": "sprites/goose_girl.webp",
-   "w": 640,
-   "h": 550,
-   "foot": [
-    391,
-    534
-   ],
-   "kind": "person",
-   "sheet": "P05-field-folk-animals",
-   "desc": "a girl with a willow switch herding four grey-and-white geese"
-  },
   "goats": {
    "file": "sprites/goats.webp",
    "w": 578,
@@ -672,30 +456,6 @@
    "kind": "animal",
    "sheet": "P05-field-folk-animals",
    "desc": "a dark hairy sow standing with four small dark piglets"
-  },
-  "donkey_rider": {
-   "file": "sprites/donkey_rider.webp",
-   "w": 514,
-   "h": 569,
-   "foot": [
-    303,
-    553
-   ],
-   "kind": "animal",
-   "sheet": "P05-field-folk-animals",
-   "desc": "old peasant riding sideways on a grey donkey with a sack"
-  },
-  "sergeant_spear": {
-   "file": "sprites/sergeant_spear.webp",
-   "w": 312,
-   "h": 663,
-   "foot": [
-    126,
-    645
-   ],
-   "kind": "person",
-   "sheet": "P06-soldiers-siege",
-   "desc": "a sergeant in a quilted off-white gambeson and a wide-brimmed iron kettle hat"
   },
   "crossbowman_shooting": {
    "file": "sprites/crossbowman_shooting.webp",
@@ -770,30 +530,6 @@
    "sheet": "P06-soldiers-siege",
    "desc": "straw practice butt on a stand with bolts, heap of round stones"
   },
-  "knight_mounted": {
-   "file": "sprites/knight_mounted.webp",
-   "w": 619,
-   "h": 692,
-   "foot": [
-    347,
-    673
-   ],
-   "kind": "animal",
-   "sheet": "P06-soldiers-siege",
-   "desc": "mounted knight in mail and great helm, gold shield with red chevron"
-  },
-  "banner_bearer": {
-   "file": "sprites/banner_bearer.webp",
-   "w": 237,
-   "h": 755,
-   "foot": [
-    95,
-    735
-   ],
-   "kind": "person",
-   "sheet": "P06-soldiers-siege",
-   "desc": "sergeant carrying a blue banner with gold fleurs-de-lis"
-  },
   "horn_watchman": {
    "file": "sprites/horn_watchman.webp",
    "w": 383,
@@ -854,18 +590,6 @@
    "sheet": "P06-soldiers-siege",
    "flat": true,
    "desc": "counterweight trebuchet arm with stone-filled box and sling"
-  },
-  "knight_foot": {
-   "file": "sprites/knight_foot.webp",
-   "w": 351,
-   "h": 613,
-   "foot": [
-    126,
-    596
-   ],
-   "kind": "person",
-   "sheet": "P06-soldiers-siege",
-   "desc": "knight on foot in mail hauberk and nasal helm with sword and shield"
   },
   "quintain": {
    "file": "sprites/quintain.webp",
@@ -1083,30 +807,6 @@
    "sheet": "P08-landmarks",
    "desc": "small Romanesque parish church with apse and bell-gable"
   },
-  "cathedral": {
-   "file": "sprites/cathedral.webp",
-   "w": 680,
-   "h": 583,
-   "foot": [
-    316,
-    566
-   ],
-   "kind": "building",
-   "sheet": "P08-landmarks",
-   "desc": "Romanesque cathedral of Saint-Nazaire as in 1220, with cloister"
-  },
-  "inn": {
-   "file": "sprites/inn.webp",
-   "w": 622,
-   "h": 543,
-   "foot": [
-    328,
-    527
-   ],
-   "kind": "building",
-   "sheet": "P08-landmarks",
-   "desc": "roadside inn with gallery, stable, well and a pine-bush sign"
-  },
   "farmhouse": {
    "file": "sprites/farmhouse.webp",
    "w": 644,
@@ -1118,18 +818,6 @@
    "kind": "building",
    "sheet": "P08-landmarks",
    "desc": "long low farmhouse with thatched barn, walled yard and bread oven"
-  },
-  "castle": {
-   "file": "sprites/castle.webp",
-   "w": 598,
-   "h": 585,
-   "foot": [
-    342,
-    568
-   ],
-   "kind": "building",
-   "sheet": "P08-landmarks",
-   "desc": "compact stone castle: square keep, curtain wall, gate towers, hall"
   },
   "village_well": {
    "file": "sprites/village_well.webp",
@@ -1178,18 +866,6 @@
    "kind": "person",
    "sheet": "P08-landmarks",
    "desc": "robbers' hideout: two hooded outlaws behind a bush, lean-to, campfire"
-  },
-  "monastery_complex": {
-   "file": "sprites/monastery_complex.webp",
-   "w": 651,
-   "h": 623,
-   "foot": [
-    405,
-    606
-   ],
-   "kind": "building",
-   "sheet": "P09-monastery-garden",
-   "desc": "Cistercian abbey: church, cloister, ranges and gatehouse"
   },
   "priory_small": {
    "file": "sprites/priory_small.webp",
@@ -1456,18 +1132,6 @@
    "kind": "person",
    "sheet": "P10-market-trades",
    "desc": "cooper driving a hoop onto a wine cask"
-  },
-  "fishwife": {
-   "file": "sprites/fishwife.webp",
-   "w": 402,
-   "h": 682,
-   "foot": [
-    213,
-    663
-   ],
-   "kind": "person",
-   "sheet": "P10-market-trades",
-   "desc": "a fishwife with a flat basket of eels and river fish on her hip"
   },
   "tumbler": {
    "file": "sprites/tumbler.webp",
@@ -1980,34 +1644,983 @@
    "kind": "prop",
    "sheet": "P14-life-details",
    "desc": "small props: wheat sheaf, basket of loaves, cask, sack of grain"
+  },
+  "townsman": {
+   "file": "sprites/townsman.webp",
+   "w": 406,
+   "h": 636,
+   "foot": [
+    100,
+    618
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a townsman in a knee-length belted wool tunic of faded woad blue"
+  },
+  "townsman_b": {
+   "file": "sprites/townsman_b.webp",
+   "w": 400,
+   "h": 638,
+   "foot": [
+    90,
+    620
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a townsman in a knee-length belted wool tunic of faded woad blue"
+  },
+  "townswoman": {
+   "file": "sprites/townswoman.webp",
+   "w": 332,
+   "h": 647,
+   "foot": [
+    117,
+    629
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "married townswoman in a madder-red gown and wimple, jug on her hip"
+  },
+  "townswoman_b": {
+   "file": "sprites/townswoman_b.webp",
+   "w": 346,
+   "h": 645,
+   "foot": [
+    124,
+    627
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a married townswoman in an ankle-length madder-red wool gown belted at the"
+  },
+  "pilgrim": {
+   "file": "sprites/pilgrim.webp",
+   "w": 408,
+   "h": 665,
+   "foot": [
+    115,
+    647
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a pilgrim to Santiago in a coarse grey-brown wool cloak"
+  },
+  "pilgrim_b": {
+   "file": "sprites/pilgrim_b.webp",
+   "w": 411,
+   "h": 661,
+   "foot": [
+    116,
+    643
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a pilgrim to Santiago in a coarse grey-brown wool cloak"
+  },
+  "benedictine_monk": {
+   "file": "sprites/benedictine_monk.webp",
+   "w": 309,
+   "h": 639,
+   "foot": [
+    85,
+    621
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a Benedictine monk in a black wool habit and cowl"
+  },
+  "benedictine_monk_b": {
+   "file": "sprites/benedictine_monk_b.webp",
+   "w": 322,
+   "h": 642,
+   "foot": [
+    87,
+    624
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a Benedictine monk in a black wool habit and cowl"
+  },
+  "merchant": {
+   "file": "sprites/merchant.webp",
+   "w": 343,
+   "h": 673,
+   "foot": [
+    105,
+    655
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "prosperous merchant in green tunic and surcoat with purse and wax tablet"
+  },
+  "merchant_b": {
+   "file": "sprites/merchant_b.webp",
+   "w": 334,
+   "h": 673,
+   "foot": [
+    102,
+    655
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a prosperous merchant in a long green wool tunic under a sleeveless darker"
+  },
+  "sergeant_spear": {
+   "file": "sprites/sergeant_spear.webp",
+   "w": 304,
+   "h": 729,
+   "foot": [
+    80,
+    709
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a sergeant in a quilted off-white gambeson and a wide-brimmed iron kettle hat"
+  },
+  "sergeant_spear_b": {
+   "file": "sprites/sergeant_spear_b.webp",
+   "w": 325,
+   "h": 725,
+   "foot": [
+    93,
+    706
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a sergeant in a quilted off-white gambeson and a wide-brimmed iron kettle hat"
+  },
+  "shepherd": {
+   "file": "sprites/shepherd.webp",
+   "w": 383,
+   "h": 647,
+   "foot": [
+    136,
+    629
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "shepherd in a hooded cloak with a spade-tipped crook and satchel"
+  },
+  "shepherd_b": {
+   "file": "sprites/shepherd_b.webp",
+   "w": 357,
+   "h": 646,
+   "foot": [
+    125,
+    628
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a shepherd in a hooded brown wool cloak with a crook"
+  },
+  "water_carrier": {
+   "file": "sprites/water_carrier.webp",
+   "w": 450,
+   "h": 638,
+   "foot": [
+    148,
+    620
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a water carrier with two wooden buckets hanging from a shoulder yoke"
+  },
+  "water_carrier_b": {
+   "file": "sprites/water_carrier_b.webp",
+   "w": 457,
+   "h": 638,
+   "foot": [
+    153,
+    620
+   ],
+   "kind": "person",
+   "sheet": "W1-walkers-town",
+   "desc": "a water carrier with two wooden buckets hanging from a shoulder yoke"
+  },
+  "mule_packed": {
+   "file": "sprites/mule_packed.webp",
+   "w": 537,
+   "h": 540,
+   "foot": [
+    133,
+    524
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "dark bay pack mule with panniers, wineskins and a bell"
+  },
+  "mule_packed_b": {
+   "file": "sprites/mule_packed_b.webp",
+   "w": 543,
+   "h": 542,
+   "foot": [
+    135,
+    526
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "a dark bay mule with a wooden packsaddle carrying two wicker panniers and two"
+  },
+  "hay_cart": {
+   "file": "sprites/hay_cart.webp",
+   "w": 638,
+   "h": 563,
+   "foot": [
+    166,
+    547
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "two-wheeled hay cart pulled by a mule, carter walking beside"
+  },
+  "hay_cart_b": {
+   "file": "sprites/hay_cart_b.webp",
+   "w": 621,
+   "h": 576,
+   "foot": [
+    157,
+    559
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "a two-wheeled farm cart with spoked wooden wheels piled high with hay"
+  },
+  "palfrey_rider": {
+   "file": "sprites/palfrey_rider.webp",
+   "w": 565,
+   "h": 677,
+   "foot": [
+    180,
+    658
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "traveller in a hooded cloak riding a bay palfrey"
+  },
+  "palfrey_rider_b": {
+   "file": "sprites/palfrey_rider_b.webp",
+   "w": 558,
+   "h": 666,
+   "foot": [
+    175,
+    648
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "a traveller in a hooded cloak riding a bay ambling palfrey with a high-backed"
+  },
+  "donkey_rider": {
+   "file": "sprites/donkey_rider.webp",
+   "w": 532,
+   "h": 626,
+   "foot": [
+    261,
+    608
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "old peasant riding sideways on a grey donkey with a sack"
+  },
+  "donkey_rider_b": {
+   "file": "sprites/donkey_rider_b.webp",
+   "w": 524,
+   "h": 637,
+   "foot": [
+    258,
+    619
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "an old peasant riding sideways on a grey donkey with a dark cross on its"
+  },
+  "goose_girl": {
+   "file": "sprites/goose_girl.webp",
+   "w": 540,
+   "h": 514,
+   "foot": [
+    305,
+    499
+   ],
+   "kind": "person",
+   "sheet": "W2-walkers-animals",
+   "desc": "a barefoot girl in an undyed wool dress with a willow switch walking behind"
+  },
+  "goose_girl_b": {
+   "file": "sprites/goose_girl_b.webp",
+   "w": 554,
+   "h": 516,
+   "foot": [
+    331,
+    501
+   ],
+   "kind": "person",
+   "sheet": "W2-walkers-animals",
+   "desc": "a barefoot girl in an undyed wool dress with a willow switch walking behind"
+  },
+  "dominican_friar": {
+   "file": "sprites/dominican_friar.webp",
+   "w": 339,
+   "h": 560,
+   "foot": [
+    106,
+    544
+   ],
+   "kind": "person",
+   "sheet": "W2-walkers-animals",
+   "desc": "Dominican friar in white habit and black cloak with staff and book"
+  },
+  "dominican_friar_b": {
+   "file": "sprites/dominican_friar_b.webp",
+   "w": 334,
+   "h": 576,
+   "foot": [
+    106,
+    559
+   ],
+   "kind": "person",
+   "sheet": "W2-walkers-animals",
+   "desc": "a Dominican friar in a white tunic and white scapular under a black hooded"
+  },
+  "nun": {
+   "file": "sprites/nun.webp",
+   "w": 323,
+   "h": 580,
+   "foot": [
+    120,
+    563
+   ],
+   "kind": "person",
+   "sheet": "W2-walkers-animals",
+   "desc": "a nun in a black habit with a black veil over a white wimple"
+  },
+  "nun_b": {
+   "file": "sprites/nun_b.webp",
+   "w": 337,
+   "h": 584,
+   "foot": [
+    123,
+    567
+   ],
+   "kind": "person",
+   "sheet": "W2-walkers-animals",
+   "desc": "a nun in a black habit with a black veil over a white wimple"
+  },
+  "knight_mounted": {
+   "file": "sprites/knight_mounted.webp",
+   "w": 535,
+   "h": 672,
+   "foot": [
+    154,
+    654
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "mounted knight in mail and great helm, gold shield with red chevron"
+  },
+  "knight_mounted_b": {
+   "file": "sprites/knight_mounted_b.webp",
+   "w": 550,
+   "h": 689,
+   "foot": [
+    170,
+    670
+   ],
+   "kind": "animal",
+   "sheet": "W2-walkers-animals",
+   "desc": "a mounted knight in full mail with a white sleeveless surcoat"
+  },
+  "noble_lady": {
+   "file": "sprites/noble_lady.webp",
+   "w": 410,
+   "h": 670,
+   "foot": [
+    160,
+    652
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "a noblewoman in a long scarlet gown and a blue mantle lined with"
+  },
+  "old_woman_spinning": {
+   "file": "sprites/old_woman_spinning.webp",
+   "w": 356,
+   "h": 631,
+   "foot": [
+    150,
+    613
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "old woman in a brown gown spinning with distaff and drop spindle"
+  },
+  "old_woman_spinning_b": {
+   "file": "sprites/old_woman_spinning_b.webp",
+   "w": 379,
+   "h": 630,
+   "foot": [
+    156,
+    612
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "an old woman in a dark brown gown and white headcloth spinning wool as she"
+  },
+  "boy_running": {
+   "file": "sprites/boy_running.webp",
+   "w": 491,
+   "h": 570,
+   "foot": [
+    148,
+    554
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "barefoot boy in a russet tunic running, arms outstretched"
+  },
+  "boy_running_b": {
+   "file": "sprites/boy_running_b.webp",
+   "w": 471,
+   "h": 564,
+   "foot": [
+    148,
+    548
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "a barefoot boy in a short russet-brown tunic and linen braies running with"
+  },
+  "fishwife": {
+   "file": "sprites/fishwife.webp",
+   "w": 324,
+   "h": 705,
+   "foot": [
+    144,
+    686
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "a fishwife in a grey gown with a white apron and headcloth carrying a flat"
+  },
+  "pig_running": {
+   "file": "sprites/pig_running.webp",
+   "w": 591,
+   "h": 377,
+   "foot": [
+    245,
+    364
+   ],
+   "kind": "animal",
+   "sheet": "W3-walkers-more",
+   "desc": "dark bristly long-legged medieval pig trotting"
+  },
+  "pig_running_b": {
+   "file": "sprites/pig_running_b.webp",
+   "w": 612,
+   "h": 371,
+   "foot": [
+    238,
+    359
+   ],
+   "kind": "animal",
+   "sheet": "W3-walkers-more",
+   "desc": "a dark, bristly, long-legged medieval pig with a long snout and a ridge of"
+  },
+  "guard_dog": {
+   "file": "sprites/guard_dog.webp",
+   "w": 623,
+   "h": 445,
+   "foot": [
+    239,
+    431
+   ],
+   "kind": "animal",
+   "sheet": "W3-walkers-more",
+   "desc": "a large shaggy white Pyrenean flock-guarding dog wearing a spiked iron collar"
+  },
+  "guard_dog_b": {
+   "file": "sprites/guard_dog_b.webp",
+   "w": 617,
+   "h": 444,
+   "foot": [
+    249,
+    430
+   ],
+   "kind": "animal",
+   "sheet": "W3-walkers-more",
+   "desc": "a large shaggy white Pyrenean flock-guarding dog wearing a spiked iron collar"
+  },
+  "banner_bearer": {
+   "file": "sprites/banner_bearer.webp",
+   "w": 302,
+   "h": 768,
+   "foot": [
+    88,
+    748
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "sergeant carrying a blue banner with gold fleurs-de-lis"
+  },
+  "knight_foot": {
+   "file": "sprites/knight_foot.webp",
+   "w": 327,
+   "h": 622,
+   "foot": [
+    103,
+    605
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "knight on foot in mail hauberk and nasal helm with sword and shield"
+  },
+  "knight_foot_b": {
+   "file": "sprites/knight_foot_b.webp",
+   "w": 322,
+   "h": 638,
+   "foot": [
+    80,
+    620
+   ],
+   "kind": "person",
+   "sheet": "W3-walkers-more",
+   "desc": "a knight on foot in a knee-length mail hauberk"
+  },
+  "banner_pole_france": {
+   "file": "sprites/banner_pole_france.webp",
+   "w": 406,
+   "h": 566,
+   "foot": [
+    29,
+    550
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a short wooden flagpole with a small tall rectangular cloth banner nailed"
+  },
+  "banner_pole_toulouse": {
+   "file": "sprites/banner_pole_toulouse.webp",
+   "w": 394,
+   "h": 562,
+   "foot": [
+    31,
+    546
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same short flagpole and banner"
+  },
+  "banner_pole_trencavel": {
+   "file": "sprites/banner_pole_trencavel.webp",
+   "w": 412,
+   "h": 561,
+   "foot": [
+    54,
+    545
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same short flagpole and banner"
+  },
+  "banner_pole_foix": {
+   "file": "sprites/banner_pole_foix.webp",
+   "w": 404,
+   "h": 558,
+   "foot": [
+    42,
+    542
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same short flagpole and banner"
+  },
+  "bell_frame": {
+   "file": "sprites/bell_frame.webp",
+   "w": 542,
+   "h": 569,
+   "foot": [
+    271,
+    284
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "flat": true,
+   "desc": "a small weathered oak bell frame seen exactly from the front"
+  },
+  "ducklings": {
+   "file": "sprites/ducklings.webp",
+   "w": 767,
+   "h": 296,
+   "foot": [
+    696,
+    285
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a brown mallard duck swimming followed by five small fluffy ducklings in a"
+  },
+  "duck_dabbling": {
+   "file": "sprites/duck_dabbling.webp",
+   "w": 347,
+   "h": 412,
+   "foot": [
+    175,
+    399
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a mallard drake upended dabbling"
+  },
+  "sentry_sleeping": {
+   "file": "sprites/sentry_sleeping.webp",
+   "w": 476,
+   "h": 768,
+   "foot": [
+    207,
+    748
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a sergeant in a quilted gambeson and an iron kettle hat sitting asleep on a"
+  },
+  "sentry_angry": {
+   "file": "sprites/sentry_angry.webp",
+   "w": 357,
+   "h": 682,
+   "foot": [
+    142,
+    663
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same sergeant standing up"
+  },
+  "cat_bread": {
+   "file": "sprites/cat_bread.webp",
+   "w": 503,
+   "h": 468,
+   "foot": [
+    337,
+    454
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a tabby cat trotting away with a small round bread roll in its mouth"
+  },
+  "capstan_a": {
+   "file": "sprites/capstan_a.webp",
+   "w": 764,
+   "h": 522,
+   "foot": [
+    414,
+    507
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "two labourers in tunics and coifs leaning forward to push the long wooden bars"
+  },
+  "capstan_b": {
+   "file": "sprites/capstan_b.webp",
+   "w": 673,
+   "h": 532,
+   "foot": [
+    459,
+    516
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same two labourers and capstan a step further round"
+  },
+  "wine_cart": {
+   "file": "sprites/wine_cart.webp",
+   "w": 700,
+   "h": 475,
+   "foot": [
+    563,
+    460
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a two-wheeled cart loaded with oak wine casks with split-wood hoops"
+  },
+  "grain_cart": {
+   "file": "sprites/grain_cart.webp",
+   "w": 665,
+   "h": 507,
+   "foot": [
+    518,
+    492
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a two-wheeled cart loaded with fat sacks of grain"
+  },
+  "cloth_packhorse": {
+   "file": "sprites/cloth_packhorse.webp",
+   "w": 647,
+   "h": 467,
+   "foot": [
+    536,
+    453
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a packhorse loaded with bolts of dyed woollen cloth in woad blue"
+  },
+  "knight_peeking": {
+   "file": "sprites/knight_peeking.webp",
+   "w": 548,
+   "h": 577,
+   "foot": [
+    288,
+    560
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a knight in mail and a nasal helm crouching and peeking nervously from behind"
+  },
+  "heron_strike": {
+   "file": "sprites/heron_strike.webp",
+   "w": 546,
+   "h": 565,
+   "foot": [
+    442,
+    549
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a grey heron with its neck stretched down"
+  },
+  "inn_toast_a": {
+   "file": "sprites/inn_toast_a.webp",
+   "w": 639,
+   "h": 573,
+   "foot": [
+    440,
+    557
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two travellers sitting on a rough wooden bench at a trestle table outside an"
+  },
+  "inn_toast_b": {
+   "file": "sprites/inn_toast_b.webp",
+   "w": 622,
+   "h": 605,
+   "foot": [
+    421,
+    588
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "the same two travellers on the bench raising their wooden cups high in a toast"
+  },
+  "women_chatting": {
+   "file": "sprites/women_chatting.webp",
+   "w": 494,
+   "h": 608,
+   "foot": [
+    256,
+    591
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two village women in headcloths chatting"
+  },
+  "children_knucklebones": {
+   "file": "sprites/children_knucklebones.webp",
+   "w": 594,
+   "h": 395,
+   "foot": [
+    285,
+    382
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two children sitting on the ground playing knucklebones"
+  },
+  "hermit_sweeping": {
+   "file": "sprites/hermit_sweeping.webp",
+   "w": 477,
+   "h": 636,
+   "foot": [
+    292,
+    618
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "an old bearded hermit in a patched brown robe sweeping with a twig broom"
+  },
+  "onlookers_pointing": {
+   "file": "sprites/onlookers_pointing.webp",
+   "w": 509,
+   "h": 641,
+   "foot": [
+    267,
+    623
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two peasants: one pointing into the distance"
+  },
+  "lily_pads": {
+   "file": "sprites/lily_pads.webp",
+   "w": 620,
+   "h": 509,
+   "foot": [
+    310,
+    254
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "flat": true,
+   "desc": "seen from above: a cluster of floating water-lily pads with two white flowers"
+  },
+  "pilgrim_kneeling": {
+   "file": "sprites/pilgrim_kneeling.webp",
+   "w": 496,
+   "h": 600,
+   "foot": [
+    183,
+    583
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a pilgrim in a grey-brown cloak and broad hat kneeling in prayer"
+  },
+  "baker_boy": {
+   "file": "sprites/baker_boy.webp",
+   "w": 312,
+   "h": 652,
+   "foot": [
+    225,
+    634
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a baker's boy walking with a flat board of round loaves balanced on his head"
+  },
+  "baker_boy_b": {
+   "file": "sprites/baker_boy_b.webp",
+   "w": 322,
+   "h": 651,
+   "foot": [
+    222,
+    633
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "the same baker's boy in the next walking step"
+  },
+  "frog": {
+   "file": "sprites/frog.webp",
+   "w": 281,
+   "h": 257,
+   "foot": [
+    141,
+    247
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a small green frog sitting"
+  },
+  "lizard_stone": {
+   "file": "sprites/lizard_stone.webp",
+   "w": 593,
+   "h": 411,
+   "foot": [
+    240,
+    398
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a small green lizard basking on a flat grey stone"
+  },
+  "dragonflies": {
+   "file": "sprites/dragonflies.webp",
+   "w": 648,
+   "h": 397,
+   "foot": [
+    287,
+    384
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "three small blue dragonflies in flight"
+  },
+  "monk_reading": {
+   "file": "sprites/monk_reading.webp",
+   "w": 481,
+   "h": 557,
+   "foot": [
+    262,
+    541
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a Benedictine monk in a black habit sitting on a stone bench reading a large"
+  },
+  "porter_bread": {
+   "file": "sprites/porter_bread.webp",
+   "w": 600,
+   "h": 568,
+   "foot": [
+    364,
+    552
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a monastery porter in a black habit handing a round loaf to a kneeling beggar"
+  },
+  "cathedral": {
+   "file": "sprites/cathedral.webp",
+   "w": 1224,
+   "h": 1188,
+   "foot": [
+    612,
+    1129
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "Romanesque cathedral of Saint-Nazaire as in 1220, with cloister"
+  },
+  "monastery_complex": {
+   "file": "sprites/monastery_complex.webp",
+   "w": 1383,
+   "h": 1209,
+   "foot": [
+    830,
+    1149
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "Cistercian abbey: church, cloister, ranges and gatehouse"
+  },
+  "castle": {
+   "file": "sprites/castle.webp",
+   "w": 1343,
+   "h": 1306,
+   "foot": [
+    752,
+    1254
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "compact stone castle: square keep, curtain wall, gate towers, hall"
+  },
+  "inn": {
+   "file": "sprites/inn.webp",
+   "w": 1342,
+   "h": 983,
+   "foot": [
+    738,
+    934
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "roadside inn with gallery, stable, well and a pine-bush sign"
   }
  },
  "textures": {
-  "meadow": {
-   "file": "textures/meadow.webp",
-   "small": "textures/meadow@512.webp",
-   "size": 1024
-  },
-  "meadow_flowers": {
-   "file": "textures/meadow_flowers.webp",
-   "small": "textures/meadow_flowers@512.webp",
-   "size": 1024
-  },
-  "dirt_road": {
-   "file": "textures/dirt_road.webp",
-   "small": "textures/dirt_road@512.webp",
-   "size": 1024
-  },
-  "town_lane": {
-   "file": "textures/town_lane.webp",
-   "small": "textures/town_lane@512.webp",
-   "size": 1024
-  },
-  "wall_walk": {
-   "file": "textures/wall_walk.webp",
-   "small": "textures/wall_walk@512.webp",
-   "size": 1024
-  },
   "roof_tiles": {
    "file": "textures/roof_tiles.webp",
    "small": "textures/roof_tiles@512.webp",
@@ -2021,11 +2634,6 @@
   "wheat_ripe": {
    "file": "textures/wheat_ripe.webp",
    "small": "textures/wheat_ripe@512.webp",
-   "size": 1024
-  },
-  "riverbed": {
-   "file": "textures/riverbed.webp",
-   "small": "textures/riverbed@512.webp",
    "size": 1024
   },
   "vineyard": {
@@ -2071,6 +2679,61 @@
   "woad": {
    "file": "textures/woad.webp",
    "small": "textures/woad@512.webp",
+   "size": 1024
+  },
+  "meadow": {
+   "file": "textures/meadow.webp",
+   "small": "textures/meadow@512.webp",
+   "size": 2048
+  },
+  "meadow_flowers": {
+   "file": "textures/meadow_flowers.webp",
+   "small": "textures/meadow_flowers@512.webp",
+   "size": 2048
+  },
+  "dirt_road": {
+   "file": "textures/dirt_road.webp",
+   "small": "textures/dirt_road@512.webp",
+   "size": 1024
+  },
+  "town_lane": {
+   "file": "textures/town_lane.webp",
+   "small": "textures/town_lane@512.webp",
+   "size": 1024
+  },
+  "wall_walk": {
+   "file": "textures/wall_walk.webp",
+   "small": "textures/wall_walk@512.webp",
+   "size": 1024
+  },
+  "river_water": {
+   "file": "textures/river_water.webp",
+   "small": "textures/river_water@512.webp",
+   "size": 1024
+  },
+  "wall_face_outer": {
+   "file": "textures/wall_face_outer.webp",
+   "small": "textures/wall_face_outer@512.webp",
+   "size": 1024
+  },
+  "wall_face_inner": {
+   "file": "textures/wall_face_inner.webp",
+   "small": "textures/wall_face_inner@512.webp",
+   "size": 1024
+  },
+  "riverbed": {
+   "file": "textures/riverbed.webp",
+   "small": "textures/riverbed@512.webp",
+   "size": 1024
+  },
+  "river_bank": {
+   "file": "textures/river_bank.webp",
+   "small": "textures/river_bank@512.webp",
+   "size": 1024
+  },
+  "meadow_rough": {
+   "file": "textures/meadow_rough.webp",
+   "small": "textures/meadow_rough@512.webp",
    "size": 1024
   }
  }

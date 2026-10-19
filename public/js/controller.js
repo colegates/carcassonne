@@ -173,6 +173,8 @@ function castleIcon() {
 }
 
 const miniIcons = new Map();
+// the photographed pieces arrived: redraw the chips' little figures and castles
+window.addEventListener('pieces-ready', () => { castleURL = null; miniIcons.clear(); if (state) renderPlayers(); });
 function miniIcon(color, kind) {
   const id = `${color}:${kind}`;
   if (!miniIcons.has(id)) miniIcons.set(id, pieceIcon(color, 16, kind).toDataURL());
