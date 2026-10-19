@@ -38,7 +38,8 @@ function drawHome() {
   $('btn-rejoin').hidden = !online;
   if (online) $('btn-rejoin').textContent = `Rejoin Online Game ${online}`;
 }
-onScreen('home', drawHome);
+let updateReady = false; // a new version is waiting (see the service worker below)
+onScreen('home', () => { if (updateReady) location.reload(); else drawHome(); });
 window.addEventListener('resize', () => { if ($('home').classList.contains('active')) { drawHome(); homeVideo(true); } });
 
 $('btn-new').addEventListener('click', () => { sfx.tap(); openSetup(); });
@@ -104,8 +105,19 @@ if (joinMatch) {
   history.replaceState(null, '', location.pathname);
   openJoin(joinMatch[1].toUpperCase());
 }
+// A home-screen app can stay open for days, so look for a new version whenever it
+// comes back to the front, and switch to it on the home screen (never mid-game:
+// a local game is saved anyway, and an online one rejoins, but a jump would jar)
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return; // the first install, not an update
+    updateReady = true;
+    if ($('home').classList.contains('active')) location.reload();
+  });
 }
 // debugging / automated testing hook
 window.__carc = {
