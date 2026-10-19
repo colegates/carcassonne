@@ -48,9 +48,13 @@ MULTI = {
     'woad_stall', 'bee_bench', 'ploughman_oxen_ard', 'hay_cart', 'straw_target',
     'garrigue_clump', 'bear_leader', 'dyer', 'mason', 'carpenter', 'laundry_drying',
     'wayside_cross', 'lay_brother_beekeeper', 'money_changer', 'spice_salt_stall', 'cooper',
+    'ducklings', 'dragonflies', 'lily_pads', 'children_knucklebones', 'inn_toast_a', 'inn_toast_b',
+    'women_chatting', 'onlookers_pointing', 'porter_bread', 'capstan_a', 'capstan_b', 'wine_cart',
+    'grain_cart', 'cloth_packhorse', 'pilgrim_kneeling', 'knight_peeking', 'sentry_sleeping', 'baker_boy',
+    'monastery_complex', 'castle', 'inn', 'cathedral', 'heron_strike',
 }
 # Lying flat on the ground, or drawn flat face-on for rotation/waving: foot = centre.
-FLAT_EXTRA = {'fairy_ring', 'fishpond'}
+FLAT_EXTRA = {'fairy_ring', 'fishpond', 'lily_pads'}
 
 # Hand-written descriptions where the prompt's first clause reads badly.
 DESC = {
@@ -468,7 +472,7 @@ def process_entry(entry, prompts, out_dir):
         crop[..., 3] = np.where(crop[..., 3] <= 3, 0, crop[..., 3])
         crop[..., :3] = bleed_colour(crop[..., :3], crop[..., 3])
         h, w = crop.shape[:2]
-        s = min(1.0, CAP / max(h, w))
+        s = min(1.0, entry.get('cap', CAP) / max(h, w))
         if s < 1.0:
             size = (max(1, round(w * s)), max(1, round(h * s)))
             crop = resize_premul(crop, size)
@@ -478,6 +482,9 @@ def process_entry(entry, prompts, out_dir):
         desc = descs.get(item_id, '')
         flat = desc.startswith('flat, face-on') or base_id(item_id) in FLAT_EXTRA
         foot = foot_point(crop[..., 3], flat)
+        if item_id in entry.get('foot', {}):  # [fx, fy] fractions: where the building stands
+            fx, fy = entry['foot'][item_id]
+            foot = [int(round(fx * w)), int(round(fy * h))]
         cx = upper_centroid(crop[..., 3])
         centroids[item_id] = (cx, foot, s)
         base = base_id(item_id)

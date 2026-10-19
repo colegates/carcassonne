@@ -194,7 +194,9 @@ function buildScene(id, rot, variant) {
         break;
       }
     }
-    const frame = best && (rnd() < 0.8 || variant === 0) ? avail('pierriere_frame') || avail('trabuquet_frame') : null;
+    // the big counterweight trabuquet now and then (it needs its capstan crew), else the pierrière
+    const big = A.hasSprite('trabuquet_frame') && A.hasSprite('trabuquet_arm') && A.hasSprite('capstan_a') && rnd() < 0.35;
+    const frame = best && (rnd() < 0.8 || variant === 0) ? (big ? 'trabuquet_frame' : avail('pierriere_frame') || avail('trabuquet_frame')) : null;
     if (frame) {
       const o = make(frame, best.x, best.y + 0.02, { tag: 'pierriere', flip: best.tx > best.x });
       put(o, 0.05);
@@ -495,6 +497,35 @@ function buildScene(id, rot, variant) {
     }
   }
 
+  // water lilies on the lake and the inn ponds
+  if (A.hasSprite('lily_pads')) {
+    const pads = [];
+    if (lay.lake) { const [lx, ly, rx, ry] = lay.lake; pads.push([lx + rx * 0.45, ly - ry * 0.35, 1], [lx - rx * 0.5, ly + ry * 0.3, 0.8]); }
+    for (const [, , lx, ly] of lay.inns) pads.push([lx + 0.03, ly, 0.6]);
+    for (const [u, v, sc] of pads) {
+      const [x, y] = R(u, v);
+      if (x < 0.04 || x > 0.96 || y < 0.04 || y > 0.96 || rectHitsKeep(x, y, 0.03, 0.02, -0.01)) continue;
+      statics.push({ ...make('lily_pads', x, y, { shadow: false, scale: sc, flip: rnd() < 0.5 }), sort: -0.05 });
+    }
+  }
+  // a merchant's stall of the town's trade beside its goods sign (Traders & Builders)
+  for (const sy of plan.symbols) {
+    if (sy.kind !== 'goods') continue;
+    const stall = avail({ wine: 'wine_stall', grain: 'grain_stall', cloth: 'cloth_stall' }[sy.goods] || 'wine_stall');
+    if (!stall) continue;
+    const [sx0, sy0] = R(sy.x, sy.y);
+    for (const [dx, dy] of [[0.11, 0.05], [-0.11, 0.05], [0.0, 0.12], [0.11, -0.06], [-0.11, -0.06]]) {
+      const x = sx0 + dx, y = sy0 + dy;
+      if (x < 0.06 || x > 0.94 || y < 0.08 || y > 0.96) continue;
+      const fi = labelAt(sx0, sy0);
+      if (labelAt(x, y) !== fi && typeAt(x, y) !== 'field') continue;
+      const o = make(stall, x, y, { tag: 'stall', flip: dx > 0, scale: 1.1 });
+      if (rectHitsKeep(x, y, o.w * 0.7, o.h * 0.7)) continue;
+      // make room among the houses: drop any that stand where the stall goes
+      for (let i = statics.length - 1; i >= 0; i--) { const q = statics[i]; if (q.tag === 'house' && Math.abs(q.x - x) < (q.w + o.w) * 0.42 && Math.abs(q.y - y) < 0.05) statics.splice(i, 1); }
+      statics.push(o); break;
+    }
+  }
   statics.sort((a, b) => a.y - b.y);
   const lakes = [];
   if (lay.lake) { const [x, y] = R(lay.lake[0], lay.lake[1]); lakes.push({ x, y, rx: rot % 2 ? lay.lake[3] : lay.lake[2], ry: rot % 2 ? lay.lake[2] : lay.lake[3] }); }

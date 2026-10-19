@@ -525,7 +525,7 @@ export class MinisRenderer {
 
   // A square picture of a tile (no overhang) for thumbnails; null until it is ready.
   thumb(id, size, r, sync = false) {
-    if (!this.active()) return null;
+    if (!this.active()) return A.MINIS_OFF ? null : A.atlasThumb(id, r); // (the baked picture while loading)
     const res = bucket(Math.max(128, size * 1.3));
     const tk = `t|${id}|${r}|${res}`;
     const have = cacheGet(tk);
@@ -537,7 +537,7 @@ export class MinisRenderer {
       c = cacheGet(ckey(id, r, 0, res));
       if (!c) request(ckey(id, r, 0, res), compositeJob(id, r, 0, res));
     }
-    if (!c) { this.view.dirty = true; return null; }
+    if (!c) { this.view.dirty = true; return A.atlasThumb(id, r); }
     const out = document.createElement('canvas'); out.width = out.height = res;
     out.getContext('2d').drawImage(c, MX * res, MT * res, res, res, 0, 0, res, res);
     cachePut(tk, out, res * res * 4);

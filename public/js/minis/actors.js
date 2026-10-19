@@ -281,9 +281,31 @@ export function lordAt(tx, ty) {
 function flag(x, y, lift, lord, seed, o = {}) {
   const ph = (seed % 100) / 10;
   const pole = o.pole || 0.05, fw = o.w || 0.032, fh = o.h || 0.022;
+  const poleId = `banner_pole_${lord}`;
   return {
     lod: o.lod || 1,
     update(t, out) {
+      // the banner miniature on its pole: the cloth ripples in the Cers, the pole stands still
+      if (A.hasSprite(poleId)) {
+        out.push({ x, y, sort: o.sort ?? 0.001, shadow: false, draw: (ctx, X, Y, z) => {
+          const info = A.spriteInfo(poleId);
+          const [w, h] = sizeFor(poleId, o.scale || 1);
+          const W = w * z, Hh = h * z;
+          const img = A.spriteFor(poleId, Hh * 2.5);
+          if (!img || W < 1) return;
+          const fx = info.foot[0] / info.w;
+          const x0 = X - fx * W, y0 = Y - lift * z - Hh;
+          const n = Math.max(3, Math.min(18, Math.round(W / 2.5)));
+          const sw = img.width / n, pole0 = fx + 0.06; // columns left of this belong to the pole
+          for (let i = 0; i < n; i++) {
+            const u0 = i / n;
+            const u = Math.max(0, (u0 + 0.5 / n - pole0) / (1 - pole0));
+            const wave = u > 0 ? (Math.sin(t * 5.5 + ph - u * 4.5) * 0.07 * u + Math.sin(t * 2.1 + ph) * 0.02 * u) * Hh : 0;
+            ctx.drawImage(img, i * sw, 0, sw + 0.6, img.height, x0 + u0 * W, y0 + wave, W / n + 0.4, Hh);
+          }
+        } });
+        return;
+      }
       out.push({ x, y, sort: o.sort ?? 0.001, shadow: false, draw: (ctx, X, Y, z) => {
         const top = Y - (lift + pole) * z;
         ctx.strokeStyle = '#3d3125'; ctx.lineWidth = Math.max(0.8, z * 0.0028);
@@ -630,6 +652,142 @@ function stork(tower, seed) {
   };
 }
 
+
+// ---------- more life: bells, ducks, the sleeping sentry, the big trabuquet ----------
+// A timber bell frame (face-on) whose bell swings for a while every ~40 s, pigeons and all.
+function bellFrame(x, y, seed) {
+  const frame = avail('bell_frame'), bell = avail('bell');
+  if (!frame || !bell) return null;
+  const ph = (seed % 1000) / 25;
+  const [fw, fh] = sizeFor(frame), [bw, bh] = sizeFor(bell, 0.62);
+  return {
+    lod: 1,
+    update(t, out) {
+      const u = (t + ph) % 40;
+      const env = u < 7 ? Math.sin((u / 7) * Math.PI) : 0;
+      const a = Math.sin(u * 4.2) * 0.75 * env;
+      out.push(fig(frame, x, y));
+      out.push({ x, y, sort: 0.0004, shadow: false, draw: (ctx, X, Y, z) => {
+        const img = A.spriteFor(bell, bh * z * 2);
+        if (!img) return;
+        const px = X, py = Y - fh * z * 0.8; // the bearing on the crossbeam
+        ctx.save(); ctx.translate(px, py); ctx.rotate(a);
+        ctx.drawImage(img, -bw * z / 2, -bh * z * 0.06, bw * z, bh * z);
+        ctx.restore();
+        if (env > 0.2) { // the sound: a faint ring spreading
+          const k = (u * 1.3) % 1;
+          ctx.strokeStyle = `rgba(255,240,200,${(0.3 * (1 - k) * env).toFixed(3)})`; ctx.lineWidth = Math.max(0.6, z * 0.0015);
+          ctx.beginPath(); ctx.ellipse(px, py + bh * z * 0.4, (0.02 + k * 0.08) * z, (0.01 + k * 0.035) * z, 0, 0, TAU); ctx.stroke();
+        }
+      } });
+    },
+  };
+}
+// A duck upending to feed now and then, with rings on the water when it rights itself.
+function dabbler(x, y, seed) {
+  const id = avail('duck_dabbling');
+  if (!id) return null;
+  const ph = (seed % 1000) / 50;
+  return {
+    lod: 2,
+    update(t, out) {
+      const u = (t + ph) % 7;
+      if (u < 3) out.push(fig(id, x, y, { shadow: false, lift: Math.sin(u * 3) * 0.0006 }));
+      const k = ((u + 4) % 7) / 2.5;
+      if (k < 1) out.push({ x, y, sort: -0.01, shadow: false, draw: (ctx, X, Y, z) => {
+        ctx.strokeStyle = `rgba(235,242,236,${(0.4 * (1 - k)).toFixed(3)})`; ctx.lineWidth = Math.max(0.5, z * 0.0012);
+        ctx.beginPath(); ctx.ellipse(X, Y, (0.004 + k * 0.012) * z, (0.002 + k * 0.005) * z, 0, 0, TAU); ctx.stroke();
+      } });
+    },
+  };
+}
+// The sleeping sentry: he dozes on his stool, a cat creeps up and makes off with his loaf, he
+// wakes and shakes his fist, then nods off again (32 s).
+function sleepingSentry(x, y, seed, flip) {
+  const sleep = avail('sentry_sleeping'), angry = avail('sentry_angry');
+  if (!sleep) return null;
+  const stalk = avail('cat_stalking'), thief = avail('cat_bread');
+  const ph = (seed % 1000) / 30, d = flip ? -1 : 1;
+  return {
+    lod: 2,
+    update(t, out) {
+      const u = (t + ph) % 32;
+      const awake = angry && u > 21 && u < 25.5;
+      out.push(fig(awake ? angry : sleep, x, y, { flip, lift: awake ? Math.abs(Math.sin(step12(u) * 7)) * 0.0012 : Math.sin(u * 1.6) * 0.0003 }));
+      if (stalk && u > 11 && u < 20) { const k = (u - 11) / 9; out.push(fig(stalk, x + d * (0.07 - 0.05 * k), y + 0.008, { flip: d < 0, lift: 0 })); }
+      if (thief && u >= 20 && u < 25) { const k = (u - 20) / 5; out.push(fig(thief, x + d * (0.02 + 0.12 * k), y + 0.01 + 0.02 * k, { flip: d > 0, alpha: Math.min(1, (1 - k) * 4) })); }
+    },
+  };
+}
+// The big trabuquet: two men walk the capstan as the arm winds down (8 s), the pin is knocked
+// out and the arm whips over, the stone flies to the target.
+function trabuquet(v, seed) {
+  const f = v.frame, arm = 'trabuquet_arm';
+  const capA = avail('capstan_a'), capB = avail('capstan_b') || capA;
+  const fi = A.spriteInfo(f.id);
+  const dirX = v.tx > f.x ? 1 : -1;
+  const fx = fi.foot[0] / fi.w;
+  const pivX = f.x + (f.flip ? -1 : 1) * (0.29 - fx) * f.w, pivLift = f.h * 0.95;
+  const ph = (seed % 1000) / 100, C = 20;
+  return {
+    lod: 1,
+    update(t, out) {
+      const u = (t + ph) % C;
+      // arm angle in its own frame (long end away from the target): 0 = resting upright after the
+      // shot, 1 = wound down, long end on the ground behind
+      let k;
+      if (u < 9) k = smooth(u / 9); else if (u < 11) k = 1; else if (u < 11.5) k = 1 - smooth((u - 11) / 0.5); else k = 0;
+      const ang = -1.25 + k * 1.75;
+      out.push({ x: f.x, y: f.y, sort: 0.0005, shadow: false, draw: (ctx, X, Y, z) => {
+        const ai = A.spriteInfo(arm), img = A.spriteFor(arm, 0.2 * z * 2);
+        if (!img || !ai) return;
+        const W = 0.2 * z, Hh = (W * ai.h) / ai.w;
+        ctx.save(); ctx.translate(X + (pivX - f.x) * z, Y - pivLift * z);
+        if (dirX > 0) ctx.scale(-1, 1);
+        ctx.rotate(ang + 0.214);
+        ctx.drawImage(img, -0.33 * W, -0.12 * Hh, W, Hh);
+        ctx.restore();
+      } });
+      if (capA) out.push(fig(u < 9 ? (Math.floor(u * 1.6) % 2 ? capB : capA) : capA, f.x - dirX * 0.07, f.y + 0.018, { flip: dirX > 0 }));
+      if (u >= 11.4 && u < 13.2) {
+        const q = (u - 11.4) / 1.8;
+        const sx0 = pivX + dirX * 0.05, x = sx0 + (v.tx - sx0) * q, y = f.y + (v.ty - f.y) * q;
+        const h = pivLift + 0.1 + Math.sin(q * Math.PI) * 0.34 - pivLift * q;
+        out.push({ x, y, over: true, shadow: false, draw: (ctx, X, Y, z) => {
+          ctx.fillStyle = 'rgba(20,15,5,0.2)'; ctx.beginPath(); ctx.ellipse(X + h * 0.3 * z, Y + h * 0.1 * z, z * 0.006, z * 0.003, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = '#7d776c'; ctx.beginPath(); ctx.arc(X, Y - h * z, Math.max(1, z * 0.0055), 0, TAU); ctx.fill();
+        } });
+      }
+      if (u >= 13.2 && u < 16 && v.inTile) {
+        const q = (u - 13.2) / 2.8;
+        out.push({ x: v.tx, y: v.ty, sort: 0.01, shadow: false, draw: (ctx, X, Y, z) => {
+          for (let i = 0; i < 8; i++) { const a2 = (i / 8) * TAU, dd = (0.008 + q * 0.035) * z; drawPuff(ctx, X + Math.cos(a2) * dd, Y - 0.01 * z + Math.sin(a2) * dd * 0.4 - q * 0.02 * z, (0.009 + q * 0.018) * z, '#cdb88e', 0.55 * (1 - q)); }
+        } });
+      }
+    },
+  };
+}
+// Little ones that only show up close: a frog on a lily pad, dragonflies, a lizard on a stone.
+function dragonflies(x, y, seed) {
+  const r = A.rng(seed);
+  const list = Array.from({ length: 3 }, () => ({ rx: 0.02 + r() * 0.04, ry: 0.01 + r() * 0.02, w: 1.5 + r() * 2, ph: r() * TAU, lift: 0.02 + r() * 0.02 }));
+  return {
+    lod: 3,
+    update(t, out) {
+      out.push({ x, y, over: true, shadow: false, draw: (ctx, X, Y, z) => {
+        for (const b of list) {
+          const a = t * b.w + b.ph + Math.sin(t * 3 + b.ph) * 0.6;
+          const bx = X + Math.cos(a) * b.rx * z, by = Y - b.lift * z + Math.sin(a * 1.7) * b.ry * z;
+          const s = Math.max(1, z * 0.004);
+          ctx.strokeStyle = '#2f5f9a'; ctx.lineWidth = Math.max(0.6, s * 0.35); ctx.beginPath(); ctx.moveTo(bx - s, by); ctx.lineTo(bx + s, by); ctx.stroke();
+          ctx.fillStyle = 'rgba(220,235,250,0.55)'; const fl = Math.sin(t * 40 + b.ph) * s * 0.4;
+          ctx.beginPath(); ctx.ellipse(bx - s * 0.2, by - s * 0.5 + fl * 0.2, s * 0.7, s * 0.25, 0.3, 0, TAU); ctx.ellipse(bx + s * 0.2, by - s * 0.5 - fl * 0.2, s * 0.7, s * 0.25, -0.3, 0, TAU); ctx.fill();
+        }
+      } });
+    },
+  };
+}
+
 // ---------- building a tile's cast ----------
 const cache = new Map();
 export function getActors(key, scene) {
@@ -690,7 +848,7 @@ function buildActors(key, scene) {
   if (scene.towers.length && r() < 0.45) add(stork(scene.towers[Math.floor(r() * scene.towers.length)], seed));
 
   // the vignettes
-  if (scene.vign.treb) add(trebuchet(scene.vign.treb, seed));
+  if (scene.vign.treb) add(scene.vign.treb.frame.id === 'trabuquet_frame' && A.hasSprite('trabuquet_arm') ? trabuquet(scene.vign.treb, seed) : trebuchet(scene.vign.treb, seed));
   if (scene.vign.butts) add(butts(scene.vign.butts, seed));
   for (const o of scene.statics) {
     if (o.tag === 'smithy') {
@@ -807,6 +965,92 @@ function buildActors(key, scene) {
     if (angler && r() < 0.5) add(bankFigure(rv, angler, A.hash(seed, 'angler', i), 'fish'));
     else if (wash && r() < 0.6) add(bankFigure(rv, wash, A.hash(seed, 'wash', i), 'wash'));
   });
+
+  // ---- more life (only where there is room: off the meeple spots and printed symbols)
+  const freeAt = (x, y, rad = 0.03, type = 'field') => x > 0.05 && x < 0.95 && y > 0.08 && y < 0.97 && scene.typeAt(x, y) === type
+    && !scene.keep.some((k) => Math.hypot(k.x - x, k.y - y) < k.r + rad)
+    && !scene.statics.some((o) => o.t === 's' && Math.abs(o.x - x) < o.w * 0.45 + rad * 0.5 && y < o.y + 0.02 && y > o.y - Math.min(0.08, o.h * 0.6));
+  const firstFree = (cands, rad, type) => cands.find(([x, y]) => freeAt(x, y, rad, type)) || null;
+  // the village bell in its timber frame, and two women chatting at the well
+  if (scene.marks.village) {
+    const [cx, cy, vr] = scene.marks.village;
+    const b = firstFree([[cx + vr + 0.05, cy + 0.02], [cx - vr - 0.05, cy + 0.02], [cx, cy + vr + 0.06], [cx, cy - vr - 0.03]], 0.025);
+    if (b) add(bellFrame(b[0], b[1], seed));
+    const w = firstFree([[cx - 0.045, cy + 0.035], [cx + 0.045, cy + 0.035], [cx, cy + 0.05]], 0.01, scene.typeAt(cx, cy));
+    if (w && avail('women_chatting')) add(twoPose('women_chatting', 'women_chatting', w[0], w[1], 3, seed, { bob: 0.0008, bobRate: 2, flip: (seed & 4) > 0 }));
+  }
+  // a pilgrim kneeling at the wayside cross
+  for (const o of scene.statics) if (o.id === 'wayside_cross' && avail('pilgrim_kneeling') && freeAt(o.x + 0.03, o.y + 0.012, 0.01)) { add(twoPose('pilgrim_kneeling', 'pilgrim_kneeling', o.x + 0.03, o.y + 0.012, 4, seed, { flip: true, bob: 0.0006, bobRate: 1.5 })); break; }
+  // travellers toasting on the bench outside the inn
+  for (const o of scene.marks.inns || []) {
+    if (!o.id || !avail('inn_toast_a')) continue;
+    const p2 = firstFree([[o.x + o.w * 0.5, o.y + 0.02], [o.x - o.w * 0.5, o.y + 0.02], [o.x, o.y + 0.05]], 0.02);
+    if (p2) add(twoPose('inn_toast_a', avail('inn_toast_b') || 'inn_toast_a', p2[0], p2[1], 4.5, seed, { split: 0.7, flip: p2[0] < o.x }));
+  }
+  // the sleeping sentry by a tower inside the walls
+  if (scene.towers.length && r() < 0.55) {
+    for (const [, pts] of scene.cityFree) {
+      const near = pts.filter(([x, y]) => scene.towers.some((tw) => tw.tag !== 'joint' && Math.hypot(tw.x - x, tw.y - y) < 0.12 && Math.hypot(tw.x - x, tw.y - y) > 0.04) && !scene.keep.some((k) => Math.hypot(k.x - x, k.y - y) < k.r + 0.03));
+      if (near.length) { const [x, y] = near[Math.floor(r() * near.length)]; add(sleepingSentry(x, y, seed, x > 0.5)); break; }
+    }
+  }
+  // children at knucklebones in a quiet lane
+  if (avail('children_knucklebones') && r() < 0.35) {
+    for (const [, pts] of scene.cityFree) if (pts.length > 8) { const [x, y] = pts[Math.floor(r() * pts.length)]; add(twoPose('children_knucklebones', 'children_knucklebones', x, y, 2, seed, { bob: 0.0005, bobRate: 3, lod: 2 })); break; }
+  }
+  // goods on the move where a town trades in them (Traders & Builders)
+  const goodsSym = scene.symbols.find((sy) => sy.sym.kind === 'goods');
+  if (goodsSym) {
+    const cart = { wine: 'wine_cart', grain: 'grain_cart', cloth: 'cloth_packhorse' }[goodsSym.sym.goods];
+    if (cart && A.hasSprite(cart)) scene.roads.forEach((road, i) => add(roadWalker(road, cart, A.hash(seed, 'goods', i), { speed: 0.017 })));
+  }
+  // the volcano: onlookers point from a safe distance, a hermit sweeps his step regardless
+  if (scene.marks.volcanoAt) {
+    const [vx, vy] = scene.marks.volcanoAt;
+    const a = firstFree([[vx + 0.2, vy + 0.12], [vx - 0.2, vy + 0.12], [vx + 0.2, vy - 0.05], [vx - 0.2, vy - 0.05]], 0.02);
+    if (a && avail('onlookers_pointing')) add(twoPose('onlookers_pointing', 'onlookers_pointing', a[0], a[1], 2.5, seed, { flip: a[0] > vx, bob: 0.001, bobRate: 2 }));
+    const h = firstFree([[vx - 0.22, vy + 0.2], [vx + 0.22, vy + 0.2], [vx, vy + 0.24]], 0.02);
+    if (h && avail('hermit_sweeping')) add(twoPose('hermit_sweeping', 'hermit_sweeping', h[0], h[1], 1.6, seed + 3, { flip: true, bob: 0.0012, bobRate: 4 }));
+  }
+  // where the dragon may come: a brave knight peeking from behind a rock
+  const dragonSym = scene.symbols.find((sy) => sy.sym.kind === 'dragon');
+  if (dragonSym && avail('knight_peeking')) {
+    const [dx, dy] = [dragonSym.x, dragonSym.y];
+    const k2 = firstFree([[dx + 0.13, dy + 0.06], [dx - 0.13, dy + 0.06], [dx, dy + 0.14], [dx + 0.1, dy - 0.1]], 0.02);
+    if (k2) add({ lod: 2, update(t, out) { const u = (t + (seed % 50)) % 6; out.push(fig('knight_peeking', k2[0], k2[1], { flip: k2[0] > dx, lift: u < 4 ? 0 : -0.004 * Math.sin(((u - 4) / 2) * Math.PI), squash: 0 })); } });
+  }
+  // the monastery: a monk reading on a bench, the porter at the gate
+  if (scene.marks.monasteryAt) {
+    const [mx, my, ms] = scene.marks.monasteryAt;
+    const m1 = firstFree([[mx + 0.25 * ms, my + 0.2 * ms], [mx - 0.25 * ms, my + 0.2 * ms], [mx + 0.28 * ms, my]], 0.02);
+    if (m1 && avail('monk_reading')) add(twoPose('monk_reading', 'monk_reading', m1[0], m1[1], 5, seed, { bob: 0.0005, bobRate: 0.6, flip: m1[0] < mx }));
+    const m2 = firstFree([[mx + 0.06 * ms, my + 0.28 * ms], [mx - 0.08 * ms, my + 0.28 * ms]], 0.015);
+    if (m2 && avail('porter_bread')) add(twoPose('porter_bread', 'porter_bread', m2[0], m2[1], 3, seed + 1, { bob: 0.0006, bobRate: 1.4 }));
+    const b = firstFree([[mx - 0.28 * ms, my + 0.05], [mx + 0.3 * ms, my + 0.05]], 0.02);
+    if (b) add(bellFrame(b[0], b[1], seed + 7));
+  }
+  // the water: a mother duck and her ducklings, a dabbling duck, a heron, dragonflies
+  scene.rivers.forEach((rv, i) => {
+    if (avail('ducklings') && r() < 0.55) add(riverCraft(rv, 'ducklings', A.hash(seed, 'ducklings', i), { speed: 0.007, lod: 2 }));
+    const pts = sampleSeg(rv.seg, 24);
+    const p = pts[6 + Math.floor(r() * 12)];
+    if (r() < 0.5) add(dabbler(p.x + p.nx * RIVER_W * 0.15, p.y + p.ny * RIVER_W * 0.15 + 0.006, A.hash(seed, 'dab', i)));
+    const q = pts[4 + Math.floor(r() * 16)], side = r() < 0.5 ? 1 : -1;
+    const hx = q.x + q.nx * side * RIVER_W * 0.6, hy = q.y + q.ny * side * RIVER_W * 0.6;
+    if (avail('heron_strike') && avail('heron') && r() < 0.4 && freeAt(hx, hy, 0.01)) add(twoPose('heron', 'heron_strike', hx, hy, 6, A.hash(seed, 'heron', i), { split: 0.85, flip: q.nx * side > 0 }));
+    add(dragonflies(q.x, q.y, A.hash(seed, 'fly', i)));
+  });
+  for (const lk of scene.lakes) {
+    if (!lk.pond && avail('ducklings')) {
+      const ph = r() * TAU, rx = lk.rx * 0.5, ry = lk.ry * 0.45;
+      add({ lod: 2, update(t, out) { const a = t * 0.06 + ph; out.push(fig('ducklings', lk.x + Math.cos(a) * rx, lk.y + Math.sin(a) * ry + 0.008, { flip: Math.sin(a) < 0, shadow: false, lift: Math.sin(t * 2) * 0.0008 })); } });
+    }
+    if (r() < 0.6) add(dabbler(lk.x - lk.rx * 0.3, lk.y + lk.ry * 0.25, A.hash(seed, 'ldab')));
+    add(dragonflies(lk.x, lk.y, A.hash(seed, 'lfly')));
+  }
+  // a frog on a lily pad and a lizard on a warm stone, for those who look closely
+  for (const o of scene.statics) if (o.id === 'lily_pads' && avail('frog')) { add(twoPose('frog', 'frog', o.x + 0.008, o.y - 0.002, 3, seed, { lod: 3, bob: 0.003, bobRate: 0.4 })); break; }
+  if (avail('lizard_stone') && scene.fieldFree.length > 6 && r() < 0.5) { const [x, y] = scene.fieldFree[Math.floor(r() * scene.fieldFree.length)]; add(twoPose('lizard_stone', 'lizard_stone', x, y, 9, seed, { lod: 3 })); }
   return acts;
 }
 

@@ -21,5 +21,8 @@
  {"name": "W2-walkers-animals_v1", "sheet": "W2-walkers-animals", "raw": "W2-walkers-animals_v1.png", "note": "two walking poses per figure"},
  {"name": "T04-wall-faces-banks_v1", "sheet": "T04-wall-faces-banks", "raw": "T04-wall-faces-banks_v1.png", "note": "face-on curtain wall (outer and town side) for the wall extrusion, a darker riverbed and a wet bank"},
  {"name": "W1-walkers-town_v1", "sheet": "W1-walkers-town", "raw": "W1-walkers-town_v1.png", "note": "two walking poses per figure"},
- {"name": "W3-walkers-more_v1", "sheet": "W3-walkers-more", "raw": "W3-walkers-more_v1.png", "note": "two walking poses per figure (the lady, fishwife and banner bearer second poses do not match, so are left out)", "flip": ["pig_running", "pig_running_b", "guard_dog_b"], "skip": ["noble_lady_b", "fishwife_b", "banner_bearer_b"]}
+ {"name": "W3-walkers-more_v1", "sheet": "W3-walkers-more", "raw": "W3-walkers-more_v1.png", "note": "two walking poses per figure (the lady, fishwife and banner bearer second poses do not match, so are left out)", "flip": ["pig_running", "pig_running_b", "guard_dog_b"], "skip": ["noble_lady_b", "fishwife_b", "banner_bearer_b"]},
+ {"name": "L1-life-banners_v1", "sheet": "P15-life-banners", "raw": "L1-life-banners_v1.png", "note": "tower banners on poles in the four arms, bell frame, ducklings, sleeping sentry, capstan crew, goods carts, the peeking knight"},
+ {"name": "L2-life-vignettes_v1", "sheet": "P16-life-vignettes", "raw": "L2-life-vignettes_v1.png"},
+ {"name": "L3-landmarks-hi_v1", "sheet": "P17-landmarks-hi", "raw": "L3-landmarks-hi_v1.png", "cap": 1400, "note": "cathedral, monastery, castle and inn re-made large for deep zoom", "foot": {"cathedral": [0.5, 0.95], "inn": [0.55, 0.95], "monastery_complex": [0.6, 0.95], "castle": [0.56, 0.96]}}
 ]

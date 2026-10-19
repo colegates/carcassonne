@@ -807,30 +807,6 @@
    "sheet": "P08-landmarks",
    "desc": "small Romanesque parish church with apse and bell-gable"
   },
-  "cathedral": {
-   "file": "sprites/cathedral.webp",
-   "w": 680,
-   "h": 583,
-   "foot": [
-    316,
-    566
-   ],
-   "kind": "building",
-   "sheet": "P08-landmarks",
-   "desc": "Romanesque cathedral of Saint-Nazaire as in 1220, with cloister"
-  },
-  "inn": {
-   "file": "sprites/inn.webp",
-   "w": 622,
-   "h": 543,
-   "foot": [
-    328,
-    527
-   ],
-   "kind": "building",
-   "sheet": "P08-landmarks",
-   "desc": "roadside inn with gallery, stable, well and a pine-bush sign"
-  },
   "farmhouse": {
    "file": "sprites/farmhouse.webp",
    "w": 644,
@@ -842,18 +818,6 @@
    "kind": "building",
    "sheet": "P08-landmarks",
    "desc": "long low farmhouse with thatched barn, walled yard and bread oven"
-  },
-  "castle": {
-   "file": "sprites/castle.webp",
-   "w": 598,
-   "h": 585,
-   "foot": [
-    342,
-    568
-   ],
-   "kind": "building",
-   "sheet": "P08-landmarks",
-   "desc": "compact stone castle: square keep, curtain wall, gate towers, hall"
   },
   "village_well": {
    "file": "sprites/village_well.webp",
@@ -902,18 +866,6 @@
    "kind": "person",
    "sheet": "P08-landmarks",
    "desc": "robbers' hideout: two hooded outlaws behind a bush, lean-to, campfire"
-  },
-  "monastery_complex": {
-   "file": "sprites/monastery_complex.webp",
-   "w": 651,
-   "h": 623,
-   "foot": [
-    405,
-    606
-   ],
-   "kind": "building",
-   "sheet": "P09-monastery-garden",
-   "desc": "Cistercian abbey: church, cloister, ranges and gatehouse"
   },
   "priory_small": {
    "file": "sprites/priory_small.webp",
@@ -2232,6 +2184,440 @@
    "kind": "person",
    "sheet": "W3-walkers-more",
    "desc": "a knight on foot in a knee-length mail hauberk"
+  },
+  "banner_pole_france": {
+   "file": "sprites/banner_pole_france.webp",
+   "w": 406,
+   "h": 566,
+   "foot": [
+    29,
+    550
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a short wooden flagpole with a small tall rectangular cloth banner nailed"
+  },
+  "banner_pole_toulouse": {
+   "file": "sprites/banner_pole_toulouse.webp",
+   "w": 394,
+   "h": 562,
+   "foot": [
+    31,
+    546
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same short flagpole and banner"
+  },
+  "banner_pole_trencavel": {
+   "file": "sprites/banner_pole_trencavel.webp",
+   "w": 412,
+   "h": 561,
+   "foot": [
+    54,
+    545
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same short flagpole and banner"
+  },
+  "banner_pole_foix": {
+   "file": "sprites/banner_pole_foix.webp",
+   "w": 404,
+   "h": 558,
+   "foot": [
+    42,
+    542
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same short flagpole and banner"
+  },
+  "bell_frame": {
+   "file": "sprites/bell_frame.webp",
+   "w": 542,
+   "h": 569,
+   "foot": [
+    271,
+    284
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "flat": true,
+   "desc": "a small weathered oak bell frame seen exactly from the front"
+  },
+  "ducklings": {
+   "file": "sprites/ducklings.webp",
+   "w": 767,
+   "h": 296,
+   "foot": [
+    696,
+    285
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a brown mallard duck swimming followed by five small fluffy ducklings in a"
+  },
+  "duck_dabbling": {
+   "file": "sprites/duck_dabbling.webp",
+   "w": 347,
+   "h": 412,
+   "foot": [
+    175,
+    399
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a mallard drake upended dabbling"
+  },
+  "sentry_sleeping": {
+   "file": "sprites/sentry_sleeping.webp",
+   "w": 476,
+   "h": 768,
+   "foot": [
+    207,
+    748
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a sergeant in a quilted gambeson and an iron kettle hat sitting asleep on a"
+  },
+  "sentry_angry": {
+   "file": "sprites/sentry_angry.webp",
+   "w": 357,
+   "h": 682,
+   "foot": [
+    142,
+    663
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same sergeant standing up"
+  },
+  "cat_bread": {
+   "file": "sprites/cat_bread.webp",
+   "w": 503,
+   "h": 468,
+   "foot": [
+    337,
+    454
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a tabby cat trotting away with a small round bread roll in its mouth"
+  },
+  "capstan_a": {
+   "file": "sprites/capstan_a.webp",
+   "w": 764,
+   "h": 522,
+   "foot": [
+    414,
+    507
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "two labourers in tunics and coifs leaning forward to push the long wooden bars"
+  },
+  "capstan_b": {
+   "file": "sprites/capstan_b.webp",
+   "w": 673,
+   "h": 532,
+   "foot": [
+    459,
+    516
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "the same two labourers and capstan a step further round"
+  },
+  "wine_cart": {
+   "file": "sprites/wine_cart.webp",
+   "w": 700,
+   "h": 475,
+   "foot": [
+    563,
+    460
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a two-wheeled cart loaded with oak wine casks with split-wood hoops"
+  },
+  "grain_cart": {
+   "file": "sprites/grain_cart.webp",
+   "w": 665,
+   "h": 507,
+   "foot": [
+    518,
+    492
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a two-wheeled cart loaded with fat sacks of grain"
+  },
+  "cloth_packhorse": {
+   "file": "sprites/cloth_packhorse.webp",
+   "w": 647,
+   "h": 467,
+   "foot": [
+    536,
+    453
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a packhorse loaded with bolts of dyed woollen cloth in woad blue"
+  },
+  "knight_peeking": {
+   "file": "sprites/knight_peeking.webp",
+   "w": 548,
+   "h": 577,
+   "foot": [
+    288,
+    560
+   ],
+   "kind": "prop",
+   "sheet": "P15-life-banners",
+   "desc": "a knight in mail and a nasal helm crouching and peeking nervously from behind"
+  },
+  "heron_strike": {
+   "file": "sprites/heron_strike.webp",
+   "w": 546,
+   "h": 565,
+   "foot": [
+    442,
+    549
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a grey heron with its neck stretched down"
+  },
+  "inn_toast_a": {
+   "file": "sprites/inn_toast_a.webp",
+   "w": 639,
+   "h": 573,
+   "foot": [
+    440,
+    557
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two travellers sitting on a rough wooden bench at a trestle table outside an"
+  },
+  "inn_toast_b": {
+   "file": "sprites/inn_toast_b.webp",
+   "w": 622,
+   "h": 605,
+   "foot": [
+    421,
+    588
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "the same two travellers on the bench raising their wooden cups high in a toast"
+  },
+  "women_chatting": {
+   "file": "sprites/women_chatting.webp",
+   "w": 494,
+   "h": 608,
+   "foot": [
+    256,
+    591
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two village women in headcloths chatting"
+  },
+  "children_knucklebones": {
+   "file": "sprites/children_knucklebones.webp",
+   "w": 594,
+   "h": 395,
+   "foot": [
+    285,
+    382
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two children sitting on the ground playing knucklebones"
+  },
+  "hermit_sweeping": {
+   "file": "sprites/hermit_sweeping.webp",
+   "w": 477,
+   "h": 636,
+   "foot": [
+    292,
+    618
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "an old bearded hermit in a patched brown robe sweeping with a twig broom"
+  },
+  "onlookers_pointing": {
+   "file": "sprites/onlookers_pointing.webp",
+   "w": 509,
+   "h": 641,
+   "foot": [
+    267,
+    623
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "two peasants: one pointing into the distance"
+  },
+  "lily_pads": {
+   "file": "sprites/lily_pads.webp",
+   "w": 620,
+   "h": 509,
+   "foot": [
+    310,
+    254
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "flat": true,
+   "desc": "seen from above: a cluster of floating water-lily pads with two white flowers"
+  },
+  "pilgrim_kneeling": {
+   "file": "sprites/pilgrim_kneeling.webp",
+   "w": 496,
+   "h": 600,
+   "foot": [
+    183,
+    583
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a pilgrim in a grey-brown cloak and broad hat kneeling in prayer"
+  },
+  "baker_boy": {
+   "file": "sprites/baker_boy.webp",
+   "w": 312,
+   "h": 652,
+   "foot": [
+    225,
+    634
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a baker's boy walking with a flat board of round loaves balanced on his head"
+  },
+  "baker_boy_b": {
+   "file": "sprites/baker_boy_b.webp",
+   "w": 322,
+   "h": 651,
+   "foot": [
+    222,
+    633
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "the same baker's boy in the next walking step"
+  },
+  "frog": {
+   "file": "sprites/frog.webp",
+   "w": 281,
+   "h": 257,
+   "foot": [
+    141,
+    247
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a small green frog sitting"
+  },
+  "lizard_stone": {
+   "file": "sprites/lizard_stone.webp",
+   "w": 593,
+   "h": 411,
+   "foot": [
+    240,
+    398
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a small green lizard basking on a flat grey stone"
+  },
+  "dragonflies": {
+   "file": "sprites/dragonflies.webp",
+   "w": 648,
+   "h": 397,
+   "foot": [
+    287,
+    384
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "three small blue dragonflies in flight"
+  },
+  "monk_reading": {
+   "file": "sprites/monk_reading.webp",
+   "w": 481,
+   "h": 557,
+   "foot": [
+    262,
+    541
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a Benedictine monk in a black habit sitting on a stone bench reading a large"
+  },
+  "porter_bread": {
+   "file": "sprites/porter_bread.webp",
+   "w": 600,
+   "h": 568,
+   "foot": [
+    364,
+    552
+   ],
+   "kind": "prop",
+   "sheet": "P16-life-vignettes",
+   "desc": "a monastery porter in a black habit handing a round loaf to a kneeling beggar"
+  },
+  "cathedral": {
+   "file": "sprites/cathedral.webp",
+   "w": 1224,
+   "h": 1188,
+   "foot": [
+    612,
+    1129
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "Romanesque cathedral of Saint-Nazaire as in 1220, with cloister"
+  },
+  "monastery_complex": {
+   "file": "sprites/monastery_complex.webp",
+   "w": 1383,
+   "h": 1209,
+   "foot": [
+    830,
+    1149
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "Cistercian abbey: church, cloister, ranges and gatehouse"
+  },
+  "castle": {
+   "file": "sprites/castle.webp",
+   "w": 1343,
+   "h": 1306,
+   "foot": [
+    752,
+    1254
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "compact stone castle: square keep, curtain wall, gate towers, hall"
+  },
+  "inn": {
+   "file": "sprites/inn.webp",
+   "w": 1342,
+   "h": 983,
+   "foot": [
+    738,
+    934
+   ],
+   "kind": "building",
+   "sheet": "P17-landmarks-hi",
+   "desc": "roadside inn with gallery, stable, well and a pine-bush sign"
   }
  },
  "textures": {
